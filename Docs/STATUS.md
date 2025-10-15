@@ -4,8 +4,8 @@
 - CI (`.github/workflows/lean_action_ci.yml`) runs `lake build` on every push / PR.
 - Core modules implemented:
   - LoF foundation (`PrimaryAlgebra`, `Reentry`, `HeytingCore`).
-  - Logic layer (`ResiduatedLadder`, `ModalDial`) with breathing ladder.
-  - Bridge scaffolds (`Tensor`, `Graph`, `Clifford`) and identity contracts.
+  - Logic layer (`ResiduatedLadder`, `ModalDial`) with breathing ladder and stage classifier.
+  - Bridge scaffolds (`Tensor`, `Graph`, `Clifford`) plus encode/meet/max lemmas.
 - Tests: compliance lemmas in `lean/HeytingLean/Tests/Compliance.lean` exercise round-trip shadows and dial ladder dimensions.
 - Next milestones:
   1. Enrich transitional ladder with MV/effect/orthomodular semantics.

@@ -12,3 +12,4 @@ import HeytingLean.Bridges.Clifford
 import HeytingLean.Contracts.RoundTrip
 import HeytingLean.Contracts.Examples
 import HeytingLean.Tests.Compliance
+import HeytingLean.Ontology.Primordial

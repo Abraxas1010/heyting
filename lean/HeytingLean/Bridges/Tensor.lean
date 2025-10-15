@@ -68,6 +68,18 @@ noncomputable def logicalShadow (M : Model α) : M.Carrier → α :=
   unfold logicalShadow
   exact interiorized_id (R := M.R) (C := M.contract) a
 
+def pointwiseMin (M : Model α) (v w : M.Carrier) : M.Carrier :=
+  fun i => v i ⊓ w i
+
+def pointwiseMax (M : Model α) (v w : M.Carrier) : M.Carrier :=
+  fun i => v i ⊔ w i
+
+@[simp] lemma encode_inf (M : Model α) (a b : M.R.Omega) :
+    M.encode (a ⊓ b) = M.pointwiseMin (M.encode a) (M.encode b) := by
+  classical
+  funext i
+  simp [encode, pointwiseMin]
+
 end Model
 
 end

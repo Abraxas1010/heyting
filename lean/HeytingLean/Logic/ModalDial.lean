@@ -177,13 +177,35 @@ inductive Stage
 
 /-- Coarsely classify a dial parameter by its dimension. -/
 def stage (P : DialParam α) : Stage :=
-  match P.dimension with
+  stageOfNat P.dimension
+
+def Stage.next : Stage → Stage
+  | Stage.boolean => Stage.heyting
+  | Stage.heyting => Stage.mv
+  | Stage.mv => Stage.effect
+  | Stage.effect => Stage.orthomodular
+  | Stage.orthomodular => Stage.beyond
+  | Stage.beyond => Stage.beyond
+
+def stageOfNat : ℕ → Stage
   | 0 => Stage.boolean
   | 1 => Stage.heyting
   | 2 => Stage.mv
   | 3 => Stage.effect
   | 4 => Stage.orthomodular
   | _ => Stage.beyond
+
+lemma stageOfNat_succ (n : ℕ) :
+    stageOfNat (n + 1) = (stageOfNat n).next := by
+  cases n <;> simp [stageOfNat, Stage.next]
+
+@[simp] lemma stage_base (R : Reentry α) :
+    (base R).stage = Stage.boolean := rfl
+
+@[simp] lemma stage_elevate (P : DialParam α) :
+    (P.elevate).stage = (P.stage).next := by
+  unfold stage
+  simpa [stageOfNat_succ, elevate_dimension, Nat.succ_eq_add_one]
 
 end DialParam
 
