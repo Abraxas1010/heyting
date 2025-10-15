@@ -49,6 +49,37 @@ lemma abduction_iff_induction (a b c : R.Omega) :
   ((deduction_iff_abduction (R := R) a b c).symm).trans
     (deduction_iff_induction (R := R) a b c)
 
+@[simp] lemma deduction_euler_boundary_left (b c : R.Omega) :
+    deduction (R := R) R.eulerBoundary b c ↔
+      R.eulerBoundary ⊓ b ≤ c := Iff.rfl
+
+@[simp] lemma abduction_euler_boundary_left (b c : R.Omega) :
+    abduction (R := R) R.eulerBoundary b c ↔ b ≤ R.eulerBoundary ⇨ c :=
+  Iff.rfl
+
+lemma induction_le_from_euler (b c : R.Omega) :
+    induction (R := R) R.eulerBoundary b c ↔
+      R.eulerBoundary ≤ b ⇨ c := Iff.rfl
+
+lemma eulerBoundary_collapse :
+    deduction (R := R) R.eulerBoundary
+      (R.eulerBoundary ⇨ (⊥ : R.Omega)) ⊥ :=
+  by
+    have := Logic.double_neg_collapse (R := R) (a := R.eulerBoundary)
+    simpa using this
+
+lemma eulerBoundary_induction_collapse :
+    induction (R := R) R.eulerBoundary
+      (R.eulerBoundary ⇨ (⊥ : R.Omega)) ⊥ := by
+  have := eulerBoundary_collapse (R := R)
+  exact (deduction_iff_induction (R := R) _ _ _).mp this
+
+lemma eulerBoundary_abduction_collapse :
+    abduction (R := R) R.eulerBoundary
+      (R.eulerBoundary ⇨ (⊥ : R.Omega)) ⊥ := by
+  have := eulerBoundary_collapse (R := R)
+  exact (deduction_iff_abduction (R := R) _ _ _).mp this
+
 end Residuated
 end Logic
 end HeytingLean

@@ -72,7 +72,8 @@ def booleanEquiv (h : ∀ a : α, R a = a) : R.Omega ≃ α where
     rfl
   right_inv := by
     intro a
-    simp [Omega.mk, h a]
+    have hx : R a = a := h a
+    simp [Omega.mk]
 
 @[simp] lemma booleanEquiv_apply (h : ∀ a : α, R a = a) (a : R.Omega) :
     booleanEquiv (R := R) h a = (a : α) := rfl
@@ -85,7 +86,7 @@ lemma boolean_limit (h : ∀ a : α, R a = a) (a : α) :
   have hx : R a = a := h a
   dsimp [booleanEquiv]
   change R ((Omega.mk (R := R) a hx : R.Omega) : α) = a
-  simpa [Omega.mk, hx]
+  simp [Omega.mk, hx]
 
 end BooleanLimit
 

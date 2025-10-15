@@ -1,4 +1,12 @@
-# Lean Formalization Plan
+# Integrated Ontological & Lean Formalization Plan
+
+## Ontological Snapshot
+
+- Distinction-as-Re-entry realised via nucleus structures in `HeytingLean/LoF/PrimaryAlgebra.lean` and `HeytingLean/LoF/Nucleus.lean`, exposing complementary fixed points (`process`, `counterProcess`) and Euler-boundary lemmas.
+- Euler Boundary implemented as the least nontrivial fixed point; positivity, equality with `process`, and interaction with `counterProcess` are proven.
+- Modal breathing ladder (`Logic/ModalDial.lean`) links the `θ` parameter to dial stages (0D→3D).
+- Stage transport (`Logic/StageSemantics.lean`) packages MV/effect/orthomodular operations and provides bridge transport lemmas; Tensor/Graph/Clifford bridges expose `stageMvAdd`, `stageEffectAdd?`, `stageOrthocomplement`, etc., plus commuting lemmas with `logicalShadow`.
+- Compliance tests cover the stage transport and shadow-commutation guarantees; documentation tasks remain.
 
 ## Objective
 - Ground the metastructure from `lean/lean.md` in Lean so that the re-entry nucleus, Heyting core, transitional ladder, and cross-lens translations become machine-checked definitions, instances, and theorems.
@@ -30,6 +38,7 @@ lean/
   Logic/
     ResiduatedLadder.lean
     ModalDial.lean
+    StageSemantics.lean
   Quantum/
     Orthomodular.lean
     ProjectorNucleus.lean
@@ -56,36 +65,38 @@ Adjust if the repository already uses a different naming convention; the key req
 - Core lemmas (`idempotent`, `map_inf`, monotonicity) are in place; `Ω_R` realizes the fixed-point sublocale via `toSublocale`.
 - **Remaining work:** expose additional helper lemmas for downstream use (`map_sup`, `map_bot`) if future lenses need them.
 
-### 2. Heyting Core on Fixed Points *(status: ✅ core API delivered, Boolean limit outstanding)*
-- `lean/HeytingLean/LoF/HeytingCore.lean` provides `instHeytingOmega`, `heyting_adjunction`, `residuation`, and `double_neg`.
-- **Remaining work:** characterize the Boolean limit (`R = id`), and add any missing simp facts (`map_sup`, `map_bot`) once concrete needs arise.
+### 2. Heyting Core on Fixed Points *(status: ✅ core API + Boolean limit witness)*
+- `lean/HeytingLean/LoF/HeytingCore.lean` provides `instHeytingOmega`, `heyting_adjunction`, `residuation`, double negation, and the explicit Boolean equivalence witness when `R = id`.
+- **Remaining work:** surface auxiliary simp lemmas (`map_sup`, `map_bot`) on demand for downstream automation.
 
 ### 3. Residuated & Transitional Ladder *(status: ⚠️ partially complete)*
-- Deduction/abduction/induction equivalence is formalized (`lean/HeytingLean/Logic/ResiduatedLadder.lean`).
-- **Remaining work:** lift the ladder to MV/effect/orthomodular stages, introduce dial families `R_λ`, and formalize inclusion theorems or counterexamples as planned.
+- Deduction/abduction/induction equivalence is formalized (`lean/HeytingLean/Logic/ResiduatedLadder.lean`); modal ladder increments exist (`lean/HeytingLean/Logic/ModalDial.lean`).
+- **Remaining work:** extend the ladder with explicit MV/effect/orthomodular parameters (`R_λ`) and lock down the algebraic laws each stage must satisfy (see Research & Open Questions).
 
 ### 4. Modal Layer (Breathing Operators) *(status: ✅ scaffolding + dial ladder; ⚠️ richer laws pending)*
-- `lean/HeytingLean/Logic/ModalDial.lean` includes `Dial` with breathing lemmas and a `DialParam.ladder` (0D→3D) monotone chain.
-- **Remaining work:** add explicit modal laws (e.g., collapse as `R (¬ A ⊔ B)`), connect to concrete dimension semantics, and integrate with DialParam “dialing” examples.
+- `lean/HeytingLean/Logic/ModalDial.lean` includes `Dial`, the breathing lemmas, and the `DialParam.ladder` (0D→3D) monotone chain.
+- **Remaining work:** state modal collapse/expansion laws, relate them to concrete dimensional semantics, and integrate those results with the Stage semantics module.
 
-### 5. Lens-Specific Realizations *(status: ⚠️ algebraic scaffolds done; semantic refinements pending)*
-- Identity bridge plus tensor/graph/clifford carriers with round-trip proofs exist (`lean/HeytingLean/Bridges/...` and `Contracts/Examples.lean`).
-- **Remaining work:** supply richer semantics:
+### 5. Lens-Specific Realizations *(status: ⚠️ stage-aware transport wired in; semantic refinements pending)*
+- Identity bridge plus tensor/graph/clifford carriers with round-trip proofs exist (`lean/HeytingLean/Bridges/...`, `Contracts/Examples.lean`).
+- `lean/HeytingLean/Logic/StageSemantics.lean` supplies reusable MV/effect/orthomodular structures and bridge transport lemmas; Tensor/Graph/Clifford modules now expose the corresponding `stage*` helpers and commuting lemmas with `logicalShadow`.
+- **Remaining work:**
+  - Decide and document the expected behaviour of these helpers for non-base dial parameters (MV/effect/orthomodular).
   - Tensor: move from generic tuples to concrete numeric/local order structures as planned (`Int`, compatibility lemmas).
   - Graph: incorporate Alexandroff topology and message-passing invariants.
-  - Clifford: extend projectors to orthomodular lattice results (potentially future `Quantum/` modules).
+  - Clifford: extend projectors to orthomodular lattice results (future `Quantum/` modules).
 
-### 6. Cross-Lens Contracts *(status: ⚠️ base cases proven)*
-- Identity contract + bridges’ `logicalShadow` lemmas cover RT-1 style properties.
-- **Remaining work:** generalize RT-1/RT-2, TRI-1/TRI-2 to cover all lenses (tensor/graph/clifford) with interiorization lemmas; automate proofs with dedicated simp sets or tactics.
+### 6. Cross-Lens Contracts *(status: ⚠️ base cases proven; stage interactions partly captured)*
+- Identity contract + bridges’ `logicalShadow` lemmas cover RT-1 style properties; compliance tests now assert the stage-transport commutation facts provided in `StageSemantics`.
+- **Remaining work:** generalize RT-1/RT-2, TRI-1/TRI-2 to cover all lenses (tensor/graph/clifford) with interiorization lemmas; automate proofs with dedicated simp sets or tactics; finish specifying behaviour for non-base dial parameters and record the desired properties in tests.
 
 ### 7. Limits, Dialing, and Examples *(status: ⚠️ partial)*
-- Dial ladder examples exist (`DialParam.ladder`). Contracts examples cover basic round-trip cases.
-- **Remaining work:** add Boolean limit + MV/effect/orthomodular examples, and breathing-cycle scenarios demonstrating meet/join dominance.
+- Dial ladder examples exist (`DialParam.ladder`). Contracts examples cover basic round-trip cases; stage helpers are available but not yet showcased.
+- **Remaining work:** add Boolean limit + MV/effect/orthomodular examples (reusing the new stage helpers) and breathing-cycle scenarios demonstrating meet/join dominance.
 
 ### 8. Validation & Automation *(status: ⚠️ ongoing)*
-- `lake build` runs in CI; tests/compliance lemmas (`lean/HeytingLean/Tests/Compliance.lean`) aggregate key guarantees.
-- **Remaining work:** add structured automation (`@[simp]`, `@[aesop?]`), expand test coverage (RT/TRI proofs, Boolean limit), and consider `lake exe lint` or `equivalence` utilities once semantics expand.
+- `lake build` runs in CI; tests/compliance lemmas (`lean/HeytingLean/Tests/Compliance.lean`) aggregate key guarantees, including sanity checks for the new stage helpers.
+- **Remaining work:** add structured automation (`@[simp]`, `@[aesop?]`), expand test coverage (RT/TRI proofs, stage interactions, Boolean limit), and consider `lake exe lint` or `equivalence` utilities once semantics expand.
 
 ### 9. Documentation & Developer Support *(status: ⚠️ to-do)*
 - Docstrings adorn new modules; full documentation export still pending.
@@ -96,6 +107,13 @@ Adjust if the repository already uses a different naming convention; the key req
 - Investigate availability of projector averages (`∫_G U g A U g⁻¹`) in mathlib; if absent, outline assumptions (compact group action, Haar measure) and decide whether to axiomatize or implement numerically later.
 - Determine the best representation for the tensor interior (`Int`): e.g. define via order-closure on `[0,1]^n` or adapt `SetLike`.
 - Evaluate existing orthomodular lattice support; if limited, plan to supply bespoke proofs for `closed_subspace`.
+- Decide how stage-aware bridge helpers should behave for non-base dial parameters (what algebraic laws we guarantee at MV/effect/orthomodular stages) and document the chosen behaviour in a design note.
+- Specify whether `logicalShadow` ought to commute with / preserve stage operations beyond the base dial (e.g. lax joins, residuation) and, once settled, encode the required lemmas or counterexamples.
+
+## Immediate Action Items
+- Finalise the decisions above and reflect them both in design notes and compliance tests (Boolean/MV/effect/orthomodular exemplars).
+- Produce `Docs/Ontology.md` summarising the philosophical ↔ Lean correspondence.
+- Extend compliance with orthomodular/Boolean limit examples once the stage semantics are fixed.
 
 ## Milestones
 - **M1:** Primary algebra and nucleus compiled with Heyting core (`LoF/`).

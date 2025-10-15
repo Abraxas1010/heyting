@@ -175,10 +175,6 @@ inductive Stage
   | beyond
   deriving DecidableEq, Repr
 
-/-- Coarsely classify a dial parameter by its dimension. -/
-def stage (P : DialParam α) : Stage :=
-  stageOfNat P.dimension
-
 def Stage.next : Stage → Stage
   | Stage.boolean => Stage.heyting
   | Stage.heyting => Stage.mv
@@ -196,8 +192,70 @@ def stageOfNat : ℕ → Stage
   | _ => Stage.beyond
 
 lemma stageOfNat_succ (n : ℕ) :
-    stageOfNat (n + 1) = (stageOfNat n).next := by
-  cases n <;> simp [stageOfNat, Stage.next]
+    stageOfNat (Nat.succ n) = (stageOfNat n).next := by
+  classical
+  cases n with
+  | zero =>
+      simp [stageOfNat, Stage.next]
+  | succ n₁ =>
+      cases n₁ with
+      | zero =>
+          simp [stageOfNat, Stage.next]
+      | succ n₂ =>
+          cases n₂ with
+          | zero =>
+              simp [stageOfNat, Stage.next]
+          | succ n₃ =>
+              cases n₃ with
+              | zero =>
+                  simp [stageOfNat, Stage.next]
+              | succ n₄ =>
+                  cases n₄ with
+                  | zero =>
+                      simp [stageOfNat, Stage.next]
+                  | succ n₅ =>
+                      cases n₅ with
+                      | zero => simp [stageOfNat, Stage.next]
+                      | succ _ => simp [stageOfNat, Stage.next]
+
+lemma stageOfNat_add_five (k : ℕ) :
+    stageOfNat (5 + k) = Stage.beyond := by
+  refine Nat.rec ?base ?step k
+  · simp [stageOfNat]
+  · intro k ih
+    have h := stageOfNat_succ (n := 5 + k)
+    have hsucc :
+        stageOfNat (Nat.succ (5 + k)) = Stage.beyond :=
+      by
+        simpa [Nat.succ_eq_add_one, Nat.add_comm, Nat.add_left_comm,
+          Nat.add_assoc, Stage.next, ih] using h
+    simpa [Nat.succ_eq_add_one, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hsucc
+
+/-- Coarsely classify a dial parameter by its dimension. -/
+def stage (P : DialParam α) : Stage :=
+  stageOfNat P.dimension
+
+lemma process_pos (P : DialParam α) :
+    ⊥ < ((P.dial.core.process : P.dial.core.Omega) : α) :=
+  Reentry.process_pos (R := P.dial.core)
+
+lemma counter_pos (P : DialParam α) :
+    ⊥ < ((P.dial.core.counterProcess : P.dial.core.Omega) : α) :=
+  Reentry.counter_pos (R := P.dial.core)
+
+lemma process_le_of_pos (P : DialParam α) {x : P.dial.core.Omega}
+    (hx : ⊥ < (x : α)) :
+    P.dial.core.process ≤ x :=
+  Reentry.process_le_of_pos (R := P.dial.core) hx
+
+@[simp] lemma euler_boundary_coe (P : DialParam α) :
+    ((P.dial.core.eulerBoundary : P.dial.core.Omega) : α)
+      = P.dial.core.primordial := by
+  simp [Reentry.eulerBoundary_eq_process, Reentry.process_coe]
+
+lemma euler_boundary_process (P : DialParam α) :
+    P.dial.core.eulerBoundary = P.dial.core.process :=
+  Reentry.eulerBoundary_eq_process (R := P.dial.core)
 
 @[simp] lemma stage_base (R : Reentry α) :
     (base R).stage = Stage.boolean := rfl
@@ -205,7 +263,8 @@ lemma stageOfNat_succ (n : ℕ) :
 @[simp] lemma stage_elevate (P : DialParam α) :
     (P.elevate).stage = (P.stage).next := by
   unfold stage
-  simpa [stageOfNat_succ, elevate_dimension, Nat.succ_eq_add_one]
+  have := stageOfNat_succ (n := P.dimension)
+  simpa [elevate_dimension, Nat.succ_eq_add_one] using this
 
 end DialParam
 

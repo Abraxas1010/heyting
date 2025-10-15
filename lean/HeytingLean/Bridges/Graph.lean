@@ -1,4 +1,5 @@
 import HeytingLean.Contracts.RoundTrip
+import HeytingLean.Logic.StageSemantics
 
 /-!
 # Graph bridge
@@ -50,6 +51,19 @@ noncomputable def logicalShadow (M : Model α) : α → α :=
   unfold logicalShadow
   exact interiorized_id (R := M.R) (C := M.contract) a
 
+@[simp] lemma logicalShadow_encode' (M : Model α) (a : M.R.Omega) :
+    M.logicalShadow (M.encode a) = M.R a := by
+  change M.logicalShadow (M.contract.encode a) = M.R a
+  simpa using (logicalShadow_encode (M := M) (a := a))
+
+@[simp] lemma decode_encode (M : Model α) (a : M.R.Omega) :
+    M.decode (M.contract.encode a) = a := by
+  change (M.contract.decode (M.contract.encode a)) = a
+  simpa using M.contract.round a
+lemma encode_eulerBoundary (M : Model α) :
+    M.encode M.R.eulerBoundary = M.R.primordial := by
+  simp [Model.encode, Reentry.eulerBoundary_eq_process, Reentry.process_coe]
+
 lemma adjacency_refl (M : Model α) (a : α) :
     M.adjacency a a := le_rfl
 
@@ -57,6 +71,109 @@ lemma adjacency_trans (M : Model α) {a b c : α}
     (hab : M.adjacency a b) (hbc : M.adjacency b c) :
     M.adjacency a c :=
   le_trans hab hbc
+
+/-- Stage-style MV addition lifted to the graph carrier. -/
+noncomputable def stageMvAdd (M : Model α) : α → α → α :=
+  fun x y =>
+    M.encode
+      (HeytingLean.Logic.Stage.DialParam.mvAdd
+        (P := HeytingLean.Logic.Modal.DialParam.base M.R)
+        (M.decode x) (M.decode y))
+
+/-- Stage-style effect compatibility on the graph carrier. -/
+def stageEffectCompatible (M : Model α) (x y : α) : Prop :=
+  HeytingLean.Logic.Stage.DialParam.effectCompatible
+    (P := HeytingLean.Logic.Modal.DialParam.base M.R)
+    (M.decode x) (M.decode y)
+
+/-- Stage-style partial effect addition on the graph carrier. -/
+noncomputable def stageEffectAdd?
+    (M : Model α) (x y : α) : Option α :=
+  (HeytingLean.Logic.Stage.DialParam.effectAdd?
+      (P := HeytingLean.Logic.Modal.DialParam.base M.R)
+      (M.decode x) (M.decode y)).map M.encode
+
+/-- Stage-style orthocomplement lifted to the graph carrier. -/
+noncomputable def stageOrthocomplement (M : Model α) : α → α :=
+  fun x =>
+    M.encode
+      (HeytingLean.Logic.Stage.DialParam.orthocomplement
+        (P := HeytingLean.Logic.Modal.DialParam.base M.R)
+        (M.decode x))
+
+variable {α : Type u} [PrimaryAlgebra α]
+
+@[simp] lemma stageMvAdd_encode (M : Model α) (a b : M.R.Omega) :
+    M.stageMvAdd
+        (M.contract.encode a) (M.contract.encode b)
+      =
+        M.encode
+          (HeytingLean.Logic.Stage.DialParam.mvAdd
+            (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b) := by
+  classical
+  simp [Model.stageMvAdd, Model.decode_encode]
+
+@[simp] lemma stageEffectCompatible_encode (M : Model α) (a b : M.R.Omega) :
+    M.stageEffectCompatible
+        (M.contract.encode a) (M.contract.encode b) ↔
+      HeytingLean.Logic.Stage.DialParam.effectCompatible
+        (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b := by
+  simp [Model.stageEffectCompatible, Model.decode_encode]
+
+@[simp] lemma stageEffectAdd_encode (M : Model α) (a b : M.R.Omega) :
+    M.stageEffectAdd?
+        (M.contract.encode a) (M.contract.encode b)
+      =
+        (HeytingLean.Logic.Stage.DialParam.effectAdd?
+            (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b).map
+          M.encode := by
+  classical
+  simp [Model.stageEffectAdd?, Model.decode_encode]
+
+@[simp] lemma stageOrthocomplement_encode (M : Model α) (a : M.R.Omega) :
+    M.stageOrthocomplement (M.contract.encode a)
+      =
+        M.encode
+          (HeytingLean.Logic.Stage.DialParam.orthocomplement
+            (P := HeytingLean.Logic.Modal.DialParam.base M.R) a) := by
+  classical
+  simp [Model.stageOrthocomplement, Model.decode_encode]
+
+@[simp] lemma logicalShadow_stageMvAdd_encode (M : Model α) (a b : M.R.Omega) :
+    M.logicalShadow
+        (M.stageMvAdd (M.contract.encode a) (M.contract.encode b))
+      =
+        M.R
+          (HeytingLean.Logic.Stage.DialParam.mvAdd
+            (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b) := by
+  classical
+  simp [stageMvAdd_encode, Model.logicalShadow_encode']
+
+lemma logicalShadow_stageEffectAdd_encode (M : Model α) (a b : M.R.Omega) :
+    (M.stageEffectAdd?
+        (M.contract.encode a) (M.contract.encode b)).map M.logicalShadow
+      =
+        (HeytingLean.Logic.Stage.DialParam.effectAdd?
+            (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b).map
+          (fun u => (u : α)) := by
+  classical
+  unfold Model.stageEffectAdd?
+  cases h :
+      HeytingLean.Logic.Stage.DialParam.effectAdd?
+        (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b with
+  | none =>
+      simp [h]
+  | some u =>
+      simp [h, Model.logicalShadow_encode', Reentry.Omega.apply_coe]
+
+@[simp] lemma logicalShadow_stageOrthocomplement_encode
+    (M : Model α) (a : M.R.Omega) :
+    M.logicalShadow (M.stageOrthocomplement (M.contract.encode a)) =
+      M.R
+        (HeytingLean.Logic.Stage.DialParam.orthocomplement
+          (P := HeytingLean.Logic.Modal.DialParam.base M.R) a) := by
+  classical
+  simp [stageOrthocomplement_encode, Model.logicalShadow_encode']
 
 end Model
 

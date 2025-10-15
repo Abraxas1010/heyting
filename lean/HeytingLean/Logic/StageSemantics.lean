@@ -1,0 +1,214 @@
+import HeytingLean.Logic.ModalDial
+
+/-
+# Stage semantics transport
+
+This module packages staged (MV / effect / orthomodular) operations on the Heyting core together
+with a reusable transport interface for bridges.  The intent is to keep a single source of truth
+for the operations on the core `Ω_R` and to expose helpers that automatically commute with the
+round-trip data supplied by bridges.
+-/
+
+namespace HeytingLean
+namespace Logic
+namespace Stage
+
+open HeytingLean.LoF
+open scoped Classical
+
+universe u
+
+/-- Łukasiewicz / MV-style structure available on the core carrier. -/
+class MvCore (Ω : Type u) where
+  mvAdd : Ω → Ω → Ω
+  mvNeg : Ω → Ω
+  zero  : Ω
+  one   : Ω
+
+/-- Effect-algebra style structure with partial addition. -/
+class EffectCore (Ω : Type u) where
+  effectAdd? : Ω → Ω → Option Ω
+  compat     : Ω → Ω → Prop
+  orthosupp  : Ω → Ω
+  zero       : Ω
+  one        : Ω
+  compat_iff_defined :
+    ∀ u v, compat u v ↔ (effectAdd? u v).isSome
+
+/-- Orthomodular lattice façade (no laws recorded yet, only operations). -/
+class OmlCore (Ω : Type u) where
+  meet : Ω → Ω → Ω
+  join : Ω → Ω → Ω
+  compl : Ω → Ω
+  bot : Ω
+  top : Ω
+
+variable {α : Type u} [PrimaryAlgebra α]
+
+namespace DialParam
+
+variable (P : Modal.DialParam α)
+
+/-- MV-style addition realised via the Heyting join. -/
+@[simp] def mvAdd (a b : P.dial.core.Omega) : P.dial.core.Omega :=
+  a ⊔ b
+
+/-- MV-style negation realised via implication into bottom. -/
+@[simp] def mvNeg (a : P.dial.core.Omega) : P.dial.core.Omega :=
+  a ⇨ (⊥ : P.dial.core.Omega)
+
+/-- MV-stage zero. -/
+@[simp] def mvZero : P.dial.core.Omega := ⊥
+/-- MV-stage one. -/
+@[simp] def mvOne : P.dial.core.Omega := ⊤
+
+/-- Effect-compatibility predicate (disjointness). -/
+def effectCompatible (a b : P.dial.core.Omega) : Prop :=
+  a ⊓ b = ⊥
+
+/-- Partial effect-style addition returning a value only on compatible arguments. -/
+noncomputable def effectAdd? (a b : P.dial.core.Omega) :
+    Option P.dial.core.Omega :=
+  if _ : DialParam.effectCompatible (P := P) a b then
+    some (DialParam.mvAdd (P := P) a b)
+  else
+    none
+
+/-- Orthocomplement induced by Heyting negation. -/
+@[simp] def orthocomplement (a : P.dial.core.Omega) :
+    P.dial.core.Omega :=
+  DialParam.mvNeg (P := P) a
+
+/-- Orthomodular meet (plain Heyting meet). -/
+@[simp] def omlMeet (a b : P.dial.core.Omega) : P.dial.core.Omega := a ⊓ b
+
+/-- Orthomodular join (plain Heyting join). -/
+@[simp] def omlJoin (a b : P.dial.core.Omega) : P.dial.core.Omega := a ⊔ b
+
+/-- Orthomodular bottom element. -/
+@[simp] def omlBot : P.dial.core.Omega := ⊥
+/-- Orthomodular top element. -/
+@[simp] def omlTop : P.dial.core.Omega := ⊤
+
+instance instMvCore : MvCore P.dial.core.Omega where
+  mvAdd := DialParam.mvAdd (P := P)
+  mvNeg := DialParam.mvNeg (P := P)
+  zero := DialParam.mvZero (P := P)
+  one := DialParam.mvOne (P := P)
+
+noncomputable instance instEffectCore : EffectCore P.dial.core.Omega where
+  effectAdd? := DialParam.effectAdd? (P := P)
+  compat := DialParam.effectCompatible (P := P)
+  orthosupp := DialParam.orthocomplement (P := P)
+  zero := DialParam.mvZero (P := P)
+  one := DialParam.mvOne (P := P)
+  compat_iff_defined := by
+    intro u v
+    classical
+    unfold DialParam.effectAdd? DialParam.effectCompatible
+    by_cases h : u ⊓ v = (⊥ : P.dial.core.Omega)
+    · simp [h]
+    · simp [h]
+
+instance instOmlCore : OmlCore P.dial.core.Omega where
+  meet := DialParam.omlMeet (P := P)
+  join := DialParam.omlJoin (P := P)
+  compl := DialParam.orthocomplement (P := P)
+  bot := DialParam.omlBot (P := P)
+  top := DialParam.omlTop (P := P)
+
+end DialParam
+
+/-- Bridges expose shadow/lift data satisfying a round-trip contract. -/
+structure Bridge (α Ω : Type u) [LE α] [LE Ω] where
+  shadow : α → Ω
+  lift : Ω → α
+  rt₁ : ∀ u, shadow (lift u) = u
+  rt₂ : ∀ x, lift (shadow x) ≤ x
+
+namespace Bridge
+
+variable {α Ω : Type u} [LE α] [LE Ω] (B : Bridge α Ω)
+
+/-- Transport MV addition across a bridge. -/
+def stageMvAdd [MvCore Ω] (x y : α) : α :=
+  B.lift (MvCore.mvAdd (B.shadow x) (B.shadow y))
+
+/-- Transport MV negation across a bridge. -/
+def stageMvNeg [MvCore Ω] (x : α) : α :=
+  B.lift (MvCore.mvNeg (B.shadow x))
+
+/-- Transport MV zero. -/
+def stageMvZero [MvCore Ω] : α :=
+  B.lift (MvCore.zero (Ω := Ω))
+
+/-- Transport MV one. -/
+def stageMvOne [MvCore Ω] : α :=
+  B.lift (MvCore.one (Ω := Ω))
+
+/-- Transport effect compatibility across a bridge. -/
+def stageEffectCompatible [EffectCore Ω] (x y : α) : Prop :=
+  EffectCore.compat (B.shadow x) (B.shadow y)
+
+/-- Transport partial effect addition across a bridge. -/
+def stageEffectAdd? [EffectCore Ω] (x y : α) : Option α :=
+  (EffectCore.effectAdd? (B.shadow x) (B.shadow y)).map B.lift
+
+/-- Transport the effect orthosupplement across a bridge. -/
+def stageOrthosupp [EffectCore Ω] (x : α) : α :=
+  B.lift (EffectCore.orthosupp (B.shadow x))
+
+/-- Transport orthocomplement across a bridge. -/
+def stageOrthocomplement [OmlCore Ω] (x : α) : α :=
+  B.lift (OmlCore.compl (B.shadow x))
+
+@[simp] theorem shadow_stageMvAdd [MvCore Ω] (x y : α) :
+    B.shadow (B.stageMvAdd x y) =
+      MvCore.mvAdd (B.shadow x) (B.shadow y) := by
+  unfold stageMvAdd
+  simpa using B.rt₁ (MvCore.mvAdd (B.shadow x) (B.shadow y))
+
+@[simp] theorem shadow_stageMvNeg [MvCore Ω] (x : α) :
+    B.shadow (B.stageMvNeg x) = MvCore.mvNeg (B.shadow x) := by
+  unfold stageMvNeg
+  simpa using B.rt₁ (MvCore.mvNeg (B.shadow x))
+
+@[simp] theorem stageEffectAdd?_isSome [EffectCore Ω] (x y : α) :
+    (B.stageEffectAdd? x y).isSome ↔
+      B.stageEffectCompatible x y := by
+  unfold stageEffectAdd? stageEffectCompatible
+  have h := EffectCore.compat_iff_defined (Ω := Ω)
+  specialize h (B.shadow x) (B.shadow y)
+  cases h' : EffectCore.effectAdd? (B.shadow x) (B.shadow y) with
+  | none =>
+      simp [Option.isSome, h', Option.map, h] at *
+  | some w =>
+      simp [Option.isSome, h', Option.map, h] at *
+
+@[simp] theorem shadow_stageEffectAdd?_map [EffectCore Ω] (x y : α) :
+    (B.stageEffectAdd? x y).map B.shadow =
+      EffectCore.effectAdd? (B.shadow x) (B.shadow y) := by
+  unfold stageEffectAdd?
+  cases h : EffectCore.effectAdd? (B.shadow x) (B.shadow y) with
+  | none =>
+      simp
+  | some w =>
+      simp [B.rt₁]
+
+@[simp] theorem shadow_stageOrthosupp [EffectCore Ω] (x : α) :
+    B.shadow (B.stageOrthosupp x) =
+      EffectCore.orthosupp (B.shadow x) := by
+  unfold stageOrthosupp
+  simpa using B.rt₁ (EffectCore.orthosupp (B.shadow x))
+
+@[simp] theorem shadow_stageOrthocomplement [OmlCore Ω] (x : α) :
+    B.shadow (B.stageOrthocomplement x) =
+      OmlCore.compl (B.shadow x) := by
+  unfold stageOrthocomplement
+  simpa using B.rt₁ (OmlCore.compl (B.shadow x))
+
+end Bridge
+
+end Stage
+end Logic
+end HeytingLean

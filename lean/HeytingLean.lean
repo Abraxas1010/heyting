@@ -5,6 +5,7 @@ import HeytingLean.LoF.HeytingCore
 import HeytingLean.Logic.Triad
 import HeytingLean.Logic.ResiduatedLadder
 import HeytingLean.Logic.ModalDial
+import HeytingLean.Logic.StageSemantics
 import HeytingLean.Bridges.RoundTrip
 import HeytingLean.Bridges.Tensor
 import HeytingLean.Bridges.Graph

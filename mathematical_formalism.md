@@ -8,7 +8,7 @@ Absolutely—given the re-entry-as-nucleus construction, the unification is now 
 
 **0.1 Formalize the Primary Algebra (PA) of LoF**
 
-* Define syntactic constructors, equivalence by Calling/Crossing.
+* Define syntactic constructors, equivalence by Calling/Crossing—this captures the **Plenum**, the undifferentiated substrate prior to any re-entry act.
 * Artifact: PA specification (signatures; rewrite system; normal forms).
 * Acceptance: Confluence + termination proof sketch for reductions.
 
@@ -67,7 +67,7 @@ Absolutely—given the re-entry-as-nucleus construction, the unification is now 
 
 **2.1 Re-entry Preorder and Hasse DAG**
 
-* Define (x\preceq_R y) iff (y) is reachable via re-entry normalization from (x).
+* Define (x\preceq_R y) iff (y) is reachable via re-entry normalization from (x); the minimal nontrivial cycle corresponds to the **Euler Boundary** (`∂_E`) induced by the nucleus.
 * Artifact: Preorder + cover relation construction.
 
 **2.2 Propositions as Down-sets (Opens)**
@@ -110,8 +110,9 @@ Absolutely—given the re-entry-as-nucleus construction, the unification is now 
   * Meet: intersection of ranges (or product in the commuting case)
   * Join: (J)(span)
   * Implication/negation: (J(\neg A \cup B)), (J(\neg A))
-* Artifacts: Proof that (J) is inflationary, idempotent, meet-preserving on the commutant; fixed-point locus forms a Heyting algebra.
+* Artifacts: Proof that (J) is inflationary, idempotent, meet-preserving on the commutant; fixed-point locus forms a Heyting algebra with the Euler Boundary (`∂_E`) realized as the smallest nonzero projector.
 * Acceptance: Exhibit classical limit when (J=\mathrm{id}); show constructive behavior when averaging destroys nonconstructive components.
+* Document the oscillation semantics via the `θ`-cycle zero-sum lemma so the breathing narrative is backed by machine-checked arithmetic.
 
 **3.3 “Wedge ≈ Meet / Inner ≈ Join” Discipline**
 

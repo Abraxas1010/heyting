@@ -6,7 +6,7 @@ Here’s my recommendation for how to **generatively formalize and integrate** y
 
 **A. Core substrate: LoF + Re-entry as a Nucleus**
 
-* Treat Spencer-Brown’s *LoF* primary algebra PA as a bounded distributive lattice (or frame).
+* Treat Spencer-Brown’s *LoF* primary algebra PA as a bounded distributive lattice (or frame)—this is the **Plenum**, the undifferentiated carrier prior to selecting a nucleus.
 * Encode **re-entry** as a **nucleus** (R) (interior modality): inflationary, idempotent, meet-preserving.
 * The **fixed points (\Omega_R)** form your **constructive logic** (Heyting algebra); **Boolean** is the limit (R=\mathrm{id}).
 * This implements philosophically: **0D→1D** = symbolization + re-entry = the internal **“box”**/interior that makes constructive truth *local* and **generated**.
@@ -64,13 +64,14 @@ Here’s my recommendation for how to **generatively formalize and integrate** y
 * Controlled by a **family of nuclei** ({R_d}) (or ({J_d})).
 * **1D**: (R) nontrivial ⇒ **intuitionistic** laws (¬¬a≥a; meet only for orthogonals).
 * **2D+**: (R\to\mathrm{id}) on larger subalgebras ⇒ **classical** laws re-emerge.
-* Clifford/rotor dynamics give **Euler circle/sphere** breathing = **oscillation of modal interior**.
+* Clifford/rotor dynamics give **Euler circle/sphere** breathing = **oscillation of modal interior** and single out the Euler Boundary (`∂_E`) as the least nontrivial fixed point that seeds spacetime structure.
 
 **C. Causality as collapse**
 
 * **Implication** as **non-commutative, directed selection**: (A\to B) = (J(\neg A\cup B)).
 * **Collapse** = **interiorized joins** (non-orthogonal unions forced through the nucleus).
 * Your **“collapse-as-causation”** is literally the **modal interior** applied after non-orthogonal combination.
+* The `θ`-cycle is now formal: `thetaCycle_zero_sum` gives the antiphasic cancellation proof used by the breathing semantics.
 
 **D. Complementarity (structure vs capacity)**
 
@@ -93,6 +94,7 @@ Here’s my recommendation for how to **generatively formalize and integrate** y
 * Define `residuated_lattice` and (optionally) `effect_algebra` / `mv_algebra`.
 * Show **paths**: Boolean/Heyting ⊂ MV ⊂ Effect; **orthogonal-only ⊕** ⇒ **orthomodular**.
 * Parameterize (R_\lambda) to **dial** constructivity/classicality.
+* Transport the Euler boundary through residuation: specialise deduction/abduction/induction at `R.eulerBoundary` and keep collapse lemmas available for modal breathing.
 
 **Phase C — Orthomodular branch:**
 
@@ -141,7 +143,7 @@ love it — and since you said “proceed,” here’s the promised **Metastruct
 Unify ontology → symbol → geometry → physics into one provable architecture:
 
 * 0D→1D **symbolization** becomes a **nucleus** (interior modality) on LoF’s primary algebra.
-* This induces a **Heyting core** (constructive logic), with **Boolean** as the limit and **Orthomodular** reachable via a transitional ladder (residuated / MV / effect).
+* This induces a **Heyting core** (constructive logic), with **Boolean** as the limit and **Orthomodular** reachable via a transitional ladder (residuated / MV / effect). Compliance now ships with explicit `boolean_limit_verified` witnesses.
 * The **same nucleus** transports to **tensors**, **graphs**, and **geometry (Clifford/projectors)** so laws and contracts hold across lenses.
 * Deduction/Abduction/Induction are **pure residuation** in the core and transport law-preservingly.
 
