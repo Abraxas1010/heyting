@@ -1,0 +1,33 @@
+# Unified Generative Ontology System - Dependencies
+# Python 3.10+ required
+
+# Core Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# PyTorch Geometric
+torch-geometric>=2.3.0
+torch-scatter>=2.1.0
+torch-sparse>=0.6.17
+torch-cluster>=1.6.1
+torch-spline-conv>=1.2.2
+
+# Clifford Algebra
+clifford>=1.4.0
+
+# Scientific Computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Utilities
+tqdm>=4.65.0
+
+# Development & Testing (optional)
+pytest>=7.3.0
+pytest-cov>=4.1.0
+black>=23.3.0
+flake8>=6.0.0
+
+# Modal Deployment
+modal>=0.63.0
