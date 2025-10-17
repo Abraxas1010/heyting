@@ -6,6 +6,8 @@ import HeytingLean.Logic.Triad
 import HeytingLean.Logic.ResiduatedLadder
 import HeytingLean.Logic.ModalDial
 import HeytingLean.Logic.StageSemantics
+import HeytingLean.Epistemic.Occam
+import HeytingLean.Logic.Dialectic
 import HeytingLean.Bridges.RoundTrip
 import HeytingLean.Bridges.Tensor
 import HeytingLean.Bridges.Graph

@@ -8,6 +8,12 @@
 - Stage transport (`Logic/StageSemantics.lean`) packages MV/effect/orthomodular operations and provides bridge transport lemmas; Tensor/Graph/Clifford bridges expose `stageMvAdd`, `stageEffectAdd?`, `stageOrthocomplement`, etc., plus commuting lemmas with `logicalShadow`.
 - Compliance tests cover the stage transport and shadow-commutation guarantees; documentation tasks remain.
 
+## Codebase Audit *(April 2025)*
+
+- `lake build` succeeds with the current sources; no `sorry`/`admit` placeholders or custom `axiom` declarations exist in compiled Lean files (only the narrative `TBD/` notes contain `sorry` stubs).
+- Stage helpers and shadow-commutation lemmas are implemented for Tensor/Graph/Clifford bridges; compliance tests exercise these guarantees.
+- Recommended CI command: `lake build -- -Dno_sorry -DwarningAsError=true` to keep “compiled = proven”.
+
 ## Objective
 - Ground the metastructure from `lean/lean.md` in Lean so that the re-entry nucleus, Heyting core, transitional ladder, and cross-lens translations become machine-checked definitions, instances, and theorems.
 - Produce a coherent Lean codebase whose modules line up with the logical (LoF), algebraic (residuated/effect), geometric (Clifford/orthomodular), and computational (tensor/graph) lenses while preserving the contracts (RT-1/RT-2, TRI-1/TRI-2, DN).
@@ -71,7 +77,7 @@ Adjust if the repository already uses a different naming convention; the key req
 
 ### 3. Residuated & Transitional Ladder *(status: ⚠️ partially complete)*
 - Deduction/abduction/induction equivalence is formalized (`lean/HeytingLean/Logic/ResiduatedLadder.lean`); modal ladder increments exist (`lean/HeytingLean/Logic/ModalDial.lean`).
-- **Remaining work:** extend the ladder with explicit MV/effect/orthomodular parameters (`R_λ`) and lock down the algebraic laws each stage must satisfy (see Research & Open Questions).
+- **Remaining work:** with explicit MV/effect/orthomodular ladder parameters (`R_λ`) and their stage laws now defined, thread these results into the modal collapse lemmas and expose the enriched stages to the bridge layer (see Research & Open Questions).
 
 ### 4. Modal Layer (Breathing Operators) *(status: ✅ scaffolding + dial ladder; ⚠️ richer laws pending)*
 - `lean/HeytingLean/Logic/ModalDial.lean` includes `Dial`, the breathing lemmas, and the `DialParam.ladder` (0D→3D) monotone chain.
@@ -79,16 +85,16 @@ Adjust if the repository already uses a different naming convention; the key req
 
 ### 5. Lens-Specific Realizations *(status: ⚠️ stage-aware transport wired in; semantic refinements pending)*
 - Identity bridge plus tensor/graph/clifford carriers with round-trip proofs exist (`lean/HeytingLean/Bridges/...`, `Contracts/Examples.lean`).
-- `lean/HeytingLean/Logic/StageSemantics.lean` supplies reusable MV/effect/orthomodular structures and bridge transport lemmas; Tensor/Graph/Clifford modules now expose the corresponding `stage*` helpers and commuting lemmas with `logicalShadow`.
+- `lean/HeytingLean/Logic/StageSemantics.lean` supplies reusable MV/effect/orthomodular structures and bridge transport lemmas; `lean/HeytingLean/Logic/Trace.lean` introduces independence/trace-monoid tooling so bridge updates can be expressed via causal invariance; Tensor/Graph/Clifford modules still expose the base `stage*` helpers and commuting lemmas with `logicalShadow`.
 - **Remaining work:**
-  - Decide and document the expected behaviour of these helpers for non-base dial parameters (MV/effect/orthomodular).
-  - Tensor: move from generic tuples to concrete numeric/local order structures as planned (`Int`, compatibility lemmas).
-  - Graph: incorporate Alexandroff topology and message-passing invariants.
-  - Clifford: extend projectors to orthomodular lattice results (future `Quantum/` modules).
+  - With the stage-parameterised `stage*At` APIs and their canonical ladder specialisations now wired through Tensor/Graph/Clifford, document the intended dial behaviours and reuse them in the higher-order bridge proofs.
+  - Tensor: replace tuples with the intended ordered carriers (e.g. `ℕ`/`ℤ`-indexed intensity vectors) and supply the compatibility proofs promised in the roadmap.
+  - Graph: integrate Alexandroff/topological structure plus message-passing invariants so the bridge mirrors the ontological account.
+  - Clifford: prepare for projector semantics by factoring carrier/projector data into the forthcoming `Quantum/` modules.
 
 ### 6. Cross-Lens Contracts *(status: ⚠️ base cases proven; stage interactions partly captured)*
 - Identity contract + bridges’ `logicalShadow` lemmas cover RT-1 style properties; compliance tests now assert the stage-transport commutation facts provided in `StageSemantics`.
-- **Remaining work:** generalize RT-1/RT-2, TRI-1/TRI-2 to cover all lenses (tensor/graph/clifford) with interiorization lemmas; automate proofs with dedicated simp sets or tactics; finish specifying behaviour for non-base dial parameters and record the desired properties in tests.
+- **Remaining work:** use the trace-monoid concurrency infrastructure to generalize RT-1/RT-2 and TRI-1/TRI-2 across arbitrary dial stages for every bridge, automate the resulting proofs (`@[simp]`, custom tactics), and expand compliance tests with Boolean/MV/effect/orthomodular exemplars that exercise the new stage helpers.
 
 ### 7. Limits, Dialing, and Examples *(status: ⚠️ partial)*
 - Dial ladder examples exist (`DialParam.ladder`). Contracts examples cover basic round-trip cases; stage helpers are available but not yet showcased.
@@ -96,11 +102,19 @@ Adjust if the repository already uses a different naming convention; the key req
 
 ### 8. Validation & Automation *(status: ⚠️ ongoing)*
 - `lake build` runs in CI; tests/compliance lemmas (`lean/HeytingLean/Tests/Compliance.lean`) aggregate key guarantees, including sanity checks for the new stage helpers.
-- **Remaining work:** add structured automation (`@[simp]`, `@[aesop?]`), expand test coverage (RT/TRI proofs, stage interactions, Boolean limit), and consider `lake exe lint` or `equivalence` utilities once semantics expand.
+- **Remaining work:** add structured automation (`@[simp]`, `@[aesop?]`), expand test coverage (RT/TRI proofs, stage interactions, Boolean/MV/effect/orthomodular limits), and standardise running `lake build -- -Dno_sorry -DwarningAsError=true` (plus optional lint) after each milestone.
 
 ### 9. Documentation & Developer Support *(status: ⚠️ to-do)*
 - Docstrings adorn new modules; full documentation export still pending.
 - **Next steps:** mirror the updated roadmap into `Docs/README.md`, add narrative examples, and plan doc-gen scripts once the remaining algebraic layers are built.
+
+### 10. Epistemic Laws from Re-entry *(status: ○ queued)*
+- Introduce Occam/PSR/Dialectic modules grounded solely in the nucleus `J` and dial `θ`, keeping the construction minimal.
+- Target files:
+  - `Epistemic/Occam.lean`: define `birth_J`, minimal-stage interiors, and show the resulting operator is a nucleus that lax-commutes with bridge shadows.
+  - `Logic/Psr.lean`: characterise sufficiency as invariance (`J P = P`) and prove reachability stability for invariant sets.
+  - `Logic/Dialectic.lean`: package synthesis as `J (T ∪ A)` with the universal property for joins inside `Ω_J`.
+- **Remaining work:** formalise the definitions, prove the corresponding algebraic laws, integrate with stage-aware bridges, and extend compliance tests (Euler boundary as canonical Occam/PSR/Dialectic witness).
 
 ## Research & Open Questions
 - Confirm whether mathlib already supplies `EffectAlgebra`/`MVAlgebra` in Lean 4; if missing, scope minimal definitions consistent with the project’s needs.
@@ -109,17 +123,21 @@ Adjust if the repository already uses a different naming convention; the key req
 - Evaluate existing orthomodular lattice support; if limited, plan to supply bespoke proofs for `closed_subspace`.
 - Decide how stage-aware bridge helpers should behave for non-base dial parameters (what algebraic laws we guarantee at MV/effect/orthomodular stages) and document the chosen behaviour in a design note.
 - Specify whether `logicalShadow` ought to commute with / preserve stage operations beyond the base dial (e.g. lax joins, residuation) and, once settled, encode the required lemmas or counterexamples.
+- Settle how minimal-birthday witnesses are constructed algorithmically (well-founded minimisation vs. choice) so Occam/PSR modules can provide canonical reasons inside Lean’s constructive fragment.
 
 ## Immediate Action Items
-- Finalise the decisions above and reflect them both in design notes and compliance tests (Boolean/MV/effect/orthomodular exemplars).
-- Produce `Docs/Ontology.md` summarising the philosophical ↔ Lean correspondence.
-- Extend compliance with orthomodular/Boolean limit examples once the stage semantics are fixed.
+- Finalise the stage semantics decisions, implement the non-base dial laws, and mirror them in design notes plus compliance tests (Boolean/MV/effect/orthomodular exemplars).
+- Upgrade the tensor, graph, and Clifford bridges in tandem with the new ladder semantics, documenting the intended behaviour per lens.
+- Produce `Docs/Ontology.md` summarising the philosophical ↔ Lean correspondence and link it from `Docs/README.md`.
+- Update CI / developer docs to standardise on `lake build -- -Dno_sorry -DwarningAsError=true` (and optionally lint) after each major milestone so green builds guarantee all proofs are complete.
+- Stand up the Occam/PSR/Dialectic modules with minimal-birthday proofs and regression tests demonstrating Euler-boundary behaviour across the new operators.
 
 ## Milestones
 - **M1:** Primary algebra and nucleus compiled with Heyting core (`LoF/`).
 - **M2:** Residuated ladder and modal dial completed with theorem statements (`Logic/`).
 - **M3:** Geometry and orthomodular modules typecheck with nucleus proofs (`Quantum/`).
 - **M4:** Tensor and graph bridges established with RT/TRI contracts (`Bridges/` and `Contracts/`).
-- **M5:** Examples and documentation demonstrate dial-a-logic scenarios and breathing cycles.
+- **M5:** Occam/PSR/Dialectic implemented with accompanying compliance proofs (`Epistemic/`, `Logic/`).
+- **M6:** Examples and documentation demonstrate dial-a-logic scenarios, breathing cycles, and epistemic laws.
 
 Maintaining these milestones ensures the Lean codebase evolves in sync with the conceptual framework described in `lean.md`.
