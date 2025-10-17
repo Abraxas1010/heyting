@@ -230,16 +230,6 @@ lemma effectAdd?_isSome_iff (a b : P.dial.core.Omega) :
   · simp [h]
   · simp [h]
 
-@[simp] lemma effectAddAt_eq_effectAdd (P : Modal.DialParam α)
-    {R : LoF.Reentry α} (h : P.dial.core = R)
-    (a b : R.Omega) :
-    DialParam.effectAddAt? (P := P) (h := h) a b =
-      DialParam.effectAdd? (P := P)
-        (DialParam.toCore (P := P) h a)
-        (DialParam.toCore (P := P) h b) := by
-  cases h
-  simp [DialParam.effectAddAt?, DialParam.toCore, DialParam.fromCore]
-
 lemma orthocomplement_disjoint
     (a : P.dial.core.Omega) :
     DialParam.omlMeet (P := P) a
@@ -393,6 +383,16 @@ lemma effectAddAt?_isSome (a b : R.Omega) :
   cases h
   simp [DialParam.effectAddAt?, DialParam.effectCompatibleAt,
     DialParam.effectAdd?_isSome_iff]
+
+@[simp] lemma effectAddAt_eq_effectAdd (P : Modal.DialParam α)
+    {R : LoF.Reentry α} (h : P.dial.core = R)
+    (a b : R.Omega) :
+    DialParam.effectAddAt? (P := P) (h := h) a b =
+      DialParam.effectAdd? (P := P)
+        (DialParam.toCore (P := P) h a)
+        (DialParam.toCore (P := P) h b) := by
+  cases h
+  simp [DialParam.effectAddAt?, DialParam.effectAdd?]
 
 lemma effectCompatibleAt_orthocomplement
     (a : R.Omega) :
