@@ -77,7 +77,7 @@ Adjust if the repository already uses a different naming convention; the key req
 
 ### 3. Residuated & Transitional Ladder *(status: ⚠️ partially complete)*
 - Deduction/abduction/induction equivalence is formalized (`lean/HeytingLean/Logic/ResiduatedLadder.lean`); modal ladder increments exist (`lean/HeytingLean/Logic/ModalDial.lean`).
-- **Remaining work:** with explicit MV/effect/orthomodular ladder parameters (`R_λ`) and their stage laws now defined, thread these results into the modal collapse lemmas and expose the enriched stages to the bridge layer (see Research & Open Questions).
+- **Remaining work:** integrate the MV/effect/orthomodular ladder parameters into the modal collapse/expansion lemmas and reuse those results when wiring lenses (see Research & Open Questions).
 
 ### 4. Modal Layer (Breathing Operators) *(status: ✅ scaffolding + dial ladder; ⚠️ richer laws pending)*
 - `lean/HeytingLean/Logic/ModalDial.lean` includes `Dial`, the breathing lemmas, and the `DialParam.ladder` (0D→3D) monotone chain.
@@ -87,7 +87,7 @@ Adjust if the repository already uses a different naming convention; the key req
 - Identity bridge plus tensor/graph/clifford carriers with round-trip proofs exist (`lean/HeytingLean/Bridges/...`, `Contracts/Examples.lean`).
 - `lean/HeytingLean/Logic/StageSemantics.lean` supplies reusable MV/effect/orthomodular structures and bridge transport lemmas; `lean/HeytingLean/Logic/Trace.lean` introduces independence/trace-monoid tooling so bridge updates can be expressed via causal invariance; Tensor/Graph/Clifford modules still expose the base `stage*` helpers and commuting lemmas with `logicalShadow`.
 - **Remaining work:**
-  - With the stage-parameterised `stage*At` APIs and their canonical ladder specialisations now wired through Tensor/Graph/Clifford, document the intended dial behaviours and reuse them in the higher-order bridge proofs.
+  - Document the intended dial behaviours for the canonical ladder specialisations and reuse them in higher-order bridge proofs.
   - Tensor: replace tuples with the intended ordered carriers (e.g. `ℕ`/`ℤ`-indexed intensity vectors) and supply the compatibility proofs promised in the roadmap.
   - Graph: integrate Alexandroff/topological structure plus message-passing invariants so the bridge mirrors the ontological account.
   - Clifford: prepare for projector semantics by factoring carrier/projector data into the forthcoming `Quantum/` modules.
@@ -108,13 +108,9 @@ Adjust if the repository already uses a different naming convention; the key req
 - Docstrings adorn new modules; full documentation export still pending.
 - **Next steps:** mirror the updated roadmap into `Docs/README.md`, add narrative examples, and plan doc-gen scripts once the remaining algebraic layers are built.
 
-### 10. Epistemic Laws from Re-entry *(status: ○ queued)*
-- Introduce Occam/PSR/Dialectic modules grounded solely in the nucleus `J` and dial `θ`, keeping the construction minimal.
-- Target files:
-  - `Epistemic/Occam.lean`: define `birth_J`, minimal-stage interiors, and show the resulting operator is a nucleus that lax-commutes with bridge shadows.
-  - `Logic/PSR.lean`: characterise sufficiency as invariance (`J P = P`) and prove reachability stability for invariant sets.
-  - `Logic/Dialectic.lean`: package synthesis as `J (T ∪ A)` with the universal property for joins inside `Ω_J`.
-- **Remaining work:** formalise the definitions, prove the corresponding algebraic laws, integrate with stage-aware bridges, and extend compliance tests (Euler boundary as canonical Occam/PSR/Dialectic witness).
+### 10. Epistemic Laws from Re-entry *(status: ✅ implemented; documentation pending)*
+- Occam/PSR/Dialectic modules (`Epistemic/Occam.lean`, `Logic/PSR.lean`, `Logic/Dialectic.lean`) are in place and the compliance suite exercises them alongside the canonical bridge specialisations.
+- **Remaining work:** extend documentation/examples (Euler boundary narrative) and reference the operators in the higher-level design notes before publishing.
 
 ## Research & Open Questions
 - Confirm whether mathlib already supplies `EffectAlgebra`/`MVAlgebra` in Lean 4; if missing, scope minimal definitions consistent with the project’s needs.
