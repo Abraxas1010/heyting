@@ -3,7 +3,7 @@ import HeytingLean.Logic.ModalDial
 import HeytingLean.Logic.Triad
 import HeytingLean.Logic.StageSemantics
 import HeytingLean.Epistemic.Occam
-import HeytingLean.Logic.Psr
+import HeytingLean.Logic.PSR
 import HeytingLean.Logic.Dialectic
 import HeytingLean.Ontology.Primordial
 import HeytingLean.Bridges.Tensor
@@ -553,9 +553,9 @@ theorem occam_birth_verified (R : Reentry α) (a : α) :
   Epistemic.occam_birth (R := R) (a := a)
 
 theorem psr_stability_verified (R : Reentry α) {a x : α}
-    (h : Logic.Psr.Sufficient R a) (hx : x ≤ a) :
+    (h : Logic.PSR.Sufficient R a) (hx : x ≤ a) :
     R x ≤ a :=
-  Logic.Psr.sufficient_stable (R := R) h hx
+  Logic.PSR.sufficient_stable (R := R) h hx
 
 theorem dialectic_synth_le_verified (R : Reentry α)
     (T A W : R.Omega) (hT : T ≤ W) (hA : A ≤ W) :

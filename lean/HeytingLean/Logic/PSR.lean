@@ -1,4 +1,4 @@
-import Mathlib.Logic.Function.Iteration
+import Mathlib.Logic.Function.Iterate
 import HeytingLean.LoF.Nucleus
 import HeytingLean.Epistemic.Occam
 

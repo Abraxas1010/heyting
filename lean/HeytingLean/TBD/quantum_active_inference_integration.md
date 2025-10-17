@@ -72,7 +72,7 @@ This sits cleanly under the **quantum FEP** (a formulation of the Free Energy Pr
 
 * **Hook into your existing laws**
 
-  * `Epistemic/Occam.lean`, `Logic/Psr.lean`, `Logic/Dialectic.lean`: reuse the *same* definitions and proofs with (J:=J_{\text{QAI}}). 
+  * `Epistemic/Occam.lean`, `Logic/PSR.lean`, `Logic/Dialectic.lean`: reuse the *same* definitions and proofs with (J:=J_{\text{QAI}}). 
   * `Quantum/Orthomodular.lean` + `ProjectorNucleus.lean`: projections/PVMs as the orthomodular stage; POVMs as **effect algebra** stage. ([Wikipedia][1])
   * Bridges: `Clifford.lean` hosts Hilbert-/projector nuclei and the **lax-commutation** with `logicalShadow` you already use. 
 

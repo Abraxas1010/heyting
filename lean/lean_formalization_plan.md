@@ -112,7 +112,7 @@ Adjust if the repository already uses a different naming convention; the key req
 - Introduce Occam/PSR/Dialectic modules grounded solely in the nucleus `J` and dial `θ`, keeping the construction minimal.
 - Target files:
   - `Epistemic/Occam.lean`: define `birth_J`, minimal-stage interiors, and show the resulting operator is a nucleus that lax-commutes with bridge shadows.
-  - `Logic/Psr.lean`: characterise sufficiency as invariance (`J P = P`) and prove reachability stability for invariant sets.
+  - `Logic/PSR.lean`: characterise sufficiency as invariance (`J P = P`) and prove reachability stability for invariant sets.
   - `Logic/Dialectic.lean`: package synthesis as `J (T ∪ A)` with the universal property for joins inside `Ω_J`.
 - **Remaining work:** formalise the definitions, prove the corresponding algebraic laws, integrate with stage-aware bridges, and extend compliance tests (Euler boundary as canonical Occam/PSR/Dialectic witness).
 

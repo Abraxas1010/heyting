@@ -63,7 +63,7 @@ PSR_J(P)  :↔  J(P) = P     (i.e., P ∈ Ω_J)
 
 **Lean wiring:**
 
-* `Logic/Psr.lean` with your existing `reachable`/`ReflTransGen`.
+* `Logic/PSR.lean` with your existing `reachable`/`ReflTransGen`.
 * Prove stability by induction on reachability; prove existence of minimal reasons using `Nat` well-foundedness over `birth_J`.
 
 ---
@@ -110,7 +110,7 @@ That’s the full equivalence you wanted, now **purely generative** and **machin
   Your dial `θ` is already there—add `birth_J(U)` = first stabilization index.
 * **Epistemic/Occam.lean**
   `J_occam` from minimal `birth_J`; prove interior axioms; add commuting lemmas with `logicalShadow`.
-* **Logic/Psr.lean**
+* **Logic/PSR.lean**
   `PSR_J(P) :↔ J P = P`; stability over reachability.
 * **Logic/Dialectic.lean**
   `synth J T A := J (T ∪ A)` with join universal property.
