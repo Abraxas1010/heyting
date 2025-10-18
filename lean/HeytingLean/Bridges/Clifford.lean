@@ -111,6 +111,22 @@ noncomputable def stageHimp (M : Model α) :
   fun p q =>
     M.encode ((M.decode p) ⇨ (M.decode q))
 
+/-- Stage-style collapse (at ladder index `n`) on the Clifford carrier. -/
+noncomputable def stageCollapseAt (M : Model α) (n : ℕ) :
+    (α × α) → α × α :=
+  fun p =>
+    M.encode
+      (HeytingLean.Logic.Stage.DialParam.collapseAtOmega
+        (α := α) (R := M.R) n (M.decode p))
+
+/-- Stage-style expansion (at ladder index `n`) on the Clifford carrier. -/
+noncomputable def stageExpandAt (M : Model α) (n : ℕ) :
+    (α × α) → α × α :=
+  fun p =>
+    M.encode
+      (HeytingLean.Logic.Stage.DialParam.expandAtOmega
+        (α := α) (R := M.R) n (M.decode p))
+
 variable {α : Type u} [PrimaryAlgebra α]
 
 @[simp] theorem stageMvAdd_encode (M : Model α) (a b : M.R.Omega) :
@@ -157,6 +173,26 @@ variable {α : Type u} [PrimaryAlgebra α]
   classical
   simp [Model.stageHimp, Model.decode_encode]
 
+@[simp] lemma stageCollapseAt_encode (M : Model α) (n : ℕ)
+    (a : M.R.Omega) :
+    M.stageCollapseAt n (M.contract.encode a)
+      =
+        M.encode
+          (HeytingLean.Logic.Stage.DialParam.collapseAtOmega
+            (α := α) (R := M.R) n a) := by
+  classical
+  simp [Model.stageCollapseAt, Model.decode_encode]
+
+@[simp] lemma stageExpandAt_encode (M : Model α) (n : ℕ)
+    (a : M.R.Omega) :
+    M.stageExpandAt n (M.contract.encode a)
+      =
+        M.encode
+          (HeytingLean.Logic.Stage.DialParam.expandAtOmega
+            (α := α) (R := M.R) n a) := by
+  classical
+  simp [Model.stageExpandAt, Model.decode_encode]
+
 @[simp] lemma logicalShadow_stageMvAdd_encode (M : Model α) (a b : M.R.Omega) :
     M.logicalShadow
         (M.stageMvAdd (M.contract.encode a) (M.contract.encode b))
@@ -200,6 +236,26 @@ variable {α : Type u} [PrimaryAlgebra α]
       M.R (a ⇨ b) := by
   classical
   simp [stageHimp_encode, Model.logicalShadow_encode']
+
+@[simp] lemma logicalShadow_stageCollapseAt_encode
+    (M : Model α) (n : ℕ) (a : M.R.Omega) :
+    M.logicalShadow
+        (M.stageCollapseAt n (M.contract.encode a)) =
+      M.R
+        (HeytingLean.Logic.Modal.DialParam.collapseAt
+          (α := α) (R := M.R) n (a : α)) := by
+  classical
+  simp [stageCollapseAt_encode, Model.logicalShadow_encode']
+
+@[simp] lemma logicalShadow_stageExpandAt_encode
+    (M : Model α) (n : ℕ) (a : M.R.Omega) :
+    M.logicalShadow
+        (M.stageExpandAt n (M.contract.encode a)) =
+      M.R
+        (HeytingLean.Logic.Modal.DialParam.expandAt
+          (α := α) (R := M.R) n (a : α)) := by
+  classical
+  simp [stageExpandAt_encode, Model.logicalShadow_encode']
 
 end Model
 

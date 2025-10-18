@@ -38,12 +38,23 @@ variable {α : Type u} [PrimaryAlgebra α] (D : Dial α)
 def collapse (a : α) : α :=
   D.core (D.diamond a)
 
+/-- The breathing cycle expands a proposition by exteriorising after an interior move. -/
+def expand (a : α) : α :=
+  D.diamond (D.box a)
+
 /-- Collapse is monotone because it is a composition of monotone nuclei. -/
 lemma collapse_monotone : Monotone D.collapse := by
   intro a b h
   unfold collapse
   have := D.diamond.monotone h
   exact D.core.monotone this
+
+/-- Expansion is monotone because it is a composition of monotone nuclei. -/
+lemma expand_monotone : Monotone D.expand := by
+  intro a b h
+  unfold expand
+  have := D.box.monotone h
+  exact D.diamond.monotone this
 
 /-- The breathing cycle remains below the next exterior pass. -/
 lemma collapse_le_next (a : α) : D.collapse a ≤ D.diamond (D.diamond a) := by
@@ -58,11 +69,25 @@ lemma box_le_collapse (a : α) : D.box a ≤ D.collapse a := by
   unfold collapse
   have h₁ : D.box a ≤ D.diamond a := D.box_le_diamond_apply a
   have h₂ := D.box.monotone h₁
+  have h₂' : D.box a ≤ D.box (D.diamond a) := by
+    have hId := Reentry.idempotent (R := D.box) (a := a)
+    calc
+      D.box a = D.box (D.box a) := hId.symm
+      _ ≤ D.box (D.diamond a) := h₂
   have h₃ : D.box (D.diamond a) ≤ D.core (D.diamond a) :=
     D.box_le_core_apply _
-  exact le_trans (by simpa using h₂) h₃
+  exact le_trans h₂' h₃
+
+/-- Expansion always dominates the boxed contribution. -/
+lemma box_le_expand (a : α) : D.box a ≤ D.expand a := by
+  unfold expand
+  have h := Dial.box_le_diamond_apply (D := D) (a := D.box a)
+  have hId := Reentry.idempotent (R := D.box) (a := a)
+  exact (le_of_eq_of_le hId.symm h)
 
 @[simp] lemma collapse_eq (a : α) : D.collapse a = D.core (D.diamond a) := rfl
+
+@[simp] lemma expand_eq (a : α) : D.expand a = D.diamond (D.box a) := rfl
 
 @[simp] def trivial (R : Reentry α) : Dial α where
   core := R
@@ -87,8 +112,19 @@ variable {α : Type u} [PrimaryAlgebra α] (P : DialParam α)
 def collapse : α → α :=
   P.dial.collapse
 
+/-- Expansion interpreted at the parameter level. -/
+def expand : α → α :=
+  P.dial.expand
+
 lemma collapse_monotone : Monotone P.collapse :=
   P.dial.collapse_monotone
+
+/-- Expansion is monotone for every dial parameter. -/
+lemma expand_monotone : Monotone P.expand :=
+  P.dial.expand_monotone
+
+lemma box_le_expand (a : α) : P.dial.box a ≤ P.expand a :=
+  P.dial.box_le_expand a
 
 /-- The breathing endpoints packaged as a pair. -/
 def breathe (a : α) : α × α :=
@@ -105,7 +141,8 @@ def elevate : DialParam α :=
 @[simp] lemma elevate_collapse :
     P.elevate.collapse = P.collapse := rfl
 
-
+@[simp] lemma elevate_expand :
+    P.elevate.expand = P.expand := rfl
 
 def le (P Q : DialParam α) : Prop :=
   P.dimension ≤ Q.dimension ∧
@@ -145,6 +182,44 @@ def ladder (R : Reentry α) : ℕ → DialParam α
 
 @[simp] lemma ladder_succ (R : Reentry α) (n : ℕ) :
     ladder R (n + 1) = (ladder R n).elevate := rfl
+
+/-- Collapse associated with the arithmetic ladder stage `n`. -/
+def collapseAt (R : Reentry α) (n : ℕ) : α → α :=
+  (ladder R n).collapse
+
+/-- Expansion associated with the arithmetic ladder stage `n`. -/
+def expandAt (R : Reentry α) (n : ℕ) : α → α :=
+  (ladder R n).expand
+
+lemma collapseAt_monotone (R : Reentry α) (n : ℕ) :
+    Monotone (collapseAt (R := R) n) :=
+  (ladder R n).collapse_monotone
+
+lemma expandAt_monotone (R : Reentry α) (n : ℕ) :
+    Monotone (expandAt (R := R) n) :=
+  (ladder R n).expand_monotone
+
+@[simp] lemma collapseAt_zero (R : Reentry α) :
+    collapseAt (R := R) 0 = fun a => R a := by
+  funext a
+  unfold collapseAt
+  simp [ladder_zero, base, collapse, Dial.collapse, Dial.trivial]
+
+@[simp] lemma expandAt_zero (R : Reentry α) :
+    expandAt (R := R) 0 = fun a => R a := by
+  funext a
+  unfold expandAt
+  simp [ladder_zero, base, expand, Dial.expand, Dial.trivial]
+
+@[simp] lemma collapseAt_succ (R : Reentry α) (n : ℕ) :
+    collapseAt (R := R) (n + 1) = collapseAt (R := R) n := by
+  unfold collapseAt
+  simp [ladder_succ]
+
+@[simp] lemma expandAt_succ (R : Reentry α) (n : ℕ) :
+    expandAt (R := R) (n + 1) = expandAt (R := R) n := by
+  unfold expandAt
+  simp [ladder_succ]
 
 @[simp] lemma ladder_dimension (R : Reentry α) :
     ∀ n, (ladder R n).dimension = n

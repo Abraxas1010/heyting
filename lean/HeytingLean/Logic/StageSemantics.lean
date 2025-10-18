@@ -163,6 +163,165 @@ lemma map_himp_le (a b : α) :
   HeytingLean.Logic.Residuated.map_himp_le
     (R := P.dial.core) (a := a) (b := b)
 
+/-- At every ladder stage the modal collapse coincides with the core re-entry. -/
+@[simp] lemma collapseAt_eq_reentry (R : Reentry α) :
+    ∀ n, HeytingLean.Logic.Modal.DialParam.collapseAt (R := R) n =
+        fun a => R a
+  | 0 =>
+      by
+        funext a
+        simp [HeytingLean.Logic.Modal.DialParam.collapseAt_zero]
+  | Nat.succ n =>
+      by
+        have ih := collapseAt_eq_reentry (R := R) n
+        funext a
+        simp [HeytingLean.Logic.Modal.DialParam.collapseAt_succ,
+          ih]
+
+/-- At every ladder stage the modal expansion collapses back to the core re-entry. -/
+@[simp] lemma expandAt_eq_reentry (R : Reentry α) :
+    ∀ n, HeytingLean.Logic.Modal.DialParam.expandAt (R := R) n =
+        fun a => R a
+  | 0 =>
+      by
+        funext a
+        simp [HeytingLean.Logic.Modal.DialParam.expandAt_zero]
+  | Nat.succ n =>
+      by
+        have ih := expandAt_eq_reentry (R := R) n
+        funext a
+        simp [HeytingLean.Logic.Modal.DialParam.expandAt_succ,
+          ih]
+
+/-- Ladder-level collapse promoted to the Heyting core `Ω_R`. -/
+noncomputable def collapseAtOmega (R : Reentry α) (n : ℕ) :
+    R.Omega → R.Omega :=
+  fun a =>
+    Reentry.Omega.mk (R := R)
+      (HeytingLean.Logic.Modal.DialParam.collapseAt
+        (α := α) (R := R) n (a : α))
+      (by
+        simp [collapseAt_eq_reentry, Reentry.idempotent])
+
+/-- Ladder-level expansion promoted to the Heyting core `Ω_R`. -/
+noncomputable def expandAtOmega (R : Reentry α) (n : ℕ) :
+    R.Omega → R.Omega :=
+  fun a =>
+    Reentry.Omega.mk (R := R)
+      (R
+        (HeytingLean.Logic.Modal.DialParam.expandAt
+          (α := α) (R := R) n (a : α)))
+      (by
+        have h := Reentry.idempotent (R := R)
+          (a :=
+            HeytingLean.Logic.Modal.DialParam.expandAt
+              (α := α) (R := R) n (a : α))
+        exact h)
+
+@[simp] lemma collapseAtOmega_coe (R : Reentry α) (n : ℕ)
+    (a : R.Omega) :
+    ((collapseAtOmega (α := α) (R := R) n a : R.Omega) : α) =
+      HeytingLean.Logic.Modal.DialParam.collapseAt
+        (α := α) (R := R) n (a : α) := rfl
+
+@[simp] lemma expandAtOmega_coe (R : Reentry α) (n : ℕ)
+    (a : R.Omega) :
+    ((expandAtOmega (α := α) (R := R) n a : R.Omega) : α) =
+      R
+        (HeytingLean.Logic.Modal.DialParam.expandAt
+          (α := α) (R := R) n (a : α)) := rfl
+
+lemma collapseAtOmega_monotone (R : Reentry α) (n : ℕ) :
+    Monotone (collapseAtOmega (α := α) (R := R) n) := by
+  intro a b h
+  change
+      HeytingLean.Logic.Modal.DialParam.collapseAt (α := α)
+          (R := R) n (a : α)
+        ≤
+      HeytingLean.Logic.Modal.DialParam.collapseAt (α := α)
+          (R := R) n (b : α)
+  exact
+    HeytingLean.Logic.Modal.DialParam.collapseAt_monotone
+      (α := α) (R := R) n h
+
+lemma expandAtOmega_monotone (R : Reentry α) (n : ℕ) :
+    Monotone (expandAtOmega (α := α) (R := R) n) := by
+  intro a b h
+  change
+      R
+          (HeytingLean.Logic.Modal.DialParam.expandAt (α := α)
+              (R := R) n (a : α))
+        ≤
+      R
+          (HeytingLean.Logic.Modal.DialParam.expandAt (α := α)
+              (R := R) n (b : α))
+  exact
+    Reentry.monotone (R := R)
+      (HeytingLean.Logic.Modal.DialParam.expandAt_monotone
+        (α := α) (R := R) n h)
+
+@[simp] lemma collapseAtOmega_self (R : Reentry α) (n : ℕ)
+    (a : R.Omega) :
+    collapseAtOmega (α := α) (R := R) n a = a := by
+  ext
+  simp [collapseAtOmega, collapseAt_eq_reentry,
+    Reentry.Omega.apply_coe]
+
+@[simp] lemma expandAtOmega_self (R : Reentry α) (n : ℕ)
+    (a : R.Omega) :
+    expandAtOmega (α := α) (R := R) n a = a := by
+  ext
+  simp [expandAtOmega, expandAt_eq_reentry,
+    Reentry.Omega.apply_coe]
+
+/-- MV-stage collapse law on the Heyting core. -/
+@[simp] lemma mvCollapse_self (R : Reentry α)
+    (a :
+      (HeytingLean.Logic.Modal.DialParam.ladder
+        (α := α) R 2).dial.core.Omega) :
+    collapseAtOmega (α := α) (R := R) 2 a = a :=
+  collapseAtOmega_self (α := α) (R := R) 2 a
+
+/-- MV-stage expansion law on the Heyting core. -/
+@[simp] lemma mvExpand_self (R : Reentry α)
+    (a :
+      (HeytingLean.Logic.Modal.DialParam.ladder
+        (α := α) R 2).dial.core.Omega) :
+    expandAtOmega (α := α) (R := R) 2 a = a :=
+  expandAtOmega_self (α := α) (R := R) 2 a
+
+/-- Effect-stage collapse law on the Heyting core. -/
+@[simp] lemma effectCollapse_self (R : Reentry α)
+    (a :
+      (HeytingLean.Logic.Modal.DialParam.ladder
+        (α := α) R 3).dial.core.Omega) :
+    collapseAtOmega (α := α) (R := R) 3 a = a :=
+  collapseAtOmega_self (α := α) (R := R) 3 a
+
+/-- Effect-stage expansion law on the Heyting core. -/
+@[simp] lemma effectExpand_self (R : Reentry α)
+    (a :
+      (HeytingLean.Logic.Modal.DialParam.ladder
+        (α := α) R 3).dial.core.Omega) :
+    expandAtOmega (α := α) (R := R) 3 a = a :=
+  expandAtOmega_self (α := α) (R := R) 3 a
+
+/-- Orthomodular-stage collapse law on the Heyting core. -/
+@[simp] lemma orthCollapse_self (R : Reentry α)
+    (a :
+      (HeytingLean.Logic.Modal.DialParam.ladder
+        (α := α) R 4).dial.core.Omega) :
+    collapseAtOmega (α := α) (R := R) 4 a = a :=
+  collapseAtOmega_self (α := α) (R := R) 4 a
+
+/-- Orthomodular-stage expansion law on the Heyting core. -/
+@[simp] lemma orthExpand_self (R : Reentry α)
+    (a :
+      (HeytingLean.Logic.Modal.DialParam.ladder
+        (α := α) R 4).dial.core.Omega) :
+    expandAtOmega (α := α) (R := R) 4 a = a :=
+  expandAtOmega_self (α := α) (R := R) 4 a
+
 end DialParam
 
 /-- Bridges expose shadow/lift data satisfying a round-trip contract. -/
@@ -211,6 +370,14 @@ def stageOrthocomplement [OmlCore Ω] (x : α) : α :=
 /-- Transport Heyting implication across a bridge. -/
 def stageHimp [HeytingAlgebra Ω] (x y : α) : α :=
   B.lift ((B.shadow x) ⇨ (B.shadow y))
+
+/-- Transport a collapse operator across a bridge. -/
+def stageCollapse (collapse : Ω → Ω) (x : α) : α :=
+  B.lift (collapse (B.shadow x))
+
+/-- Transport an expansion operator across a bridge. -/
+def stageExpand (expand : Ω → Ω) (x : α) : α :=
+  B.lift (expand (B.shadow x))
 
 @[simp] theorem shadow_stageMvAdd [MvCore Ω] (x y : α) :
     B.shadow (B.stageMvAdd x y) =
@@ -261,6 +428,18 @@ def stageHimp [HeytingAlgebra Ω] (x y : α) : α :=
     B.shadow (B.stageHimp x y) =
       B.shadow x ⇨ B.shadow y := by
   unfold stageHimp
+  exact B.rt₁ _
+
+@[simp] theorem shadow_stageCollapse (collapse : Ω → Ω) (x : α) :
+    B.shadow (B.stageCollapse collapse x) =
+      collapse (B.shadow x) := by
+  unfold stageCollapse
+  exact B.rt₁ _
+
+@[simp] theorem shadow_stageExpand (expand : Ω → Ω) (x : α) :
+    B.shadow (B.stageExpand expand x) =
+      expand (B.shadow x) := by
+  unfold stageExpand
   exact B.rt₁ _
 
 end Bridge
