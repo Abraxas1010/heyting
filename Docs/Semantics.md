@@ -5,9 +5,10 @@
 - Future work: formalize a concrete `PrimaryAlgebra` instance for `[0,1]` with the Łukasiewicz t-norm and show how `Reentry` transports to tensors.
 
 ## Stage Semantics Laws
-- The `Stage.DialParam` API now exposes the canonical MV identities: `mvAdd_zero_left/ right` simplify joins with bottom and `mvAdd_comm` realises the Łukasiewicz symmetry at every ladder stage.
-- Effect-style transport comes with `effectCompatible_orthocomplement` showing an element is compatible with its Heyting orthocomplement and `effectAdd?_orthocomplement` ensuring the partial sum is defined.
-- Compliance exercises the Boolean, MV, effect, and orthomodular exemplars directly against these lemmas so bridge-specific witnesses stay aligned with the core definitions.
+- The `Stage.DialParam` API exposes canonical MV identities (`mvAdd_zero_{left,right}`, `mvAdd_comm`) at every ladder stage.
+- Effect transport (`effectCompatible_orthocomplement`, `effectAdd?_orthocomplement`) witnesses compatibility with Heyting orthocomplements and ensures partial sums are defined.
+- Reachability: `Logic/PSR.lean` defines `Step`, `reachable`, and the `breathe`/`birth` machinery; lemmas (`breathe_le_of_sufficient`, `sufficient_reachable`) prove that sufficient reasons remain stable along any finite breath. `Tests/Compliance.lean` exercises these proofs alongside stage collapse/expand examples.
+- Occam transport: every bridge derives `stageOccam` from the round-trip contract (`Contracts/RoundTrip.stageOccam`) and compliance checks that `logicalShadow` reproduces the core-level `occam` reduction.
 
 ## Effect Algebra Connection
 - The `clifford_encode_euler` example pairs Euler boundary data, hinting at effect-algebra behaviour (partial addition of orthogonal effects). The current projectors serve as the nucleus needed for effect-style reasoning.
