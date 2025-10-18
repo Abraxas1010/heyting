@@ -96,9 +96,9 @@ Adjust if the repository already uses a different naming convention; the key req
 - Identity contract + bridges’ `logicalShadow` lemmas cover RT-1 style properties; compliance tests now assert the stage-transport commutation facts provided in `StageSemantics`.
 - **Remaining work:** use the trace-monoid concurrency infrastructure to generalize RT-1/RT-2 and TRI-1/TRI-2 across arbitrary dial stages for every bridge, automate the resulting proofs (`@[simp]`, custom tactics), and expand compliance tests with Boolean/MV/effect/orthomodular exemplars that exercise the new stage helpers.
 
-### 7. Limits, Dialing, and Examples *(status: ⚠️ partial)*
-- Dial ladder examples exist (`DialParam.ladder`). Contracts examples cover basic round-trip cases; stage helpers are available but not yet showcased.
-- **Remaining work:** add Boolean limit + MV/effect/orthomodular examples (reusing the new stage helpers) and breathing-cycle scenarios demonstrating meet/join dominance.
+### 7. Limits, Dialing, and Examples *(status: ✅ foundations + tests; lint polish pending)*
+- Dial ladder examples exist (`DialParam.ladder`). The compliance suite now exercises Boolean/MV/effect/orthomodular witnesses plus RT/TRI regressions for tensor/graph/clifford.
+- **Remaining work:** tidy lingering lint warnings (`simp` vs `simpa`, unused arguments) and expand breathing-cycle scenarios demonstrating meet/join dominance once the cleanup pass lands.
 
 ### 8. Validation & Automation *(status: ⚠️ warnings outstanding)*
 - `lake build` runs cleanly again; StageSemantics has been refactored for lint-friendliness, and bridge modules are being updated to eliminate `unused simp` and `simpa` warnings.
@@ -130,13 +130,13 @@ Adjust if the repository already uses a different naming convention; the key req
 
 ## Near-Term Subplan *(May 2025 sprint)*
 
-1. **Transport polish & lint cleanup**
-   - Normalise `simp` usage across `StageSemantics` and every bridge so transport lemmas compile without `unused simp` warnings.
-   - Extract recurring Option-handling rewrites into helper lemmas to keep subsequent proofs short.
+1. **Compliance regression coverage**
+   - Keep growing `Tests/Compliance.lean` with RT/TRI assertions for the remaining bridges and dial stages (Boolean/MV/effect/orthomodular exemplars in place, extend with orthomodular-specific laws).
+   - Record the residuated-triangle behaviour explicitly for tensor/graph/clifford so lens-level contracts stay in sync with the core.
 
-2. **Compliance enrichment**
-   - Extend `Tests/Compliance.lean` with Boolean/MV/effect/orthomodular exemplars that exercise the updated transport helpers at each dial stage.
-   - Add RT/TRI regression checks once the lint cleanup is merged, aiming to run the suite with `-DwarningAsError=true`.
+2. **Transport polish & lint cleanup**
+   - Normalise `simp` usage across `StageSemantics` and every bridge so transport lemmas compile without `unused simp` warnings.
+   - Extract recurring Option-handling rewrites into helper lemmas to keep subsequent proofs short, then re-run compliance to ensure behaviour is unchanged.
 
 3. **Documentation & follow-on prep**
    - Capture the transport API decisions in `Docs/README.md` and seed `Docs/Ontology.md` with a short Euler-boundary narrative.
@@ -145,6 +145,18 @@ Adjust if the repository already uses a different naming convention; the key req
 ## Cleanup Backlog
 
 - Normalize `simp` usage across `Logic/StageSemantics.lean` and the bridge suites so transport lemmas compile without `unused simp` warnings. Extract recurring `Option.map` rewrites into helpers once higher-priority compliance work lands.
+
+## Outstanding TODO Summary
+
+1. LoF nucleus API: add helper lemmas (`map_sup`, `map_bot`) for future lenses (Sections 1 & 2).
+2. Residuated ladder: integrate MV/effect/orthomodular parameters into modal collapse/expansion lemmas and reuse in lens wiring (Section 3).
+3. Modal breathing layer: state collapse/expansion laws tied to dimensional semantics and align with Stage semantics (Section 4).
+4. Bridge specialisations: document intended dial behaviours and upgrade tensor/graph/clifford carriers to their roadmap targets (Section 5).
+5. Cross-lens contracts: generalise RT/TRI via trace-monoid tooling, automate (`@[simp]`, tactics), and extend compliance over all stages (Section 6).
+6. Limits/examples: clean up lint warnings (`simp` vs `simpa`, unused args) and add breathing-cycle dominance scenarios (Section 7).
+7. Validation & automation: finish the lint sweep, add structured automation, broaden RT/TRI/stage test coverage, and standardise stricter `lake build` flags (Section 8).
+8. Documentation: propagate roadmap updates into `Docs/README.md`, add narrative examples, and plan doc-generation tooling (Section 9).
+
 ## Milestones
 - **M1:** Primary algebra and nucleus compiled with Heyting core (`LoF/`).
 - **M2:** Residuated ladder and modal dial completed with theorem statements (`Logic/`).

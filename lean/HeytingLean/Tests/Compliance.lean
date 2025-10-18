@@ -1,6 +1,7 @@
 import HeytingLean.Contracts.Examples
 import HeytingLean.Logic.ModalDial
 import HeytingLean.Logic.Triad
+import HeytingLean.Logic.ResiduatedLadder
 import HeytingLean.Logic.StageSemantics
 import HeytingLean.Ontology.Primordial
 import HeytingLean.Bridges.Tensor
@@ -30,11 +31,121 @@ theorem tensor_shadow_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
         = R a :=
   Contracts.Examples.tensor_shadow (α := α) (R := R) n a
 
+theorem tensor_rt2_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
+    (Contracts.Examples.tensor (α := α) (R := R) n).logicalShadow
+        ((Contracts.Examples.tensor (α := α) (R := R) n).contract.encode a)
+      = R a :=
+  tensor_shadow_verified (R := R) (n := n) (a := a)
+
+theorem tensor_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
+    (Bridges.Tensor.Model.contract (Contracts.Examples.tensor (α := α) (R := R) n)).decode
+        ((Bridges.Tensor.Model.contract (Contracts.Examples.tensor (α := α) (R := R) n)).encode a)
+      = a := by
+  classical
+  simpa [Contracts.Examples.tensor]
+    using Contracts.Examples.tensor_round (α := α) (R := R) (n := n) (a := a)
+
 theorem graph_shadow_verified (R : Reentry α) (a : R.Omega) :
     (Bridges.Graph.Model.logicalShadow (Contracts.Examples.graph (α := α) (R := R)))
         ((Bridges.Graph.Model.contract (Contracts.Examples.graph (α := α) (R := R))).encode a)
         = R a :=
   Contracts.Examples.graph_shadow (α := α) (R := R) a
+
+theorem graph_rt2_verified (R : Reentry α) (a : R.Omega) :
+    (Contracts.Examples.graph (α := α) (R := R)).logicalShadow
+        ((Contracts.Examples.graph (α := α) (R := R)).contract.encode a)
+      = R a :=
+  graph_shadow_verified (R := R) (a := a)
+
+/-- Triangle (TRI-1): deduction, abduction, and induction coincide on the Heyting core. -/
+theorem residuated_triangle_verified (R : Reentry α)
+    (a b c : R.Omega) :
+    HeytingLean.Logic.Residuated.abduction (R := R) a b c ↔
+      HeytingLean.Logic.Residuated.induction (R := R) a b c :=
+  HeytingLean.Logic.Residuated.abduction_iff_induction (R := R) a b c
+
+/-- Triangle (TRI-2) for the tensor bridge reduces to the core triangle via RT. -/
+theorem tensor_triangle_lens_verified (R : Reentry α) (n : ℕ)
+    (a b c : R.Omega) :
+    HeytingLean.Logic.Residuated.abduction (R := R)
+        ((Contracts.Examples.tensor (α := α) (R := R) n).contract.decode
+          ((Contracts.Examples.tensor (α := α) (R := R) n).contract.encode a))
+        ((Contracts.Examples.tensor (α := α) (R := R) n).contract.decode
+          ((Contracts.Examples.tensor (α := α) (R := R) n).contract.encode b))
+        ((Contracts.Examples.tensor (α := α) (R := R) n).contract.decode
+          ((Contracts.Examples.tensor (α := α) (R := R) n).contract.encode c)) ↔
+      HeytingLean.Logic.Residuated.induction (R := R)
+        ((Contracts.Examples.tensor (α := α) (R := R) n).contract.decode
+          ((Contracts.Examples.tensor (α := α) (R := R) n).contract.encode a))
+        ((Contracts.Examples.tensor (α := α) (R := R) n).contract.decode
+          ((Contracts.Examples.tensor (α := α) (R := R) n).contract.encode b))
+        ((Contracts.Examples.tensor (α := α) (R := R) n).contract.decode
+          ((Contracts.Examples.tensor (α := α) (R := R) n).contract.encode c)) :=
+by
+  classical
+  set M := Contracts.Examples.tensor (α := α) (R := R) n
+  have ha := M.contract.round a
+  have hb := M.contract.round b
+  have hc := M.contract.round c
+  simpa [M, ha, hb, hc] using residuated_triangle_verified (R := R) a b c
+
+/-- Triangle (TRI-2) for the graph bridge reduces to the core triangle via the bridge contract. -/
+theorem graph_triangle_lens_verified (R : Reentry α)
+    (a b c : R.Omega) :
+    HeytingLean.Logic.Residuated.abduction (R := R)
+        ((Contracts.Examples.graph (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.graph (α := α) (R := R)).contract.encode a))
+        ((Contracts.Examples.graph (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.graph (α := α) (R := R)).contract.encode b))
+        ((Contracts.Examples.graph (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.graph (α := α) (R := R)).contract.encode c)) ↔
+      HeytingLean.Logic.Residuated.induction (R := R)
+        ((Contracts.Examples.graph (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.graph (α := α) (R := R)).contract.encode a))
+        ((Contracts.Examples.graph (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.graph (α := α) (R := R)).contract.encode b))
+        ((Contracts.Examples.graph (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.graph (α := α) (R := R)).contract.encode c)) :=
+by
+  classical
+  set M := Contracts.Examples.graph (α := α) (R := R)
+  have ha := M.contract.round a
+  have hb := M.contract.round b
+  have hc := M.contract.round c
+  simpa [M, ha, hb, hc] using residuated_triangle_verified (R := R) a b c
+
+/-- Triangle (TRI-2) for the Clifford bridge reduces to the core triangle via the bridge contract. -/
+theorem clifford_triangle_lens_verified (R : Reentry α)
+    (a b c : R.Omega) :
+    HeytingLean.Logic.Residuated.abduction (R := R)
+        ((Contracts.Examples.clifford (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.clifford (α := α) (R := R)).contract.encode a))
+        ((Contracts.Examples.clifford (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.clifford (α := α) (R := R)).contract.encode b))
+        ((Contracts.Examples.clifford (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.clifford (α := α) (R := R)).contract.encode c)) ↔
+      HeytingLean.Logic.Residuated.induction (R := R)
+        ((Contracts.Examples.clifford (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.clifford (α := α) (R := R)).contract.encode a))
+        ((Contracts.Examples.clifford (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.clifford (α := α) (R := R)).contract.encode b))
+        ((Contracts.Examples.clifford (α := α) (R := R)).contract.decode
+          ((Contracts.Examples.clifford (α := α) (R := R)).contract.encode c)) :=
+by
+  classical
+  set M := Contracts.Examples.clifford (α := α) (R := R)
+  have ha := M.contract.round a
+  have hb := M.contract.round b
+  have hc := M.contract.round c
+  simpa [M, ha, hb, hc] using residuated_triangle_verified (R := R) a b c
+
+theorem graph_round_verified (R : Reentry α) (a : R.Omega) :
+    (Bridges.Graph.Model.contract (Contracts.Examples.graph (α := α) (R := R))).decode
+        ((Bridges.Graph.Model.contract (Contracts.Examples.graph (α := α) (R := R))).encode a)
+      = a := by
+  classical
+  simpa [Contracts.Examples.graph]
+    using Contracts.Examples.graph_round (α := α) (R := R) (a := a)
 
 theorem clifford_project_idem (R : Reentry α) (p : α × α) :
     Bridges.Clifford.Model.project (Contracts.Examples.clifford (α := α) (R := R))
@@ -175,7 +286,7 @@ theorem ladder_orthomodular_disjoint (R : Reentry α)
   orthocomplement_disjoint_verified
     (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4) (a := a)
 
-theorem tensor_shadow_mv_add (R : Reentry α) (n : ℕ)
+lemma tensor_shadow_mv_add (R : Reentry α) (n : ℕ)
     (a b : R.Omega) :
     (Bridges.Tensor.Model.logicalShadow
         (Contracts.Examples.tensor (α := α) (R := R) n))
@@ -192,7 +303,7 @@ theorem tensor_shadow_mv_add (R : Reentry α) (n : ℕ)
   classical
   simp [Contracts.Examples.tensor]
 
-theorem tensor_shadow_effect_add (R : Reentry α) (n : ℕ)
+lemma tensor_shadow_effect_add (R : Reentry α) (n : ℕ)
     (a b : R.Omega) :
     (Bridges.Tensor.Model.stageEffectAdd?
         (Contracts.Examples.tensor (α := α) (R := R) n)
@@ -291,6 +402,15 @@ theorem clifford_shadow_effect_add (R : Reentry α)
     using Bridges.Clifford.Model.logicalShadow_stageEffectAdd_encode
       (M := Contracts.Examples.clifford (α := α) (R := R))
       (a := a) (b := b)
+
+theorem clifford_round_verified (R : Reentry α) (a : R.Omega) :
+    (Bridges.Clifford.Model.contract (Contracts.Examples.clifford (α := α) (R := R))).decode
+        ((Bridges.Clifford.Model.contract (Contracts.Examples.clifford
+            (α := α) (R := R))).encode a)
+      = a := by
+  classical
+  simpa [Contracts.Examples.clifford]
+    using Contracts.Examples.clifford_round (α := α) (R := R) (a := a)
 
 end Tests
 end HeytingLean
