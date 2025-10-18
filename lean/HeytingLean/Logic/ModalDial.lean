@@ -10,6 +10,7 @@ respecting the ordering hierarchy required in the roadmap.
 namespace HeytingLean
 namespace Logic
 namespace Modal
+
 open HeytingLean.LoF
 
 universe u
@@ -135,12 +136,6 @@ def base (R : Reentry α) : DialParam α :=
 @[simp] lemma base_dimension (R : Reentry α) :
     (base R).dimension = 0 := rfl
 
-@[simp] lemma base_core (R : Reentry α) :
-    (base R).dial.core = R := rfl
-
-@[simp] lemma elevate_core (P : DialParam α) :
-    (P.elevate).dial.core = P.dial.core := rfl
-
 def ladder (R : Reentry α) : ℕ → DialParam α
   | 0 => base R
   | n + 1 => (ladder R n).elevate
@@ -162,16 +157,6 @@ def ladder (R : Reentry α) : ℕ → DialParam α
         _ = (ladder R n).dimension + 1 := (ladder R n).elevate_dimension
         _ = n + 1 := by rw [ih]
         _ = Nat.succ n := (Nat.succ_eq_add_one n).symm
-
-@[simp] lemma ladder_core (R : Reentry α) :
-    ∀ n, (ladder R n).dial.core = R
-  | 0 => rfl
-  | Nat.succ n =>
-      calc
-        (ladder R (Nat.succ n)).dial.core
-            = ((ladder R n).elevate).dial.core := rfl
-        _ = (ladder R n).dial.core := elevate_core _
-        _ = R := ladder_core R n
 
 def one (R : Reentry α) : DialParam α := ladder R 1
 def two (R : Reentry α) : DialParam α := ladder R 2
@@ -280,63 +265,6 @@ lemma euler_boundary_process (P : DialParam α) :
   unfold stage
   have := stageOfNat_succ (n := P.dimension)
   simpa [elevate_dimension, Nat.succ_eq_add_one] using this
-
-def booleanParam (R : Reentry α) : DialParam α :=
-  base R
-
-def heytingParam (R : Reentry α) : DialParam α :=
-  ladder R 1
-
-def mvParam (R : Reentry α) : DialParam α :=
-  ladder R 2
-
-def effectParam (R : Reentry α) : DialParam α :=
-  ladder R 3
-
-def orthomodularParam (R : Reentry α) : DialParam α :=
-  ladder R 4
-
-@[simp] lemma booleanParam_stage (R : Reentry α) :
-    (booleanParam (α := α) R).stage = Stage.boolean := rfl
-
-@[simp] lemma heytingParam_stage (R : Reentry α) :
-    (heytingParam (α := α) R).stage = Stage.heyting := by
-  unfold stage
-  simp [heytingParam, ladder_dimension, stageOfNat]
-
-@[simp] lemma mvParam_stage (R : Reentry α) :
-    (mvParam (α := α) R).stage = Stage.mv := by
-  unfold stage
-  simp [mvParam, ladder_dimension, stageOfNat]
-
-@[simp] lemma effectParam_stage (R : Reentry α) :
-    (effectParam (α := α) R).stage = Stage.effect := by
-  unfold stage
-  simp [effectParam, ladder_dimension, stageOfNat]
-
-@[simp] lemma orthomodularParam_stage (R : Reentry α) :
-    (orthomodularParam (α := α) R).stage = Stage.orthomodular := by
-  unfold stage
-  simp [orthomodularParam, ladder_dimension, stageOfNat]
-
-@[simp] lemma booleanParam_core (R : Reentry α) :
-    (booleanParam (α := α) R).dial.core = R := rfl
-
-@[simp] lemma heytingParam_core (R : Reentry α) :
-    (heytingParam (α := α) R).dial.core = R := by
-  simp [heytingParam, ladder_core]
-
-@[simp] lemma mvParam_core (R : Reentry α) :
-    (mvParam (α := α) R).dial.core = R := by
-  simp [mvParam, ladder_core]
-
-@[simp] lemma effectParam_core (R : Reentry α) :
-    (effectParam (α := α) R).dial.core = R := by
-  simp [effectParam, ladder_core]
-
-@[simp] lemma orthomodularParam_core (R : Reentry α) :
-    (orthomodularParam (α := α) R).dial.core = R := by
-  simp [orthomodularParam, ladder_core]
 
 end DialParam
 
