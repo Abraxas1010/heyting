@@ -36,6 +36,7 @@ Thumbs.db
 *.olean
 build/
 .lake/
+lean_system.zip
 
 # Claude
 .claude/

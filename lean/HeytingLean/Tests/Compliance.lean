@@ -116,6 +116,65 @@ theorem orthocomplement_disjoint_verified
     exact h
   · exact bot_le
 
+/-- Boolean-stage exemplar: MV addition with bottom is neutral. -/
+theorem ladder_boolean_mv_zero (R : Reentry α)
+    (a : (HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 0).dial.core.Omega) :
+    HeytingLean.Logic.Stage.DialParam.mvAdd
+        (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 0)
+        (⊥) a = a := by
+  simpa using
+    (mv_add_bottom_verified
+      (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 0)
+      (a := a))
+
+/-- MV-stage exemplar: addition commutes at the second ladder level. -/
+theorem ladder_mv_comm (R : Reentry α)
+    (a b : (HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 2).dial.core.Omega) :
+    HeytingLean.Logic.Stage.DialParam.mvAdd
+        (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 2) a b =
+      HeytingLean.Logic.Stage.DialParam.mvAdd
+        (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 2) b a := by
+  classical
+  simp [HeytingLean.Logic.Stage.DialParam.mvAdd, sup_comm]
+
+/-- Effect-stage exemplar: adding an element to its orthocomplement is defined. -/
+theorem ladder_effect_add_orthocomplement (R : Reentry α)
+    (a : (HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3).dial.core.Omega) :
+    HeytingLean.Logic.Stage.DialParam.effectAdd?
+        (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3)
+        a
+        (HeytingLean.Logic.Stage.DialParam.orthocomplement
+          (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a)
+      =
+        some
+          (HeytingLean.Logic.Stage.DialParam.mvAdd
+            (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a
+            (HeytingLean.Logic.Stage.DialParam.orthocomplement
+              (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a)) := by
+  classical
+  have hCompat :=
+    orthocomplement_disjoint_verified
+      (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) (a := a)
+  unfold HeytingLean.Logic.Stage.DialParam.effectAdd?
+  by_cases h : HeytingLean.Logic.Stage.DialParam.effectCompatible
+      (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a
+      (HeytingLean.Logic.Stage.DialParam.orthocomplement
+        (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a)
+  · simp [h, HeytingLean.Logic.Stage.DialParam.effectCompatible,
+      HeytingLean.Logic.Stage.DialParam.orthocomplement,
+      HeytingLean.Logic.Stage.DialParam.mvNeg]
+  · exact (h hCompat).elim
+
+/-- Orthomodular-stage exemplar: elements are disjoint from their orthocomplements. -/
+theorem ladder_orthomodular_disjoint (R : Reentry α)
+    (a : (HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4).dial.core.Omega) :
+    HeytingLean.Logic.Stage.DialParam.effectCompatible
+        (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4) a
+        (HeytingLean.Logic.Stage.DialParam.orthocomplement
+          (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4) a) :=
+  orthocomplement_disjoint_verified
+    (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4) (a := a)
+
 theorem tensor_shadow_mv_add (R : Reentry α) (n : ℕ)
     (a b : R.Omega) :
     (Bridges.Tensor.Model.logicalShadow

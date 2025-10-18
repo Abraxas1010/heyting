@@ -142,6 +142,9 @@ Adjust if the repository already uses a different naming convention; the key req
    - Capture the transport API decisions in `Docs/README.md` and seed `Docs/Ontology.md` with a short Euler-boundary narrative.
    - Outline the remaining ladder semantics (modal collapse/expansion) so subsequent sprints can implement them without re-auditing the bridges.
 
+## Cleanup Backlog
+
+- Normalize `simp` usage across `Logic/StageSemantics.lean` and the bridge suites so transport lemmas compile without `unused simp` warnings. Extract recurring `Option.map` rewrites into helpers once higher-priority compliance work lands.
 ## Milestones
 - **M1:** Primary algebra and nucleus compiled with Heyting core (`LoF/`).
 - **M2:** Residuated ladder and modal dial completed with theorem statements (`Logic/`).
