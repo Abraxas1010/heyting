@@ -201,7 +201,7 @@ noncomputable def collapseAtOmega (R : Reentry α) (n : ℕ) :
       (HeytingLean.Logic.Modal.DialParam.collapseAt
         (α := α) (R := R) n (a : α))
       (by
-        simp [collapseAt_eq_reentry, Reentry.idempotent])
+        simp [collapseAt_eq_reentry])
 
 /-- Ladder-level expansion promoted to the Heyting core `Ω_R`. -/
 noncomputable def expandAtOmega (R : Reentry α) (n : ℕ) :
@@ -212,11 +212,7 @@ noncomputable def expandAtOmega (R : Reentry α) (n : ℕ) :
         (HeytingLean.Logic.Modal.DialParam.expandAt
           (α := α) (R := R) n (a : α)))
       (by
-        have h := Reentry.idempotent (R := R)
-          (a :=
-            HeytingLean.Logic.Modal.DialParam.expandAt
-              (α := α) (R := R) n (a : α))
-        exact h)
+        simp)
 
 @[simp] lemma collapseAtOmega_coe (R : Reentry α) (n : ℕ)
     (a : R.Omega) :

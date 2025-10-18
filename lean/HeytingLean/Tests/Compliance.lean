@@ -226,9 +226,9 @@ theorem psr_sufficient_euler_boundary (R : Reentry α) :
   exact HeytingLean.Logic.PSR.sufficient_eulerBoundary (R := R)
 
 theorem dialectic_synth_euler_boundary (R : Reentry α) :
-    HeytingLean.Logic.Dialectic.synth (R := R) R.eulerBoundary R.eulerBoundary =
+    HeytingLean.Logic.Dialectic.synthOmega (R := R) R.eulerBoundary R.eulerBoundary =
       R.eulerBoundary :=
-  HeytingLean.Logic.Dialectic.synth_eulerBoundary_self (R := R)
+  HeytingLean.Logic.Dialectic.synthOmega_self (R := R)
 
 theorem boolean_limit_verified (R : Reentry α) (h : ∀ a : α, R a = a) (a : α) :
     R (((_root_.HeytingLean.LoF.Reentry.booleanEquiv (R := R) h).symm a) : R.Omega) = a :=
