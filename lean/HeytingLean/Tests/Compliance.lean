@@ -225,6 +225,19 @@ theorem psr_sufficient_euler_boundary (R : Reentry α) :
     HeytingLean.Logic.PSR.Sufficient R ((R.eulerBoundary : R.Omega) : α) := by
   exact HeytingLean.Logic.PSR.sufficient_eulerBoundary (R := R)
 
+theorem psr_breathe_le (R : Reentry α) (a x : α)
+    (ha : HeytingLean.Logic.PSR.Sufficient R a) (hx : x ≤ a) (n : ℕ) :
+    HeytingLean.Epistemic.breathe (R := R) n x ≤ a :=
+  HeytingLean.Logic.PSR.breathe_le_of_sufficient
+    (R := R) (a := a) (x := x) ha hx n
+
+theorem psr_reachable_stable (R : Reentry α) (a x y : α)
+    (ha : HeytingLean.Logic.PSR.Sufficient R a) (hx : x ≤ a)
+    (hy : HeytingLean.Logic.PSR.reachable (R := R) x y) :
+    y ≤ a :=
+  HeytingLean.Logic.PSR.sufficient_reachable
+    (R := R) (a := a) (x := x) (y := y) ha hx hy
+
 theorem dialectic_synth_euler_boundary (R : Reentry α) :
     HeytingLean.Logic.Dialectic.synthOmega (R := R) R.eulerBoundary R.eulerBoundary =
       R.eulerBoundary :=
@@ -443,6 +456,22 @@ theorem ladder_orth_expand (R : Reentry α)
       (M := Contracts.Examples.tensor (α := α) (R := R) n)
       (n := n) (a := a)
 
+@[simp] lemma tensor_shadow_occam (R : Reentry α) (n : ℕ)
+    (a : R.Omega) :
+    (Bridges.Tensor.Model.logicalShadow
+        (Contracts.Examples.tensor (α := α) (R := R) n))
+      (Bridges.Tensor.Model.stageOccam
+        (Contracts.Examples.tensor (α := α) (R := R) n)
+        ((Bridges.Tensor.Model.contract (Contracts.Examples.tensor
+            (α := α) (R := R) n)).encode a))
+      =
+        Epistemic.occam (R := R) (a : α) := by
+  classical
+  exact
+    Bridges.Tensor.Model.logicalShadow_stageOccam_encode
+      (M := Contracts.Examples.tensor (α := α) (R := R) n)
+      (a := a)
+
 lemma tensor_shadow_himp (R : Reentry α) (n : ℕ)
     (a b : R.Omega) :
     (Bridges.Tensor.Model.logicalShadow
@@ -536,6 +565,22 @@ lemma tensor_shadow_himp (R : Reentry α) (n : ℕ)
       (M := Contracts.Examples.graph (α := α) (R := R))
       (n := n) (a := a)
 
+@[simp] lemma graph_shadow_occam (R : Reentry α)
+    (a : R.Omega) :
+    (Bridges.Graph.Model.logicalShadow
+        (Contracts.Examples.graph (α := α) (R := R)))
+      (Bridges.Graph.Model.stageOccam
+        (Contracts.Examples.graph (α := α) (R := R))
+        ((Bridges.Graph.Model.contract (Contracts.Examples.graph
+            (α := α) (R := R))).encode a))
+      =
+        Epistemic.occam (R := R) (a : α) := by
+  classical
+  exact
+    Bridges.Graph.Model.logicalShadow_stageOccam_encode
+      (M := Contracts.Examples.graph (α := α) (R := R))
+      (a := a)
+
 @[simp] theorem graph_shadow_himp (R : Reentry α)
     (a b : R.Omega) :
     (Bridges.Graph.Model.logicalShadow
@@ -620,6 +665,22 @@ lemma tensor_shadow_himp (R : Reentry α) (n : ℕ)
     Bridges.Clifford.Model.logicalShadow_stageExpandAt_encode
       (M := Contracts.Examples.clifford (α := α) (R := R))
       (n := n) (a := a)
+
+@[simp] lemma clifford_shadow_occam (R : Reentry α)
+    (a : R.Omega) :
+    (Bridges.Clifford.Model.logicalShadow
+        (Contracts.Examples.clifford (α := α) (R := R)))
+      (Bridges.Clifford.Model.stageOccam
+        (Contracts.Examples.clifford (α := α) (R := R))
+        ((Bridges.Clifford.Model.contract (Contracts.Examples.clifford
+            (α := α) (R := R))).encode a))
+      =
+        Epistemic.occam (R := R) (a : α) := by
+  classical
+  exact
+    Bridges.Clifford.Model.logicalShadow_stageOccam_encode
+      (M := Contracts.Examples.clifford (α := α) (R := R))
+      (a := a)
 
 @[simp] lemma clifford_shadow_himp (R : Reentry α)
     (a b : R.Omega) :

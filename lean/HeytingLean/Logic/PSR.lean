@@ -1,4 +1,4 @@
-import Mathlib.Logic.Function.Iterate
+import Mathlib.Logic.Relation
 import HeytingLean.LoF.Nucleus
 import HeytingLean.Epistemic.Occam
 
@@ -6,8 +6,9 @@ namespace HeytingLean
 namespace Logic
 namespace PSR
 
-open HeytingLean.LoF
+open HeytingLean.LoF Relation
 open Epistemic
+open scoped Classical
 
 variable {α : Type u} [PrimaryAlgebra α]
 
@@ -27,15 +28,83 @@ lemma fixed_of_sufficient (R : Reentry α) {a : α}
     (ha : Sufficient R a) : R a = a :=
   ha
 
+/-- Single-step evolution induced by the re-entry nucleus. -/
+def Step (R : Reentry α) (x y : α) : Prop :=
+  y = R x
+
+/-- Reachability obtained by repeatedly applying the nucleus. -/
+def reachable (R : Reentry α) (x y : α) : Prop :=
+  Relation.ReflTransGen (Step (R := R)) x y
+
+@[simp] lemma reachable_refl (R : Reentry α) (x : α) :
+    reachable (R := R) x x :=
+  Relation.ReflTransGen.refl
+
+lemma reachable_step (R : Reentry α) {x y : α}
+    (h : Step (R := R) x y) :
+    reachable (R := R) x y :=
+  Relation.ReflTransGen.single h
+
+lemma reachable_trans (R : Reentry α) {x y z : α}
+    (hxy : reachable (R := R) x y) (hyz : reachable (R := R) y z) :
+    reachable (R := R) x z :=
+  Relation.ReflTransGen.trans hxy hyz
+
+/-- Every finite breath corresponds to a reachable state. -/
+lemma reachable_of_breathe (R : Reentry α) (x : α) :
+    ∀ n, reachable (R := R) x (Epistemic.breathe (R := R) n x)
+  | 0 => reachable_refl (R := R) x
+  | Nat.succ n =>
+      by
+        have h := reachable_of_breathe (R := R) (x := x) n
+        have hstep :
+            Step (R := R) (Epistemic.breathe (R := R) n x)
+              (Epistemic.breathe (R := R) (n + 1) x) := rfl
+        exact reachable_trans (R := R) h (reachable_step (R := R) hstep)
+
+/-- Reachability is equivalent to breathing a finite number of times. -/
+lemma reachable_iff_exists_breathe (R : Reentry α) (x y : α) :
+    reachable (R := R) x y ↔
+      ∃ n, Epistemic.breathe (R := R) n x = y := by
+  constructor
+  · intro h
+    induction h with
+    | refl => exact ⟨0, rfl⟩
+    | tail hxy hyz ih =>
+        obtain ⟨n, hn⟩ := ih
+        cases hyz
+        refine ⟨n + 1, ?_⟩
+        simp [Epistemic.breathe, hn]
+  · rintro ⟨n, hn⟩
+    have := reachable_of_breathe (R := R) (x := x) n
+    simpa [hn] using this
+
+/-- A sufficient reason remains valid along every breath of the nucleus. -/
+lemma breathe_le_of_sufficient (R : Reentry α) {a x : α}
+    (ha : Sufficient R a) (hx : x ≤ a) :
+    ∀ n, Epistemic.breathe (R := R) n x ≤ a
+  | 0 => by simpa [Epistemic.breathe] using hx
+  | Nat.succ n =>
+      by
+        have ih := breathe_le_of_sufficient (R := R) (a := a) (x := x) ha hx n
+        have hmono := R.monotone ih
+        have ha' : R a = a := ha
+        simpa [Epistemic.breathe, ha'] using hmono
+
+/-- Sufficient reasons are stable along the reachability relation. -/
+lemma sufficient_reachable (R : Reentry α) {a x y : α}
+    (ha : Sufficient R a) (hx : x ≤ a)
+    (hy : reachable (R := R) x y) :
+    y ≤ a := by
+  obtain ⟨n, rfl⟩ :=
+    (reachable_iff_exists_breathe (R := R) (x := x) (y := y)).mp hy
+  exact breathe_le_of_sufficient (R := R) (a := a) (x := x) ha hx _
+
 lemma sufficient_stable (R : Reentry α) {a x : α}
     (ha : Sufficient R a) (hx : x ≤ a) :
-    R x ≤ a := by
-  have hx' : R.nucleus x ≤ R.nucleus a := R.monotone hx
-  have ha' : R.nucleus a = a := by
-    simpa [Reentry.coe_nucleus] using ha
-  have hx'' : R.nucleus x ≤ a := by
-    simpa [ha'] using hx'
-  simpa [Reentry.coe_nucleus] using hx''
+    R x ≤ a :=
+  sufficient_reachable (R := R) (a := a)
+    (x := x) (y := R x) ha hx (reachable_step (R := R) rfl)
 
 /-- Minimal reasons exist at each dial: the Occam reduction is invariant. -/
 lemma occam_sufficient (R : Reentry α) (a : α) :
