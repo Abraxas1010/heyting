@@ -5,13 +5,13 @@
 - Distinction-as-Re-entry realised via nucleus structures in `HeytingLean/LoF/PrimaryAlgebra.lean` and `HeytingLean/LoF/Nucleus.lean`, exposing complementary fixed points (`process`, `counterProcess`) and Euler-boundary lemmas.
 - Euler Boundary implemented as the least nontrivial fixed point; positivity, equality with `process`, and interaction with `counterProcess` are proven.
 - Modal breathing ladder (`Logic/ModalDial.lean`) links the `θ` parameter to dial stages (0D→3D).
-- Stage transport (`Logic/StageSemantics.lean`) packages MV/effect/orthomodular operations and provides bridge transport lemmas; Tensor/Graph/Clifford bridges expose `stageMvAdd`, `stageEffectAdd?`, `stageOrthocomplement`, etc., plus commuting lemmas with `logicalShadow`.
+- Stage transport (`Logic/StageSemantics.lean`) packages MV/effect/orthomodular operations and provides bridge transport lemmas; lint cleanup is underway so that Tensor/Graph/Clifford bridges and compliance lemmas align cleanly with the new `Option.map (fromCore ·)` transport while retaining commuting lemmas with `logicalShadow`.
 - Compliance tests cover the stage transport and shadow-commutation guarantees; documentation tasks remain.
 
 ## Codebase Audit *(April 2025)*
 
-- `lake build` succeeds with the current sources; no `sorry`/`admit` placeholders or custom `axiom` declarations exist in compiled Lean files (only the narrative `TBD/` notes contain `sorry` stubs).
-- Stage helpers and shadow-commutation lemmas are implemented for Tensor/Graph/Clifford bridges; compliance tests exercise these guarantees.
+- `lake build` (Lean 4) is back to green after the transport refactor; there are still no `sorry`/`admit` placeholders or custom `axiom` declarations in compiled Lean files (narrative `TBD/` notes still contain `sorry` stubs).
+- Stage helpers and shadow-commutation lemmas for Tensor/Graph/Clifford have been updated to the new transport signature, and the compliance suite exercises the revised Option-handling facts.
 - Recommended CI command: `lake build -- -Dno_sorry -DwarningAsError=true` to keep “compiled = proven”.
 
 ## Objective
@@ -83,9 +83,9 @@ Adjust if the repository already uses a different naming convention; the key req
 - `lean/HeytingLean/Logic/ModalDial.lean` includes `Dial`, the breathing lemmas, and the `DialParam.ladder` (0D→3D) monotone chain.
 - **Remaining work:** state modal collapse/expansion laws, relate them to concrete dimensional semantics, and integrate those results with the Stage semantics module.
 
-### 5. Lens-Specific Realizations *(status: ⚠️ stage-aware transport wired in; semantic refinements pending)*
+### 5. Lens-Specific Realizations *(status: ✅ bridge transport aligned)*
 - Identity bridge plus tensor/graph/clifford carriers with round-trip proofs exist (`lean/HeytingLean/Bridges/...`, `Contracts/Examples.lean`).
-- `lean/HeytingLean/Logic/StageSemantics.lean` supplies reusable MV/effect/orthomodular structures and bridge transport lemmas; `lean/HeytingLean/Logic/Trace.lean` introduces independence/trace-monoid tooling so bridge updates can be expressed via causal invariance; Tensor/Graph/Clifford modules still expose the base `stage*` helpers and commuting lemmas with `logicalShadow`.
+- `lean/HeytingLean/Logic/StageSemantics.lean` supplies reusable MV/effect/orthomodular structures and bridge transport lemmas; `lean/HeytingLean/Logic/Trace.lean` introduces independence/trace-monoid tooling so bridge updates can be expressed via causal invariance; Tensor/Graph/Clifford modules expose the base `stage*` helpers and commuting lemmas with `logicalShadow`, now specialised for the updated transport.
 - **Remaining work:**
   - Document the intended dial behaviours for the canonical ladder specialisations and reuse them in higher-order bridge proofs.
   - Tensor: replace tuples with the intended ordered carriers (e.g. `ℕ`/`ℤ`-indexed intensity vectors) and supply the compatibility proofs promised in the roadmap.
@@ -100,9 +100,9 @@ Adjust if the repository already uses a different naming convention; the key req
 - Dial ladder examples exist (`DialParam.ladder`). Contracts examples cover basic round-trip cases; stage helpers are available but not yet showcased.
 - **Remaining work:** add Boolean limit + MV/effect/orthomodular examples (reusing the new stage helpers) and breathing-cycle scenarios demonstrating meet/join dominance.
 
-### 8. Validation & Automation *(status: ⚠️ ongoing)*
-- `lake build` runs in CI; tests/compliance lemmas (`lean/HeytingLean/Tests/Compliance.lean`) aggregate key guarantees, including sanity checks for the new stage helpers.
-- **Remaining work:** add structured automation (`@[simp]`, `@[aesop?]`), expand test coverage (RT/TRI proofs, stage interactions, Boolean/MV/effect/orthomodular limits), and standardise running `lake build -- -Dno_sorry -DwarningAsError=true` (plus optional lint) after each milestone.
+### 8. Validation & Automation *(status: ⚠️ warnings outstanding)*
+- `lake build` runs cleanly again; StageSemantics has been refactored for lint-friendliness, and bridge modules are being updated to eliminate `unused simp` and `simpa` warnings.
+- **Next steps:** finish trimming the remaining bridge/compliance lint noise, add structured automation (`@[simp]`, `@[aesop?]`), expand test coverage (RT/TRI proofs, stage interactions, Boolean/MV/effect/orthomodular limits), and standardise running `lake build -- -Dno_sorry -DwarningAsError=true` (plus optional lint) after each milestone.
 
 ### 9. Documentation & Developer Support *(status: ⚠️ to-do)*
 - Docstrings adorn new modules; full documentation export still pending.
@@ -122,11 +122,25 @@ Adjust if the repository already uses a different naming convention; the key req
 - Settle how minimal-birthday witnesses are constructed algorithmically (well-founded minimisation vs. choice) so Occam/PSR modules can provide canonical reasons inside Lean’s constructive fragment.
 
 ## Immediate Action Items
+- Sweep the lingering lint warnings (`unused simp` arguments, `unnecessary simpa`) across Stage semantics, bridges, and compliance tests so the transport lemmas stay tidy.
 - Finalise the stage semantics decisions, implement the non-base dial laws, and mirror them in design notes plus compliance tests (Boolean/MV/effect/orthomodular exemplars).
-- Upgrade the tensor, graph, and Clifford bridges in tandem with the new ladder semantics, documenting the intended behaviour per lens.
 - Produce `Docs/Ontology.md` summarising the philosophical ↔ Lean correspondence and link it from `Docs/README.md`.
 - Update CI / developer docs to standardise on `lake build -- -Dno_sorry -DwarningAsError=true` (and optionally lint) after each major milestone so green builds guarantee all proofs are complete.
 - Stand up the Occam/PSR/Dialectic modules with minimal-birthday proofs and regression tests demonstrating Euler-boundary behaviour across the new operators.
+
+## Near-Term Subplan *(May 2025 sprint)*
+
+1. **Transport polish & lint cleanup**
+   - Normalise `simp` usage across `StageSemantics` and every bridge so transport lemmas compile without `unused simp` warnings.
+   - Extract recurring Option-handling rewrites into helper lemmas to keep subsequent proofs short.
+
+2. **Compliance enrichment**
+   - Extend `Tests/Compliance.lean` with Boolean/MV/effect/orthomodular exemplars that exercise the updated transport helpers at each dial stage.
+   - Add RT/TRI regression checks once the lint cleanup is merged, aiming to run the suite with `-DwarningAsError=true`.
+
+3. **Documentation & follow-on prep**
+   - Capture the transport API decisions in `Docs/README.md` and seed `Docs/Ontology.md` with a short Euler-boundary narrative.
+   - Outline the remaining ladder semantics (modal collapse/expansion) so subsequent sprints can implement them without re-auditing the bridges.
 
 ## Milestones
 - **M1:** Primary algebra and nucleus compiled with Heyting core (`LoF/`).
