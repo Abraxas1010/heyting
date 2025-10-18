@@ -1,4 +1,5 @@
 import HeytingLean.LoF.Nucleus
+import HeytingLean.Epistemic.Occam
 
 /-!
 # Round-trip contracts
@@ -29,6 +30,23 @@ def interiorized (R : Reentry α) {β : Type v} (C : RoundTrip (R := R) β) :
   unfold interiorized
   simpa using
     congrArg (fun x : R.Omega => R (x : α)) (C.round a)
+
+/-- Recover the Occam reduction of a decoded element through a round trip. -/
+noncomputable def stageOccam (R : Reentry α)
+    {β : Type v} (C : RoundTrip (R := R) β) (b : β) : β :=
+  let core : α := ((C.decode b : R.Omega) : α)
+  C.encode
+    (Reentry.Omega.mk (R := R)
+      (Epistemic.occam (R := R) core)
+      (Epistemic.occam_idempotent (R := R) (a := core)))
+
+lemma stageOccam_spec (R : Reentry α) {β : Type v}
+    (C : RoundTrip (R := R) β) (b : β) :
+    interiorized (R := R) C (stageOccam (R := R) (C := C) b) =
+      Epistemic.occam (R := R)
+        ((C.decode b : R.Omega) : α) := by
+  unfold stageOccam interiorized
+  simp [Epistemic.occam_idempotent, C.round]
 
 end Contracts
 end HeytingLean

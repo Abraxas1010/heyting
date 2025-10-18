@@ -467,10 +467,14 @@ theorem ladder_orth_expand (R : Reentry α)
       =
         Epistemic.occam (R := R) (a : α) := by
   classical
-  exact
-    Bridges.Tensor.Model.logicalShadow_stageOccam_encode
-      (M := Contracts.Examples.tensor (α := α) (R := R) n)
-      (a := a)
+  have := Contracts.stageOccam_spec (R := R)
+    (C := (Contracts.Examples.tensor (α := α) (R := R) n).contract)
+    (b := (Bridges.Tensor.Model.contract (Contracts.Examples.tensor
+      (α := α) (R := R) n)).encode a)
+  simpa [Bridges.Tensor.Model.stageOccam,
+    Bridges.Tensor.Model.logicalShadow,
+    Contracts.stageOccam,
+    Contracts.interiorized]
 
 lemma tensor_shadow_himp (R : Reentry α) (n : ℕ)
     (a b : R.Omega) :
@@ -576,10 +580,14 @@ lemma tensor_shadow_himp (R : Reentry α) (n : ℕ)
       =
         Epistemic.occam (R := R) (a : α) := by
   classical
-  exact
-    Bridges.Graph.Model.logicalShadow_stageOccam_encode
-      (M := Contracts.Examples.graph (α := α) (R := R))
-      (a := a)
+  have := Contracts.stageOccam_spec (R := R)
+    (C := (Contracts.Examples.graph (α := α) (R := R)).contract)
+    (b := (Bridges.Graph.Model.contract (Contracts.Examples.graph
+      (α := α) (R := R))).encode a)
+  simpa [Bridges.Graph.Model.stageOccam,
+    Bridges.Graph.Model.logicalShadow,
+    Contracts.stageOccam,
+    Contracts.interiorized]
 
 @[simp] theorem graph_shadow_himp (R : Reentry α)
     (a b : R.Omega) :
@@ -677,10 +685,14 @@ lemma tensor_shadow_himp (R : Reentry α) (n : ℕ)
       =
         Epistemic.occam (R := R) (a : α) := by
   classical
-  exact
-    Bridges.Clifford.Model.logicalShadow_stageOccam_encode
-      (M := Contracts.Examples.clifford (α := α) (R := R))
-      (a := a)
+  have := Contracts.stageOccam_spec (R := R)
+    (C := (Contracts.Examples.clifford (α := α) (R := R)).contract)
+    (b := (Bridges.Clifford.Model.contract (Contracts.Examples.clifford
+      (α := α) (R := R))).encode a)
+  simpa [Bridges.Clifford.Model.stageOccam,
+    Bridges.Clifford.Model.logicalShadow,
+    Contracts.stageOccam,
+    Contracts.interiorized]
 
 @[simp] lemma clifford_shadow_himp (R : Reentry α)
     (a b : R.Omega) :

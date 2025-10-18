@@ -151,15 +151,10 @@ noncomputable def stageExpandAt (M : Model α) (n : ℕ) :
       (HeytingLean.Logic.Stage.DialParam.expandAtOmega
         (α := α) (R := M.R) n (M.decode v))
 
-/-- Stage-style Occam reduction lifted to the tensor carrier. -/
+/-- Stage-style Occam reduction lifted to the tensor carrier (via the contract). -/
 noncomputable def stageOccam (M : Model α) :
     M.Carrier → M.Carrier :=
-  fun v =>
-    let core : α := ((M.decode v : M.R.Omega) : α)
-    M.encode
-      (Reentry.Omega.mk (R := M.R)
-        (Epistemic.occam (R := M.R) core)
-        (Epistemic.occam_idempotent (R := M.R) (a := core)))
+  Contracts.stageOccam (R := M.R) (C := M.contract)
 
 variable {α : Type u} [PrimaryAlgebra α]
 
@@ -227,16 +222,6 @@ variable {α : Type u} [PrimaryAlgebra α]
   classical
   simp [Model.stageExpandAt, Model.decode_encode]
 
-@[simp] lemma stageOccam_encode (M : Model α) (a : M.R.Omega) :
-    M.stageOccam (M.contract.encode a) =
-      M.encode
-        (Reentry.Omega.mk (R := M.R)
-          (Epistemic.occam (R := M.R) ((a : α)))
-          (Epistemic.occam_idempotent
-            (R := M.R) (a := (a : α)))) := by
-  classical
-  simp [Model.stageOccam, Model.decode_encode]
-
 @[simp] lemma logicalShadow_stageMvAdd_encode (M : Model α) (a b : M.R.Omega) :
     M.logicalShadow
         (M.stageMvAdd (M.contract.encode a) (M.contract.encode b))
@@ -300,15 +285,6 @@ variable {α : Type u} [PrimaryAlgebra α]
           (α := α) (R := M.R) n (a : α)) := by
   classical
   simp [stageExpandAt_encode, Model.logicalShadow_encode']
-
-@[simp] lemma logicalShadow_stageOccam_encode
-    (M : Model α) (a : M.R.Omega) :
-    M.logicalShadow
-        (M.stageOccam (M.contract.encode a)) =
-      Epistemic.occam (R := M.R) (a : α) := by
-  classical
-  simp [stageOccam_encode, Model.logicalShadow_encode',
-    Epistemic.occam_idempotent]
 
 end Model
 
