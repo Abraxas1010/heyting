@@ -39,6 +39,49 @@ instance : CoeFun (Reentry α) (fun _ => α → α) where
 lemma map_inf (R : Reentry α) (a b : α) : R (a ⊓ b) = R a ⊓ R b :=
   Nucleus.map_inf (n := R.nucleus) (x := a) (y := b)
 
+lemma map_sup (R : Reentry α) (a b : α) :
+    R (a ⊔ b) = R ((R a) ⊔ (R b)) := by
+  classical
+  simpa [Reentry.coe_nucleus] using
+    (R.nucleus.toClosureOperator.closure_sup_closure (x := a) (y := b)).symm
+
+lemma map_sup_le (R : Reentry α) (a b : α) :
+    R a ⊔ R b ≤ R (a ⊔ b) := by
+  classical
+  exact R.nucleus.toClosureOperator.closure_sup_closure_le (x := a) (y := b)
+
+lemma map_himp_le (R : Reentry α) (a b : α) :
+    R (a ⇨ b) ≤ a ⇨ R b := by
+  simpa [Reentry.coe_nucleus] using
+    R.nucleus.map_himp_le (x := a) (y := b)
+
+@[simp] lemma map_himp_apply (R : Reentry α) (a b : α) :
+    R (a ⇨ R b) = a ⇨ R b := by
+  simpa [Reentry.coe_nucleus] using
+    R.nucleus.map_himp_apply (x := a) (y := b)
+
+@[simp] lemma map_bot (R : Reentry α) : R (⊥ : α) = (⊥ : α) := by
+  classical
+  by_contra hne
+  have hlt : (⊥ : α) < R (⊥ : α) :=
+    lt_of_le_of_ne bot_le (by
+      intro h
+      exact hne h.symm)
+  have hprim : R.primordial ≤ R (⊥ : α) :=
+    R.primordial_minimal (R.idempotent _) hlt
+  have hcounter : R (⊥ : α) ≤ R.counter := by
+    have hmap := R.map_inf (a := (⊥ : α)) (b := R.counter)
+    have hmap' : R (⊥ : α) = R (⊥ : α) ⊓ R.counter :=
+      by simpa [inf_bot_eq, R.counter_mem] using hmap
+    have hle : R (⊥ : α) ⊓ R.counter ≤ R.counter := inf_le_right
+    simpa [hmap'.symm] using hle
+  have hprim_le_counter : R.primordial ≤ R.counter := hprim.trans hcounter
+  have hpc : R.primordial ⊓ R.counter = R.primordial :=
+    inf_eq_left.mpr hprim_le_counter
+  have horth : R.primordial = (⊥ : α) := by
+    simpa [hpc] using R.orthogonal
+  exact (ne_of_gt R.primordial_nonbot) horth
+
 @[simp] lemma monotone (R : Reentry α) : Monotone R :=
   R.nucleus.monotone
 

@@ -12,5 +12,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: leanprover/lean-action@v1
-      - name: lake build
-        run: lake build
+      - name: lake build (warnings-as-errors)
+        run: lake build -- -Dno_sorry -DwarningAsError=true

@@ -80,6 +80,17 @@ lemma eulerBoundary_abduction_collapse :
   have := eulerBoundary_collapse (R := R)
   exact (deduction_iff_abduction (R := R) _ _ _).mp this
 
+lemma himp_closed (a b : R.Omega) :
+    R ((a : α) ⇨ (b : α)) = (a : α) ⇨ (b : α) := by
+  have hb : R ((b : α)) = (b : α) :=
+    Reentry.Omega.apply_coe (R := R) (a := b)
+  simpa [hb] using
+    Reentry.map_himp_apply (R := R) (a := (a : α)) (b := (b : α))
+
+lemma map_himp_le (a b : α) :
+    R (a ⇨ b) ≤ a ⇨ R b :=
+  Reentry.map_himp_le (R := R) (a := a) (b := b)
+
 end Residuated
 end Logic
 end HeytingLean

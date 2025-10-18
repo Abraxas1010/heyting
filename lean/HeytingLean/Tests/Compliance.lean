@@ -8,6 +8,9 @@ import HeytingLean.Bridges.Tensor
 import HeytingLean.Bridges.Graph
 import HeytingLean.Bridges.Clifford
 import HeytingLean.LoF.HeytingCore
+import HeytingLean.Epistemic.Occam
+import HeytingLean.Logic.PSR
+import HeytingLean.Logic.Dialectic
 
 open HeytingLean.LoF
 open HeytingLean.Ontology
@@ -188,13 +191,44 @@ theorem clifford_encode_euler (R : Reentry α) :
     Bridges.Clifford.Model.encode (Contracts.Examples.clifford (α := α) (R := R)) R.eulerBoundary
       = (R.primordial, R.primordial) := by
   classical
-  let M := Contracts.Examples.clifford (α := α) (R := R)
-  have hfst := Bridges.Clifford.Model.encode_eulerBoundary_fst (M := M)
-  have hsnd := Bridges.Clifford.Model.encode_eulerBoundary_snd (M := M)
-  change Bridges.Clifford.Model.encode M R.eulerBoundary = _
-  ext
-  · simpa [M] using hfst
-  · simpa [M] using hsnd
+  simp [Bridges.Clifford.Model.encode, Contracts.Examples.clifford,
+    Reentry.eulerBoundary_eq_process, Reentry.process_coe]
+
+theorem residuation_himp_closed (R : Reentry α) (a b : R.Omega) :
+    R ((a : α) ⇨ (b : α)) = (a : α) ⇨ (b : α) :=
+  HeytingLean.Logic.Residuated.himp_closed (R := R) (a := a) (b := b)
+
+theorem residuation_himp_le (R : Reentry α) (a b : α) :
+    R (a ⇨ b) ≤ a ⇨ R b :=
+  HeytingLean.Logic.Residuated.map_himp_le (R := R) (a := a) (b := b)
+
+theorem ladder_boolean_himp_closed (R : Reentry α)
+    (a b : (HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 0).dial.core.Omega) :
+    R ((a : α) ⇨ (b : α)) = (a : α) ⇨ (b : α) :=
+  residuation_himp_closed (R := R) (a := a) (b := b)
+
+theorem ladder_himp_closed (R : Reentry α) (n : ℕ)
+    (a b :
+      (HeytingLean.Logic.Modal.DialParam.ladder (α := α) R n).dial.core.Omega) :
+    (HeytingLean.Logic.Modal.DialParam.ladder (α := α) R n).dial.core
+        ((a : α) ⇨ (b : α)) =
+      (a : α) ⇨ (b : α) :=
+  HeytingLean.Logic.Stage.DialParam.himp_closed
+    (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R n)
+    (a := a) (b := b)
+
+theorem occam_birth_euler_boundary (R : Reentry α) :
+    HeytingLean.Epistemic.birth R ((R.eulerBoundary : R.Omega) : α) = 0 := by
+  exact HeytingLean.Epistemic.birth_eulerBoundary (R := R)
+
+theorem psr_sufficient_euler_boundary (R : Reentry α) :
+    HeytingLean.Logic.PSR.Sufficient R ((R.eulerBoundary : R.Omega) : α) := by
+  exact HeytingLean.Logic.PSR.sufficient_eulerBoundary (R := R)
+
+theorem dialectic_synth_euler_boundary (R : Reentry α) :
+    HeytingLean.Logic.Dialectic.synth (R := R) R.eulerBoundary R.eulerBoundary =
+      R.eulerBoundary :=
+  HeytingLean.Logic.Dialectic.synth_eulerBoundary_self (R := R)
 
 theorem boolean_limit_verified (R : Reentry α) (h : ∀ a : α, R a = a) (a : α) :
     R (((_root_.HeytingLean.LoF.Reentry.booleanEquiv (R := R) h).symm a) : R.Omega) = a :=
@@ -203,7 +237,10 @@ theorem boolean_limit_verified (R : Reentry α) (h : ∀ a : α, R a = a) (a : �
 theorem mv_add_bottom_verified (P : Logic.Modal.DialParam α)
     (a : P.dial.core.Omega) :
     HeytingLean.Logic.Stage.DialParam.mvAdd (P := P) ⊥ a = a := by
-  simp [HeytingLean.Logic.Stage.DialParam.mvAdd]
+  change
+      HeytingLean.Logic.Stage.DialParam.mvAdd (P := P)
+        (HeytingLean.Logic.Stage.DialParam.mvZero (P := P)) a = a
+  exact HeytingLean.Logic.Stage.DialParam.mvAdd_zero_left (P := P) (a := a)
 
 theorem effect_add_bottom_verified (P : Logic.Modal.DialParam α)
     (a : P.dial.core.Omega) :
@@ -217,15 +254,9 @@ theorem orthocomplement_disjoint_verified
     (P : Logic.Modal.DialParam α) (a : P.dial.core.Omega) :
     HeytingLean.Logic.Stage.DialParam.effectCompatible (P := P) a
         (HeytingLean.Logic.Stage.DialParam.orthocomplement (P := P) a) := by
-  unfold HeytingLean.Logic.Stage.DialParam.effectCompatible
-    HeytingLean.Logic.Stage.DialParam.orthocomplement
-    HeytingLean.Logic.Stage.DialParam.mvNeg
-  apply le_antisymm
-  · have h :=
-      HeytingLean.Logic.double_neg_collapse (R := P.dial.core) (a := a)
-    change a ⊓ (a ⇨ (⊥ : P.dial.core.Omega)) ≤ (⊥ : _) at h
-    exact h
-  · exact bot_le
+  exact
+    HeytingLean.Logic.Stage.DialParam.effectCompatible_orthocomplement
+      (P := P) (a := a)
 
 /-- Boolean-stage exemplar: MV addition with bottom is neutral. -/
 theorem ladder_boolean_mv_zero (R : Reentry α)
@@ -233,10 +264,10 @@ theorem ladder_boolean_mv_zero (R : Reentry α)
     HeytingLean.Logic.Stage.DialParam.mvAdd
         (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 0)
         (⊥) a = a := by
-  simpa using
-    (mv_add_bottom_verified
+  exact
+    mv_add_bottom_verified
       (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 0)
-      (a := a))
+      (a := a)
 
 /-- MV-stage exemplar: addition commutes at the second ladder level. -/
 theorem ladder_mv_comm (R : Reentry α)
@@ -246,7 +277,10 @@ theorem ladder_mv_comm (R : Reentry α)
       HeytingLean.Logic.Stage.DialParam.mvAdd
         (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 2) b a := by
   classical
-  simp [HeytingLean.Logic.Stage.DialParam.mvAdd, sup_comm]
+  exact
+    HeytingLean.Logic.Stage.DialParam.mvAdd_comm
+      (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 2)
+      (a := a) (b := b)
 
 /-- Effect-stage exemplar: adding an element to its orthocomplement is defined. -/
 theorem ladder_effect_add_orthocomplement (R : Reentry α)
@@ -263,18 +297,10 @@ theorem ladder_effect_add_orthocomplement (R : Reentry α)
             (HeytingLean.Logic.Stage.DialParam.orthocomplement
               (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a)) := by
   classical
-  have hCompat :=
-    orthocomplement_disjoint_verified
-      (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) (a := a)
-  unfold HeytingLean.Logic.Stage.DialParam.effectAdd?
-  by_cases h : HeytingLean.Logic.Stage.DialParam.effectCompatible
-      (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a
-      (HeytingLean.Logic.Stage.DialParam.orthocomplement
-        (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3) a)
-  · simp [h, HeytingLean.Logic.Stage.DialParam.effectCompatible,
-      HeytingLean.Logic.Stage.DialParam.orthocomplement,
-      HeytingLean.Logic.Stage.DialParam.mvNeg]
-  · exact (h hCompat).elim
+  exact
+    HeytingLean.Logic.Stage.DialParam.effectAdd?_orthocomplement
+      (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 3)
+      (a := a)
 
 /-- Orthomodular-stage exemplar: elements are disjoint from their orthocomplements. -/
 theorem ladder_orthomodular_disjoint (R : Reentry α)
@@ -283,10 +309,11 @@ theorem ladder_orthomodular_disjoint (R : Reentry α)
         (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4) a
         (HeytingLean.Logic.Stage.DialParam.orthocomplement
           (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4) a) :=
-  orthocomplement_disjoint_verified
+  HeytingLean.Logic.Stage.DialParam.effectCompatible_orthocomplement
     (P := HeytingLean.Logic.Modal.DialParam.ladder (α := α) R 4) (a := a)
 
-lemma tensor_shadow_mv_add (R : Reentry α) (n : ℕ)
+-- Bridge transport lemmas (`@[simp]`) so compliance proofs can defer to automation.
+@[simp] lemma tensor_shadow_mv_add (R : Reentry α) (n : ℕ)
     (a b : R.Omega) :
     (Bridges.Tensor.Model.logicalShadow
         (Contracts.Examples.tensor (α := α) (R := R) n))
@@ -301,9 +328,19 @@ lemma tensor_shadow_mv_add (R : Reentry α) (n : ℕ)
           (HeytingLean.Logic.Stage.DialParam.mvAdd
             (P := HeytingLean.Logic.Modal.DialParam.base R) a b) := by
   classical
-  simp [Contracts.Examples.tensor]
+  set M := Contracts.Examples.tensor (α := α) (R := R) n
+  change
+      M.logicalShadow
+        (M.stageMvAdd (M.contract.encode a) (M.contract.encode b))
+        =
+          M.R
+            (HeytingLean.Logic.Stage.DialParam.mvAdd
+              (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b)
+  exact
+    Bridges.Tensor.Model.logicalShadow_stageMvAdd_encode
+      (M := M) (a := a) (b := b)
 
-lemma tensor_shadow_effect_add (R : Reentry α) (n : ℕ)
+@[simp] lemma tensor_shadow_effect_add (R : Reentry α) (n : ℕ)
     (a b : R.Omega) :
     (Bridges.Tensor.Model.stageEffectAdd?
         (Contracts.Examples.tensor (α := α) (R := R) n)
@@ -318,10 +355,34 @@ lemma tensor_shadow_effect_add (R : Reentry α) (n : ℕ)
             (P := HeytingLean.Logic.Modal.DialParam.base R) a b).map
           (fun u => (u : α)) := by
   classical
-  simpa [Contracts.Examples.tensor]
-    using Bridges.Tensor.Model.logicalShadow_stageEffectAdd_encode
-      (M := Contracts.Examples.tensor (α := α) (R := R) n)
-      (a := a) (b := b)
+  set M := Contracts.Examples.tensor (α := α) (R := R) n
+  change
+      (M.stageEffectAdd? (M.contract.encode a) (M.contract.encode b)).map
+        M.logicalShadow
+        =
+          (HeytingLean.Logic.Stage.DialParam.effectAdd?
+              (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b).map
+            (fun u => (u : α))
+  exact
+    Bridges.Tensor.Model.logicalShadow_stageEffectAdd_encode
+      (M := M) (a := a) (b := b)
+
+lemma tensor_shadow_himp (R : Reentry α) (n : ℕ)
+    (a b : R.Omega) :
+    (Bridges.Tensor.Model.logicalShadow
+        (Contracts.Examples.tensor (α := α) (R := R) n))
+      (Bridges.Tensor.Model.stageHimp
+        (Contracts.Examples.tensor (α := α) (R := R) n)
+        ((Bridges.Tensor.Model.contract (Contracts.Examples.tensor
+            (α := α) (R := R) n)).encode a)
+        ((Bridges.Tensor.Model.contract (Contracts.Examples.tensor
+            (α := α) (R := R) n)).encode b))
+      =
+        R (a ⇨ b) := by
+  classical
+  simpa using
+    Contracts.Examples.tensor_shadow_himp
+      (α := α) (R := R) (n := n) (a := a) (b := b)
 
 theorem graph_shadow_mv_add (R : Reentry α)
     (a b : R.Omega) :
@@ -338,10 +399,17 @@ theorem graph_shadow_mv_add (R : Reentry α)
           (HeytingLean.Logic.Stage.DialParam.mvAdd
             (P := HeytingLean.Logic.Modal.DialParam.base R) a b) := by
   classical
-  simpa [Contracts.Examples.graph]
-    using Bridges.Graph.Model.logicalShadow_stageMvAdd_encode
-      (M := Contracts.Examples.graph (α := α) (R := R))
-      (a := a) (b := b)
+  set M := Contracts.Examples.graph (α := α) (R := R)
+  change
+      M.logicalShadow
+        (M.stageMvAdd (M.contract.encode a) (M.contract.encode b))
+        =
+          M.R
+            (HeytingLean.Logic.Stage.DialParam.mvAdd
+              (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b)
+  exact
+    Bridges.Graph.Model.logicalShadow_stageMvAdd_encode
+      (M := M) (a := a) (b := b)
 
 theorem graph_shadow_effect_add (R : Reentry α)
     (a b : R.Omega) :
@@ -358,12 +426,34 @@ theorem graph_shadow_effect_add (R : Reentry α)
             (P := HeytingLean.Logic.Modal.DialParam.base R) a b).map
           (fun u => (u : α)) := by
   classical
-  simpa [Contracts.Examples.graph]
-    using Bridges.Graph.Model.logicalShadow_stageEffectAdd_encode
-      (M := Contracts.Examples.graph (α := α) (R := R))
-      (a := a) (b := b)
+  set M := Contracts.Examples.graph (α := α) (R := R)
+  change
+      (M.stageEffectAdd? (M.contract.encode a) (M.contract.encode b)).map
+        M.logicalShadow
+        =
+          (HeytingLean.Logic.Stage.DialParam.effectAdd?
+              (P := HeytingLean.Logic.Modal.DialParam.base M.R) a b).map
+            (fun u => (u : α))
+  exact
+    Bridges.Graph.Model.logicalShadow_stageEffectAdd_encode
+      (M := M) (a := a) (b := b)
 
-theorem clifford_shadow_mv_add (R : Reentry α)
+@[simp] theorem graph_shadow_himp (R : Reentry α)
+    (a b : R.Omega) :
+    (Bridges.Graph.Model.logicalShadow
+        (Contracts.Examples.graph (α := α) (R := R)))
+      (Bridges.Graph.Model.stageHimp
+        (Contracts.Examples.graph (α := α) (R := R))
+        ((Bridges.Graph.Model.contract (Contracts.Examples.graph
+            (α := α) (R := R))).encode a)
+        ((Bridges.Graph.Model.contract (Contracts.Examples.graph
+            (α := α) (R := R))).encode b))
+      =
+        R (a ⇨ b) :=
+  Contracts.Examples.graph_shadow_himp
+      (α := α) (R := R) (a := a) (b := b)
+
+@[simp] theorem clifford_shadow_mv_add (R : Reentry α)
     (a b : R.Omega) :
     (Bridges.Clifford.Model.logicalShadow
         (Contracts.Examples.clifford (α := α) (R := R)))
@@ -376,14 +466,11 @@ theorem clifford_shadow_mv_add (R : Reentry α)
       =
         R
           (HeytingLean.Logic.Stage.DialParam.mvAdd
-            (P := HeytingLean.Logic.Modal.DialParam.base R) a b) := by
-  classical
-  simpa [Contracts.Examples.clifford]
-    using Bridges.Clifford.Model.logicalShadow_stageMvAdd_encode
-      (M := Contracts.Examples.clifford (α := α) (R := R))
-      (a := a) (b := b)
+            (P := HeytingLean.Logic.Modal.DialParam.base R) a b) :=
+  Bridges.Clifford.Model.logicalShadow_stageMvAdd_encode
+      (M := Contracts.Examples.clifford (α := α) (R := R)) (a := a) (b := b)
 
-theorem clifford_shadow_effect_add (R : Reentry α)
+@[simp] theorem clifford_shadow_effect_add (R : Reentry α)
     (a b : R.Omega) :
     (Bridges.Clifford.Model.stageEffectAdd?
         (Contracts.Examples.clifford (α := α) (R := R))
@@ -396,12 +483,26 @@ theorem clifford_shadow_effect_add (R : Reentry α)
       =
         (HeytingLean.Logic.Stage.DialParam.effectAdd?
             (P := HeytingLean.Logic.Modal.DialParam.base R) a b).map
-          (fun u => (u : α)) := by
+          (fun u => (u : α)) :=
+  Bridges.Clifford.Model.logicalShadow_stageEffectAdd_encode
+      (M := Contracts.Examples.clifford (α := α) (R := R)) (a := a) (b := b)
+
+theorem clifford_shadow_himp (R : Reentry α)
+    (a b : R.Omega) :
+    (Bridges.Clifford.Model.logicalShadow
+        (Contracts.Examples.clifford (α := α) (R := R)))
+      (Bridges.Clifford.Model.stageHimp
+        (Contracts.Examples.clifford (α := α) (R := R))
+        ((Bridges.Clifford.Model.contract (Contracts.Examples.clifford
+            (α := α) (R := R))).encode a)
+        ((Bridges.Clifford.Model.contract (Contracts.Examples.clifford
+            (α := α) (R := R))).encode b))
+      =
+        R (a ⇨ b) := by
   classical
-  simpa [Contracts.Examples.clifford]
-    using Bridges.Clifford.Model.logicalShadow_stageEffectAdd_encode
-      (M := Contracts.Examples.clifford (α := α) (R := R))
-      (a := a) (b := b)
+  simpa using
+    Contracts.Examples.clifford_shadow_himp
+      (α := α) (R := R) (a := a) (b := b)
 
 theorem clifford_round_verified (R : Reentry α) (a : R.Omega) :
     (Bridges.Clifford.Model.contract (Contracts.Examples.clifford (α := α) (R := R))).decode
@@ -409,8 +510,10 @@ theorem clifford_round_verified (R : Reentry α) (a : R.Omega) :
             (α := α) (R := R))).encode a)
       = a := by
   classical
-  simpa [Contracts.Examples.clifford]
-    using Contracts.Examples.clifford_round (α := α) (R := R) (a := a)
+  set M := Contracts.Examples.clifford (α := α) (R := R)
+  change
+      M.contract.decode (M.contract.encode a) = a
+  exact Contracts.Examples.clifford_round (α := α) (R := R) (a := a)
 
 end Tests
 end HeytingLean

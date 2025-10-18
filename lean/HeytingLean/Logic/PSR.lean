@@ -42,6 +42,10 @@ lemma occam_sufficient (R : Reentry α) (a : α) :
     Sufficient R (Epistemic.occam (R := R) a) :=
   occam_idempotent (R := R) (a := a)
 
+@[simp] lemma sufficient_eulerBoundary (R : Reentry α) :
+    Sufficient R ((R.eulerBoundary : R.Omega) : α) :=
+  Reentry.Omega.apply_coe (R := R) (a := R.eulerBoundary)
+
 end PSR
 end Logic
 end HeytingLean

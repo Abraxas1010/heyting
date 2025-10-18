@@ -3,6 +3,7 @@
 ## Distinction-as-Re-entry
 
 - `Reentry α` (lean/HeytingLean/LoF/Nucleus.lean) packages a nucleus on a primary algebra together with its primordial/counter fixed points.
+- `Reentry α` (lean/HeytingLean/LoF/Nucleus.lean) packages a nucleus on a primary algebra together with its primordial/counter fixed points, now exposing handy rewrites (`map_sup`, `map_bot`) for future bridge automation.
 - The Euler boundary `R.eulerBoundary` is defined by infimizing over positive fixed points, ensuring uniqueness up to the minimal process.
 - Compliance covers disjointness (`process_inf_counter`) and positivity (`eulerBoundary_pos`).
 
@@ -11,6 +12,7 @@
 - The residuated ladder (lean/HeytingLean/Logic/ResiduatedLadder.lean) now specializes deduction/abduction/induction to `R.eulerBoundary` and retains collapse behaviour.
 - Modal dial parameters (lean/HeytingLean/Logic/ModalDial.lean) expose `euler_boundary_coe`, ensuring the breathing cycle respects the primordial boundary.
 - θ-cycle semantics (`thetaCycle_zero_sum`) provide the oscillation witness connecting modal breathing back to the ontological narrative.
+- Stage semantics transport (lean/HeytingLean/Logic/StageSemantics.lean) packages MV zero/commutativity and effect orthocomplement lemmas, so every ladder stage inherits the canonical MV/effect laws exercised by compliance.
 
 ## Bridges & Dial Examples
 

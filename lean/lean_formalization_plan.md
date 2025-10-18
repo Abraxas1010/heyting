@@ -122,11 +122,16 @@ Adjust if the repository already uses a different naming convention; the key req
 - Settle how minimal-birthday witnesses are constructed algorithmically (well-founded minimisation vs. choice) so Occam/PSR modules can provide canonical reasons inside Lean’s constructive fragment.
 
 ## Immediate Action Items
-- Sweep the lingering lint warnings (`unused simp` arguments, `unnecessary simpa`) across Stage semantics, bridges, and compliance tests so the transport lemmas stay tidy.
-- Finalise the stage semantics decisions, implement the non-base dial laws, and mirror them in design notes plus compliance tests (Boolean/MV/effect/orthomodular exemplars).
-- Produce `Docs/Ontology.md` summarising the philosophical ↔ Lean correspondence and link it from `Docs/README.md`.
-- Update CI / developer docs to standardise on `lake build -- -Dno_sorry -DwarningAsError=true` (and optionally lint) after each major milestone so green builds guarantee all proofs are complete.
-- Stand up the Occam/PSR/Dialectic modules with minimal-birthday proofs and regression tests demonstrating Euler-boundary behaviour across the new operators.
+- ✅ Sweep the lingering lint warnings (`unused simp` arguments, `unnecessary simpa`) across Stage semantics, bridges, and compliance tests so the transport lemmas stay tidy.
+- ✅ Finalise the stage semantics decisions, implement the non-base dial laws, and mirror them in design notes plus compliance tests (Boolean/MV/effect/orthomodular exemplars).
+  - Stage semantics now exposes MV zero/commutativity and effect orthocomplement transport lemmas; Docs/Semantics.md captures the decision and compliance covers the Boolean/MV/effect/orthomodular witnesses.
+  - LoF nucleus now exports `map_sup`/`map_bot` helper lemmas (`HeytingLean/LoF/Nucleus.lean`) and residuated `map_himp` rewrites so bridge proofs can normalise joins, bottom, and implication without expanding transport definitions.
+  - Contracts/examples surface `*_shadow_himp` lemmas so downstream bridges reuse the implication transport without re-deriving the stage-level facts.
+- ✅ Produce `Docs/Ontology.md` summarising the philosophical ↔ Lean correspondence and link it from `Docs/README.md`.
+- ✅ Update CI / developer docs to standardise on `lake build -- -Dno_sorry -DwarningAsError=true` (and optionally lint) after each major milestone so green builds guarantee all proofs are complete.
+- ✅ Stand up the Occam/PSR/Dialectic modules with minimal-birthday proofs and regression tests demonstrating Euler-boundary behaviour across the new operators.
+- ✅ Lift the new implication rewrites to the MV/effect/orthomodular ladder levels (stage transport + bridge compliance) so higher lenses inherit the same closed-form behaviour. New lemmas (`DialParam.himp_closed`, bridge `stageHimp`, and tensor/graph/clifford compliance checks) keep implication transport aligned with the core.
+- ✅ Register the bridge-level implication transports (`stageHimp_encode`, `logicalShadow_stageHimp_encode`, along with MV/effect/orthocomplement helpers) with `@[simp]` so automated rewriting handles common transported operations across bridges and contract helpers.
 
 ## Near-Term Subplan *(May 2025 sprint)*
 
@@ -148,7 +153,7 @@ Adjust if the repository already uses a different naming convention; the key req
 
 ## Outstanding TODO Summary
 
-1. LoF nucleus API: add helper lemmas (`map_sup`, `map_bot`) for future lenses (Sections 1 & 2).
+1. LoF nucleus API: integrate remaining closed-form rewrites (already landed for `map_sup`, `map_bot`, and `map_himp`) wherever future lenses require them (Sections 1 & 2).
 2. Residuated ladder: integrate MV/effect/orthomodular parameters into modal collapse/expansion lemmas and reuse in lens wiring (Section 3).
 3. Modal breathing layer: state collapse/expansion laws tied to dimensional semantics and align with Stage semantics (Section 4).
 4. Bridge specialisations: document intended dial behaviours and upgrade tensor/graph/clifford carriers to their roadmap targets (Section 5).

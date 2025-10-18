@@ -1,4 +1,6 @@
 import HeytingLean.Logic.ModalDial
+import HeytingLean.Logic.ResiduatedLadder
+import HeytingLean.Logic.Triad
 
 /-
 # Stage semantics transport
@@ -117,6 +119,50 @@ instance instOmlCore : OmlCore P.dial.core.Omega where
   bot := DialParam.omlBot (P := P)
   top := DialParam.omlTop (P := P)
 
+@[simp] lemma mvAdd_zero_left (a : P.dial.core.Omega) :
+    DialParam.mvAdd (P := P) (DialParam.mvZero (P := P)) a = a := by
+  simp [DialParam.mvAdd, DialParam.mvZero]
+
+@[simp] lemma mvAdd_zero_right (a : P.dial.core.Omega) :
+    DialParam.mvAdd (P := P) a (DialParam.mvZero (P := P)) = a := by
+  simp [DialParam.mvAdd, DialParam.mvZero]
+
+@[simp] lemma mvAdd_comm (a b : P.dial.core.Omega) :
+    DialParam.mvAdd (P := P) a b =
+      DialParam.mvAdd (P := P) b a := by
+  simp [DialParam.mvAdd, sup_comm]
+
+lemma effectCompatible_orthocomplement
+    (a : P.dial.core.Omega) :
+    DialParam.effectCompatible (P := P) a
+        (DialParam.orthocomplement (P := P) a) := by
+  unfold DialParam.effectCompatible DialParam.orthocomplement DialParam.mvNeg
+  apply le_antisymm
+  · exact HeytingLean.Logic.double_neg_collapse (R := P.dial.core) (a := a)
+  · exact bot_le
+
+@[simp] lemma effectAdd?_orthocomplement
+    (a : P.dial.core.Omega) :
+    DialParam.effectAdd? (P := P) a
+        (DialParam.orthocomplement (P := P) a) =
+          some
+            (DialParam.mvAdd (P := P) a
+              (DialParam.orthocomplement (P := P) a)) := by
+  classical
+  unfold DialParam.effectAdd?
+  simp [DialParam.effectCompatible,
+    DialParam.orthocomplement, DialParam.mvNeg]
+
+@[simp] lemma himp_closed (a b : P.dial.core.Omega) :
+    P.dial.core ((a : α) ⇨ (b : α)) = (a : α) ⇨ (b : α) :=
+  HeytingLean.Logic.Residuated.himp_closed
+    (R := P.dial.core) (a := a) (b := b)
+
+lemma map_himp_le (a b : α) :
+    P.dial.core (a ⇨ b) ≤ a ⇨ P.dial.core b :=
+  HeytingLean.Logic.Residuated.map_himp_le
+    (R := P.dial.core) (a := a) (b := b)
+
 end DialParam
 
 /-- Bridges expose shadow/lift data satisfying a round-trip contract. -/
@@ -162,16 +208,20 @@ def stageOrthosupp [EffectCore Ω] (x : α) : α :=
 def stageOrthocomplement [OmlCore Ω] (x : α) : α :=
   B.lift (OmlCore.compl (B.shadow x))
 
+/-- Transport Heyting implication across a bridge. -/
+def stageHimp [HeytingAlgebra Ω] (x y : α) : α :=
+  B.lift ((B.shadow x) ⇨ (B.shadow y))
+
 @[simp] theorem shadow_stageMvAdd [MvCore Ω] (x y : α) :
     B.shadow (B.stageMvAdd x y) =
       MvCore.mvAdd (B.shadow x) (B.shadow y) := by
   unfold stageMvAdd
-  simpa using B.rt₁ (MvCore.mvAdd (B.shadow x) (B.shadow y))
+  exact B.rt₁ _
 
 @[simp] theorem shadow_stageMvNeg [MvCore Ω] (x : α) :
     B.shadow (B.stageMvNeg x) = MvCore.mvNeg (B.shadow x) := by
   unfold stageMvNeg
-  simpa using B.rt₁ (MvCore.mvNeg (B.shadow x))
+  exact B.rt₁ _
 
 @[simp] theorem stageEffectAdd?_isSome [EffectCore Ω] (x y : α) :
     (B.stageEffectAdd? x y).isSome ↔
@@ -199,13 +249,19 @@ def stageOrthocomplement [OmlCore Ω] (x : α) : α :=
     B.shadow (B.stageOrthosupp x) =
       EffectCore.orthosupp (B.shadow x) := by
   unfold stageOrthosupp
-  simpa using B.rt₁ (EffectCore.orthosupp (B.shadow x))
+  exact B.rt₁ _
 
 @[simp] theorem shadow_stageOrthocomplement [OmlCore Ω] (x : α) :
     B.shadow (B.stageOrthocomplement x) =
       OmlCore.compl (B.shadow x) := by
   unfold stageOrthocomplement
-  simpa using B.rt₁ (OmlCore.compl (B.shadow x))
+  exact B.rt₁ _
+
+@[simp] theorem shadow_stageHimp [HeytingAlgebra Ω] (x y : α) :
+    B.shadow (B.stageHimp x y) =
+      B.shadow x ⇨ B.shadow y := by
+  unfold stageHimp
+  exact B.rt₁ _
 
 end Bridge
 

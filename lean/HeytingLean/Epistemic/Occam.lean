@@ -24,8 +24,8 @@ noncomputable def birth (R : Reentry α) (a : α) : ℕ :=
 lemma birth_le_one (R : Reentry α) (a : α) : birth R a ≤ 1 := by
   classical
   by_cases h : R a = a
-  · simpa [birth, h] using Nat.zero_le 1
-  · simpa [birth, h]
+  · simp [birth, h]
+  · simp [birth, h]
 
 /-- Candidate explanations: the fixed points that stay within the specification `a`. -/
 def occamCandidates (R : Reentry α) (a : α) : Set α :=
@@ -69,12 +69,14 @@ lemma occam_contains_candidate (R : Reentry α) {a u : α}
     u ≤ occam (R := R) a := by
   have hCore := le_occamCore_of_fixed (R := R) hu_le hu_fix
   have hMon := R.monotone hCore
-  simpa [occam, hu_fix] using hMon
+  have hGoal := hMon
+  simp [hu_fix] at hGoal
+  change u ≤ R (occamCore (R := R) a)
+  exact hGoal
 
 lemma occam_idempotent (R : Reentry α) (a : α) :
     R (occam (R := R) a) = occam (R := R) a := by
-  simpa [occam] using
-    Reentry.idempotent (R := R) (a := occamCore (R := R) a)
+  simp [occam]
 
 lemma occam_monotone (R : Reentry α) :
     Monotone (occam (R := R)) := by
@@ -91,6 +93,12 @@ lemma occam_monotone (R : Reentry α) :
 lemma occam_birth (R : Reentry α) (a : α) :
     birth R (occam (R := R) a) = 0 :=
   birth_eq_zero_of_fixed (R := R) (occam_idempotent (R := R) (a := a))
+
+@[simp] lemma birth_eulerBoundary (R : Reentry α) :
+    birth R ((R.eulerBoundary : R.Omega) : α) = 0 :=
+  birth_eq_zero_of_fixed (R := R)
+    (a := ((R.eulerBoundary : R.Omega) : α))
+    (Reentry.Omega.apply_coe (R := R) (a := R.eulerBoundary))
 
 end Epistemic
 end HeytingLean

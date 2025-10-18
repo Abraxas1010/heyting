@@ -53,6 +53,17 @@ def tensor (n : ℕ) : HeytingLean.Bridges.Tensor.Model α :=
         ((HeytingLean.Bridges.Tensor.Model.contract (tensor α R n)).encode a) = R a := by
   simp [HeytingLean.Bridges.Tensor.Model.logicalShadow, tensor]
 
+/-- Convenience lemma: the tensor bridge's implication transport reduces via `simp`. -/
+@[simp] lemma tensor_shadow_himp (n : ℕ) (a b : R.Omega) :
+    (HeytingLean.Bridges.Tensor.Model.logicalShadow (tensor α R n))
+      (HeytingLean.Bridges.Tensor.Model.stageHimp
+        (tensor α R n)
+        ((HeytingLean.Bridges.Tensor.Model.contract (tensor α R n)).encode a)
+        ((HeytingLean.Bridges.Tensor.Model.contract (tensor α R n)).encode b))
+      =
+        R (a ⇨ b) := by
+  classical
+  simp [tensor]
 def graph : HeytingLean.Bridges.Graph.Model α :=
   ⟨R⟩
 
@@ -67,6 +78,17 @@ def graph : HeytingLean.Bridges.Graph.Model α :=
         ((HeytingLean.Bridges.Graph.Model.contract (graph α R)).encode a) = R a := by
   simp [HeytingLean.Bridges.Graph.Model.logicalShadow, graph]
 
+/-- Convenience lemma: the graph bridge's implication transport reduces via `simp`. -/
+@[simp] lemma graph_shadow_himp (a b : R.Omega) :
+    (HeytingLean.Bridges.Graph.Model.logicalShadow (graph α R))
+      (HeytingLean.Bridges.Graph.Model.stageHimp
+        (graph α R)
+        ((HeytingLean.Bridges.Graph.Model.contract (graph α R)).encode a)
+        ((HeytingLean.Bridges.Graph.Model.contract (graph α R)).encode b))
+      =
+        R (a ⇨ b) := by
+  classical
+  simp [graph]
 def clifford : HeytingLean.Bridges.Clifford.Model α :=
   ⟨R⟩
 
@@ -81,6 +103,17 @@ def clifford : HeytingLean.Bridges.Clifford.Model α :=
         ((HeytingLean.Bridges.Clifford.Model.contract (clifford α R)).encode a) = R a := by
   simp [HeytingLean.Bridges.Clifford.Model.logicalShadow, clifford]
 
+/-- Convenience lemma: the Clifford bridge's implication transport reduces via `simp`. -/
+@[simp] lemma clifford_shadow_himp (a b : R.Omega) :
+    (HeytingLean.Bridges.Clifford.Model.logicalShadow (clifford α R))
+      (HeytingLean.Bridges.Clifford.Model.stageHimp
+        (clifford α R)
+        ((HeytingLean.Bridges.Clifford.Model.contract (clifford α R)).encode a)
+        ((HeytingLean.Bridges.Clifford.Model.contract (clifford α R)).encode b))
+      =
+        R (a ⇨ b) := by
+  classical
+  simp [clifford]
 end Examples
 end Contracts
 end HeytingLean
