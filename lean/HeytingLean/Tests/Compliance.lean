@@ -83,9 +83,10 @@ theorem graph_rt2_verified (R : Reentry α) (a : R.Omega) :
   graph_shadow_verified (R := R) (a := a)
 
 theorem graph_alexandroff_round_verified (R : Reentry α) (a : R.Omega) :
-    let model : Bridges.Graph.Alexandroff.Model (α := α) :=
-      { core := Contracts.Examples.graph (α := α) (R := R)
-        openSet := Set.univ }
+    let model :
+        Bridges.Graph.Alexandroff.Model (α := α) :=
+      Bridges.Graph.Alexandroff.Model.univ
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R))
     model.decode (model.contract.encode a) = a := by
   classical
   intro model

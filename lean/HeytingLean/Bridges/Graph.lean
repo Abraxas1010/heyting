@@ -81,6 +81,21 @@ lemma adjacency_trans (M : Model α) {a b c : α}
     M.adjacency a c :=
   le_trans hab hbc
 
+@[simp] lemma adjacency_iff_le (M : Model α) (a b : α) :
+    M.adjacency a b ↔ a ≤ b := Iff.rfl
+
+/-- Monotonicity of adjacency in the left argument. -/
+lemma adjacency_mono_left (M : Model α) {a b c : α}
+    (hab : a ≤ b) (hbc : M.adjacency b c) :
+    M.adjacency a c :=
+  le_trans hab hbc
+
+/-- Monotonicity of adjacency in the right argument. -/
+lemma adjacency_mono_right (M : Model α) {a b c : α}
+    (hab : M.adjacency a b) (hbc : b ≤ c) :
+    M.adjacency a c :=
+  le_trans hab hbc
+
 /-- Stage-style MV addition lifted to the graph carrier. -/
 noncomputable def stageMvAdd (M : Model α) :
     M.Carrier → M.Carrier → M.Carrier :=

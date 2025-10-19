@@ -81,6 +81,9 @@ noncomputable def contract (M : Model α) : RoundTrip (R := M.R) M.Carrier where
 noncomputable def interpret (M : Model α) (v : M.Carrier) : M.Carrier :=
   Point.mk fun i => M.R (v.coords i)
 
+@[simp] lemma interpret_coords (M : Model α) (v : M.Carrier) (i : Fin (M.dim.succ)) :
+    (M.interpret v).coords i = M.R (v.coords i) := rfl
+
 lemma interpret_idem (M : Model α) (v : M.Carrier) :
     M.interpret (M.interpret v) = M.interpret v := by
   classical

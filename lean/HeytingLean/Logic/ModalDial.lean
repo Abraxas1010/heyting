@@ -49,12 +49,20 @@ lemma collapse_monotone : Monotone D.collapse := by
   have := D.diamond.monotone h
   exact D.core.monotone this
 
+/-- Helper inequality form of `collapse_monotone` for automation. -/
+@[mono] lemma collapse_le {a b : α} (h : a ≤ b) : D.collapse a ≤ D.collapse b :=
+  D.collapse_monotone h
+
 /-- Expansion is monotone because it is a composition of monotone nuclei. -/
 lemma expand_monotone : Monotone D.expand := by
   intro a b h
   unfold expand
   have := D.box.monotone h
   exact D.diamond.monotone this
+
+/-- Helper inequality form of `expand_monotone` for automation. -/
+@[mono] lemma expand_le {a b : α} (h : a ≤ b) : D.expand a ≤ D.expand b :=
+  D.expand_monotone h
 
 /-- The breathing cycle remains below the next exterior pass. -/
 lemma collapse_le_next (a : α) : D.collapse a ≤ D.diamond (D.diamond a) := by

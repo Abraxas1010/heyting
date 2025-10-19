@@ -196,6 +196,43 @@ namespace Model
     star M.projector.axis = M.projector.axis :=
   M.projector.star_axis
 
+@[simp] lemma core_project_encode
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) (a : M.core.R.Omega) :
+    M.core.project (Carrier.toPair (M.encode a)) =
+      Carrier.toPair (M.encode a) := by
+  classical
+  simp [Model.encode, Carrier.toPair, Carrier.fromPair]
+
+@[simp] lemma core_project_stageCollapseAt
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) (n : ℕ) (c : Carrier M) :
+    M.core.project (Carrier.toPair (M.stageCollapseAt n c)) =
+      Carrier.toPair (M.stageCollapseAt n c) := by
+  classical
+  simp [Model.stageCollapseAt, Carrier.toPair, Carrier.fromPair]
+
+@[simp] lemma core_project_stageExpandAt
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) (n : ℕ) (c : Carrier M) :
+    M.core.project (Carrier.toPair (M.stageExpandAt n c)) =
+      Carrier.toPair (M.stageExpandAt n c) := by
+  classical
+  simp [Model.stageExpandAt, Carrier.toPair, Carrier.fromPair]
+
+@[simp] lemma core_project_stageOccam
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) (c : Carrier M) :
+    M.core.project (Carrier.toPair (M.stageOccam c)) =
+      Carrier.toPair (M.stageOccam c) := by
+  classical
+  unfold Model.stageOccam Contracts.stageOccam
+  simp [Model.contract]
+
 end Model
 
 end Projector

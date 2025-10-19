@@ -15,6 +15,8 @@ This plan tracks the formalisation of the LoF re-entry nucleus, its Heyting core
 - No compiled `sorry`/`admit`/custom axioms.
 - Lint warnings restricted to tracked ToDos (unused section variables, `simp` vs `simpa`).
 
+**Build contract:** Every verification (local and CI) MUST run `lake build -- -Dno_sorry -DwarningAsError=true`. No alternate build command counts as a valid test.
+
 ## Objective
 
 Mechanise the LoF nucleus and Heyting core and reuse them across tensor, graph, and geometry lenses.  Maintain consistent round-trip/triad contracts and document invariants, classical limits, and quantum excursions.
@@ -65,9 +67,9 @@ Modal ladder and residuation equivalence complete. **Next:** document ladder sem
 
 `collapseAt`, `expandAt`, `breathe/birth` reachability in place. **Next:** connect to dimensional story in docs.
 
-### 5. Bridge Realisations *(status: ✅ transports, 📌 carrier enrichment + transformer hook)*
+### 5. Bridge Realisations *(status: ✅ transports, 📌 carrier enrichment rollout)*
 
-Tensor/Graph/Clifford bridges share transports, and scaffolds (`Tensor/Intensity`, `Graph/Alexandroff`, `Clifford/Projector`) reuse core encode/decode/contract APIs with compliance coverage. **Next:** add openness/projector invariants, plan feature-flagged carrier rollout, and align the forthcoming transformer back-end spec (`TBD/transformer_architecture_integration.mc`) with the tensor logic bridge once the generators are ready.
+Tensor/Graph/Clifford bridges share transports, and scaffolds (`Tensor/Intensity`, `Graph/Alexandroff`, `Clifford/Projector`) reuse core encode/decode/contract APIs with compliance coverage. **Next:** add openness/projector invariants, plan feature-flagged carrier rollout, and confirm compliance coverage across the enriched carrier paths.
 
 ### 6. Cross-Lens Contracts *(status: ✅ base cases, 📌 automation)*
 
@@ -95,10 +97,10 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
    - Write dimensional semantics doc.
    - Add automation lemmas/tactics for ladder proofs.
 
-2. **Enhance Bridge Carriers & Transformer Hook**
+2. **Enhance Bridge Carriers**
    - Specify openness/projector invariants for the Alexandroff/projector scaffolds.
    - Prepare feature-flag rollout once invariants/closure data are ready.
-   - Sync the transformer architecture integration spec with the tensor bridge (define execution hooks/API expectations).
+   - Update compliance harnesses so enriched carriers stay covered.
 
 3. **Lint & Automation Sweep**
    - Resolve `simp` vs `simpa`, unused section variables.

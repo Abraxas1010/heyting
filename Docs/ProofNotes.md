@@ -93,3 +93,10 @@ This yields `Ω_{R_1} ⊆ Ω_{R_2} ⊆ …` and a controlled shift from Heyting 
 
 This document serves as the mathematical reference for the bridge upgrade roadmap.  Implementation of
 additional invariants can extend the corresponding sections.
+
+## 8. Automation Targets
+
+- **Ladder**: register `Dial.collapse_monotone`, `Dial.expand_monotone`, and the projection lemmas (`box_le_collapse`, `box_le_expand`) for `aesop`/`gcongr`; add `[simp]` or `[mono]` variants so `collapseAt`/`expandAt` chains avoid bespoke transitivity proofs.
+- **Tensor**: factor `Point.ext`/`Point.eta` rewrites into `[simp]` bundles and a helper for coordinatewise nuclei application, enabling `simp` to discharge the round-trip proof in `Model.contract` and analogous lemmas.
+- **Graph**: expose adjacency monotonicity as simp-available lemmas and add automation for `stage*` lifts so Occam/PSR transports reduce to core proofs without manual `Subtype.ext`.
+- **Compliance**: curate a shared `simp` set enumerating the stage operations (`stageMvAdd`, `stageEffectAdd?`, `stageOrthocomplement`, `stageHimp`) across bridges, unlocking `simp`-first regressions instead of ad hoc rewrites.

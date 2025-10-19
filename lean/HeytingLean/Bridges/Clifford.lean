@@ -298,6 +298,32 @@ variable {α : Type u} [PrimaryAlgebra α]
   classical
   simp [stageExpandAt_encode, Model.logicalShadow_encode']
 
+@[simp] lemma project_encode (M : Model α) (a : M.R.Omega) :
+    M.project (M.encode a) = M.encode a := by
+  classical
+  unfold Model.project Model.encode
+  simp [Reentry.Omega.apply_coe]
+
+@[simp] lemma project_stageCollapseAt (M : Model α) (n : ℕ)
+    (p : M.Carrier) :
+    M.project (M.stageCollapseAt n p) = M.stageCollapseAt n p := by
+  classical
+  unfold Model.stageCollapseAt
+  simp [project_encode]
+
+@[simp] lemma project_stageExpandAt (M : Model α) (n : ℕ)
+    (p : M.Carrier) :
+    M.project (M.stageExpandAt n p) = M.stageExpandAt n p := by
+  classical
+  unfold Model.stageExpandAt
+  simp [project_encode]
+
+@[simp] lemma project_stageOccam (M : Model α) (p : M.Carrier) :
+    M.project (M.stageOccam p) = M.stageOccam p := by
+  classical
+  unfold Model.stageOccam Contracts.stageOccam
+  simp [Model.contract, project_encode]
+
 end Model
 
 end

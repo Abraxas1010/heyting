@@ -33,6 +33,11 @@
   1. Formalise reachability preorder (`Reach ≤`) and the associated Alexandroff topology.
   2. Define the carrier as the lattice of upward-closed sets (opens), ensuring `heyting_algebra` instances align with nucleus fixed points.
   3. Update bridge contracts to transport via `Open` subsets; add compliance cases covering collapse/expand and Occam.
+- **Invariants**:
+  - Upward-closure proof per open: `∀ x y, reach x y → x ∈ U → y ∈ U`.
+  - Compatibility with ladder collapse: `collapseAt` viewed as taking the interior (Alexandroff open kernel) of the corresponding subset.
+  - Closure under finite meets/joins required by the Heyting operations (`∩` and interiorised `∪`).
+  - Reachability traces in compliance must witness that Occam reductions stay within the open.
 - **Dependencies**:
   - mathlib topology (`orderTopology`, `topologicalSpace.alexandrov`), existing `LoF` nucleus lemmas.
   - Reuse of stage collapse/expand automation once the open-set representation is in place.
@@ -47,6 +52,11 @@
   1. Implement projector type (idempotent + adjoint) leveraging existing `Quantum/` scaffolding.
   2. Show the projector lattice satisfies the required orthomodular contracts and lifts the LoF nucleus.
   3. Expand compliance with projector-specific validations (e.g., `collapseAtOmega` aligning with projector composition).
+- **Invariants**:
+  - Idempotent witness: `P ∘ P = P` and `P† = P` guaranteed at construction time.
+  - Orthogonality tracking for breathing: `collapseAt` must preserve mutually orthogonal projectors, and `expandAt` may only introduce bias via admissible joins.
+  - Nucleus compatibility: `R (projectorRange P) = projectorRange P` and similar statements tying transport decode/encode to the Heyting core.
+  - Round-trip guards: compliance should record that Occam/PSR transports stay within the projector net and respect adjoint symmetry.
 - **Dependencies**:
   - mathlib linear algebra (`matrix`, `innerProductSpace`) or existing Clifford utilities.
   - Potential need for lemmas about projector composition; identify missing mathlib support early.
