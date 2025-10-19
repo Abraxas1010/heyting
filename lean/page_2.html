@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generative Ontology — Step 2: Recursive Re-entry</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#111823; --ink:#e8f0ff; --muted:#96b4d4; --accent:#66d9ef;
+      --ok:#44d18d; --warn:#ffb454; --critical:#ff6b6b;
+      --card:#0e1520; --stroke:#1b2736; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Inter,Roboto,Arial}
+    .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh}
+
+    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(11,15,20,.95),rgba(11,15,20,.85));backdrop-filter:blur(8px);border-bottom:1px solid var(--stroke)}
+    .header-content{padding:1rem 1.5rem}
+    h1{margin:0 0 .3rem 0;font-size:1.5rem;color:#e4edff;font-weight:600}
+    .subtitle{color:var(--muted);font-size:.9rem;margin-bottom:1rem}
+
+    .controls{display:flex;flex-wrap:wrap;gap:1rem;align-items:center}
+    .control-group{display:flex;gap:.5rem;align-items:center;background:var(--panel);border:1px solid var(--stroke);padding:.5rem .8rem;border-radius:12px}
+    label{color:var(--muted);font-size:.85rem;white-space:nowrap}
+    [title]{cursor:help;border-bottom:1px dotted var(--stroke)}
+    button{background:#0b131d;color:var(--ink);border:1px solid var(--stroke);padding:.5rem 1rem;border-radius:10px;font-size:.9rem;cursor:pointer;transition:all .2s}
+    button:hover{border-color:var(--accent);background:rgba(102,217,239,.1)}
+    button.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+    button.primary:hover{background:#7ae6ff}
+    input[type="range"]{width:180px;accent-color:var(--accent)}
+
+    main{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;padding:1.5rem;align-items:start}
+    .panel{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;box-shadow:var(--shadow);display:grid;grid-template-rows:auto 1fr auto;min-height:460px}
+    .panel h2{margin:0;padding:1rem 1.2rem;border-bottom:1px solid var(--stroke);color:#c6d7f4;font-size:1.1rem;font-weight:600}
+    .canvas-wrap{position:relative;min-height:360px}
+    canvas{display:block;width:100%;height:100%}
+    .caption{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);font-size:.85rem;color:var(--muted);background:rgba(11,15,20,.9);backdrop-filter:blur(8px);padding:.4rem .8rem;border-radius:8px;border:1px solid var(--stroke);text-align:center;max-width:90%;pointer-events:none}
+
+    .syntax-overlay{position:absolute;top:1rem;right:1rem;background:rgba(14,21,32,.95);backdrop-filter:blur(10px);border:1px solid var(--stroke);border-radius:10px;padding:.8rem 1rem;min-width:220px;max-width:320px;font-family:ui-monospace,monospace;font-size:.85rem;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+    .syntax-overlay h4{margin:0 0 .6rem 0;color:var(--accent);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .syntax-row{margin:.4rem 0;display:flex;align-items:center;gap:.6rem}
+    .syntax-label{color:var(--muted);min-width:50px;font-size:.75rem}
+    .syntax-value{color:var(--ink);background:rgba(0,0,0,.3);padding:.2rem .5rem;border-radius:5px;flex:1;border:1px solid rgba(102,217,239,.2)}
+
+    .status-bar{display:flex;gap:1.5rem;align-items:center;justify-content:center;padding:1rem;border-top:1px solid var(--stroke);flex-wrap:wrap}
+    .status-item{display:flex;align-items:center;gap:.5rem;font-size:.85rem}
+    .status-label{color:var(--muted)}
+    .status-value{color:var(--ink);font-family:ui-monospace,monospace;background:rgba(11,15,20,.5);padding:.25rem .5rem;border-radius:6px;min-width:60px;text-align:center}
+    .status-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+    .status-indicator.active{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+    .status-indicator.collapsed{background:var(--critical);box-shadow:0 0 8px var(--critical)}
+
+    .explanation{padding:0 1.5rem 1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+    .exp-card{background:var(--card);border:1px solid var(--stroke);border-radius:14px;padding:1rem 1.2rem;overflow:visible}
+    .exp-card h3{margin:0 0 .6rem 0;color:#e4edff;font-size:.9rem;font-weight:600}
+    .exp-card p{margin:.3rem 0;line-height:1.5;color:var(--muted);font-size:.8rem}
+    .exp-card strong{color:var(--ink)}
+    .exp-card code{font-family:ui-monospace,monospace;background:rgba(102,217,239,.1);padding:.1rem .3rem;border-radius:4px;color:var(--accent);font-size:.75rem;white-space:normal;word-break:break-word}
+
+    footer{padding:.8rem 1.5rem;color:var(--muted);border-top:1px solid var(--stroke);text-align:center;font-size:.85rem}
+    .kbd{border:1px solid var(--stroke);background:#0b121b;border-radius:6px;padding:.1rem .4rem;color:#a5c2ff;font-family:ui-monospace,monospace}
+
+    @media (max-width: 1100px){
+      main{grid-template-columns:1fr}
+      .explanation{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="header-content">
+      <h1>Generative Ontology — Step 2: Recursive Re-entry</h1>
+      <p class="subtitle">Applying R again: Wave extents generate hypergraph structures at the next dimensional level</p>
+
+      <div class="controls">
+        <div class="control-group">
+          <label for="R" title="Re-entry nucleus strength controls color spectrum: Low R = infrared/red (classical), High R = violet/white (constructive)">R (nucleus)</label>
+          <input type="range" id="R" min="0" max="100" step="1" value="50"/>
+          <span id="RValue">0.50</span>
+        </div>
+
+        <div class="control-group">
+          <label for="nodes" title="Node count: 1 (Nothing) to ∞ (Infinite Nothing) - controls graph complexity">Nodes</label>
+          <input type="range" id="nodes" min="1" max="64" step="1" value="16"/>
+          <span id="nodesValue">16</span>
+        </div>
+
+        <div class="control-group">
+          <button id="btnCollapse" class="primary" title="Toggle between Nothing (plenum) and Everything (fully marked singularity)">
+            Collapse ⇄ Expand
+          </button>
+        </div>
+
+        <div class="control-group">
+          <button id="btnOscillate" title="Trigger re-entry oscillation in local observer">
+            Create Mark ¬(·)
+          </button>
+        </div>
+
+        <div class="control-group">
+          <button id="btnReset">Reset</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- GLOBAL: Nothing ⇄ Everything -->
+    <section class="panel">
+      <h2>Global — The Plenum (Nothing ⇄ Everything)</h2>
+      <div class="canvas-wrap">
+        <canvas id="globalCanvas"></canvas>
+        <div class="caption" id="globalCaption">Unmarked Nothing (plenum — latent potential)</div>
+        <div class="syntax-overlay" id="globalSyntaxOverlay">
+          <h4>Plenum State</h4>
+          <div class="syntax-row">
+            <span class="syntax-label">LoF:</span>
+            <span class="syntax-value" id="globalLoF">⊙</span>
+          </div>
+          <div class="syntax-row">
+            <span class="syntax-label">Logic:</span>
+            <span class="syntax-value" id="globalLogic">Unmarked</span>
+          </div>
+          <div class="syntax-row">
+            <span class="syntax-label">Nodes:</span>
+            <span class="syntax-value" id="globalNodes">16</span>
+          </div>
+          <div class="syntax-row">
+            <span class="syntax-label">State:</span>
+            <span class="syntax-value" id="globalStateOverlay">Plenum</span>
+          </div>
+        </div>
+      </div>
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="status-indicator" id="plenumIndicator"></span>
+          <span class="status-label">State:</span>
+          <span class="status-value" id="globalState">Plenum</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Distinctions:</span>
+          <span class="status-value" id="distinctionCount">∞ (latent)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOCAL: Recursive Re-entry -->
+    <section class="panel">
+      <h2>Local — Recursive Re-entry (R applied again at wave extents)</h2>
+      <div class="canvas-wrap">
+        <canvas id="localCanvas"></canvas>
+        <div class="caption" id="localCaption">Awaiting re-entry...</div>
+        <div class="syntax-overlay" id="syntaxOverlay">
+          <h4>Representations</h4>
+          <div class="syntax-row">
+            <span class="syntax-label">LoF:</span>
+            <span class="syntax-value" id="lofSyntax">⟨ ⟩</span>
+          </div>
+          <div class="syntax-row">
+            <span class="syntax-label">Logic:</span>
+            <span class="syntax-value" id="logicSyntax">⊥</span>
+          </div>
+          <div class="syntax-row">
+            <span class="syntax-label">Nucleus:</span>
+            <span class="syntax-value" id="nucleusSyntax">R(·) = ·</span>
+          </div>
+          <div class="syntax-row">
+            <span class="syntax-label">Euler:</span>
+            <span class="syntax-value" id="eulerSyntax">e^(i·0) = 1</span>
+          </div>
+        </div>
+      </div>
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="status-indicator" id="oscillatorIndicator"></span>
+          <span class="status-label">Oscillator:</span>
+          <span class="status-value" id="oscillatorState">Inactive</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">R-fixed:</span>
+          <span class="status-value" id="rfixedStatus">—</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="explanation">
+    <div class="exp-card">
+      <h3>1. The Plenum (Global) — 0D Point ⇄ Circle</h3>
+      <p><strong>Nothing ≡ Everything</strong> at the unmarked state. The plenum is <strong>undifferentiated potential</strong> — all possible distinctions latent but not yet actualized.</p>
+      <p><strong>Generative ontology</strong>: At the most basic level, this is the transition from a <strong>0D point</strong> (singularity, collapsed) to a <strong>circle</strong> (expanded, all nodes). From another perspective, a <strong>line rotating</strong> traces out the circle — showing how 1D generates 2D through continuous transformation.</p>
+      <p><strong>Infrared locked</strong>: The plenum is shown in <strong>infrared/dark red</strong> because the <strong>R nucleus has not been applied yet</strong>. This is the pre-logical, unmarked state before re-entry begins. The R value slider controls the Local panel's spectrum but does not affect the Global plenum.</p>
+      <p><strong>Node count</strong>: From <code>1</code> (Nothing) to <code>∞</code> (Infinite Nothing, shown as 64 nodes), the fully connected graph shows all latent distinctions. The <strong>radiance</strong> emerges from overlapping translucent edges.</p>
+      <p>The <strong>Collapse ⇄ Expand</strong> button demonstrates the fundamental dynamic: point → circle → point in smooth animation.</p>
+    </div>
+
+    <div class="exp-card">
+      <h3>2. Recursive Re-entry — Dimensional Ascent (Local)</h3>
+      <p><strong>Applying R again</strong>: After the first re-entry creates the boundary, the <strong>algebra and re-entry are applied recursively</strong>. Three orthogonal wave pairs (horizontal, vertical, diagonal) create a <strong>3D sphere structure</strong>, marking the <strong>sites of new re-entry</strong> at all six wave extents.</p>
+      <p>When markedness > 0.4, <strong>secondary hypergraphs emerge at 6 locations</strong>:</p>
+      <p>• <strong>Horizontal axis</strong> — Top and bottom wave extents (cosine/sine pair)<br/>
+         • <strong>Vertical axis</strong> — Left and right wave extents (orange/yellow-green pair)<br/>
+         • <strong>Depth axis</strong> — Diagonal front/back wave extents (light blue/pink pair)<br/>
+         • <strong>Boundary circles</strong> — Each hypergraph has its own dotted circle with counter-rotating radius lines (orthogonal phases for 3D perception)<br/>
+         • <strong>Red-orange spectrum</strong> — Secondary structures use a shifted spectrum (R × 0.6 + 0.1)<br/>
+         • <strong>Nested structure</strong> — The central plenum (infrared) remains enclosed by the primary boundary</p>
+      <p><strong>Dimensional generation</strong>: The wave extents define <strong>new loci for re-entry</strong>, creating hypergraph structures at the next dimensional level. Each secondary location has its own <strong>Euler circle with orthogonally-phased rotating lines</strong>, showing how re-entry recurs at every level. This demonstrates how <strong>1D oscillation → 2D waves → 3D sphere manifold</strong> through recursive nucleus application.</p>
+      <p><strong>Central dual-Euler structure</strong>: The primary center has <strong>TWO overlapping circles</strong> (one solid for horizontal axis, one dashed for vertical axis) with <strong>FOUR counter-rotating lines</strong> total. The horizontal pair connects to the blue/purple arrows, the vertical pair (orthogonal, π/2 offset) connects to the orange/yellow-green arrows. When <strong>both pairs converge simultaneously</strong>, arrows become <strong>1.6× thicker</strong>—showing the combinatorial explosion of possibilities when multiple dimensions align. This is the visual signature of <strong>dimensional coupling</strong>.</p>
+      <p><strong>Scaling relationship</strong>: The secondary hypergraph radius = wave amplitude × 1.2, creating a direct <strong>coupling between oscillation intensity and structural generation</strong>. Each boundary circle radius = hypergraph radius × 1.15.</p>
+      <p><strong>Mathematical meaning</strong>: Each application of R creates a new fixed-point space. The wave extents are the <strong>energy maxima</strong> where the next re-entry naturally occurs, bootstrapping the dimensional ladder: 0D (point) → 1D (oscillation) → 2D (waves) → 3D (sphere) → ∞D (recursion).</p>
+    </div>
+  </div>
+
+  <footer>
+    <span class="muted">Keyboard shortcuts:</span>
+    <span class="kbd">C</span> collapse/expand •
+    <span class="kbd">M</span> create mark •
+    <span class="kbd">R</span> reset •
+    <span class="muted">v3.2-dual-euler</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const $ = (id) => document.getElementById(id);
+
+  // State
+  const state = {
+    R: 0.50,                    // Re-entry nucleus strength (0-1, controls color spectrum)
+    nodes: 16,                  // Node count (1 to 64)
+    collapsed: false,           // Global collapse state
+    collapseProgress: 0,        // Collapse animation progress (0 = expanded, 1 = collapsed)
+    collapseTarget: 0,          // Target collapse progress
+    oscillating: false,         // Local oscillator active
+    oscillatorPhase: 0,         // Current phase of oscillation
+    oscillatorSpeed: 0.002,     // Speed of oscillation
+  };
+
+  // Spectrum color calculation: R value maps to wavelength spectrum
+  // Low R (0) = Red/Infrared (near black) -> High R (1) = Violet/White
+  function getSpectrumColor(R, alpha = 1) {
+    // R: 0.0-0.2 = Infrared (dark red to red)
+    // R: 0.2-0.4 = Red to Orange to Yellow
+    // R: 0.4-0.6 = Yellow to Green to Cyan
+    // R: 0.6-0.8 = Cyan to Blue to Violet
+    // R: 0.8-1.0 = Violet to White (UV)
+
+    let r, g, b;
+
+    if (R < 0.2) {
+      // Infrared: dark red fading from near-black
+      const t = R / 0.2;
+      r = 20 + 200 * t;
+      g = 0;
+      b = 0;
+    } else if (R < 0.4) {
+      // Red to Orange to Yellow
+      const t = (R - 0.2) / 0.2;
+      r = 255;
+      g = 165 * t;
+      b = 0;
+    } else if (R < 0.6) {
+      // Yellow to Green to Cyan
+      const t = (R - 0.4) / 0.2;
+      r = 255 * (1 - t);
+      g = 255;
+      b = 255 * t;
+    } else if (R < 0.8) {
+      // Cyan to Blue to Violet
+      const t = (R - 0.6) / 0.2;
+      r = 138 * t;
+      g = 255 * (1 - t);
+      b = 255;
+    } else {
+      // Violet to White (UV)
+      const t = (R - 0.8) / 0.2;
+      r = 138 + (255 - 138) * t;
+      g = 0 + 255 * t;
+      b = 255;
+    }
+
+    return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${alpha})`;
+  }
+
+  function getSpectrumName(R) {
+    if (R < 0.2) return 'Infrared (Dark Red)';
+    if (R < 0.35) return 'Red';
+    if (R < 0.45) return 'Orange';
+    if (R < 0.55) return 'Yellow-Green';
+    if (R < 0.65) return 'Cyan';
+    if (R < 0.75) return 'Blue';
+    if (R < 0.85) return 'Violet';
+    return 'UV (White)';
+  }
+
+  // UI elements
+  const RSlider = $('R');
+  const RValue = $('RValue');
+  const nodesSlider = $('nodes');
+  const nodesValue = $('nodesValue');
+  const btnCollapse = $('btnCollapse');
+  const btnOscillate = $('btnOscillate');
+  const btnReset = $('btnReset');
+
+  const globalCanvas = $('globalCanvas');
+  const localCanvas = $('localCanvas');
+  const gctx = globalCanvas.getContext('2d');
+  const lctx = localCanvas.getContext('2d');
+
+  const globalCaption = $('globalCaption');
+  const localCaption = $('localCaption');
+  const globalState = $('globalState');
+  const oscillatorState = $('oscillatorState');
+  const distinctionCount = $('distinctionCount');
+  const rfixedStatus = $('rfixedStatus');
+  const plenumIndicator = $('plenumIndicator');
+  const oscillatorIndicator = $('oscillatorIndicator');
+
+  // Global syntax overlay elements
+  const globalLoF = $('globalLoF');
+  const globalLogic = $('globalLogic');
+  const globalNodes = $('globalNodes');
+  const globalStateOverlay = $('globalStateOverlay');
+
+  // Local syntax overlay elements
+  const lofSyntax = $('lofSyntax');
+  const logicSyntax = $('logicSyntax');
+  const nucleusSyntax = $('nucleusSyntax');
+  const eulerSyntax = $('eulerSyntax');
+
+  // Canvas resize
+  function resize(){
+    for (const c of [globalCanvas, localCanvas]){
+      const rect = c.parentElement.getBoundingClientRect();
+      c.width = Math.max(300, rect.width * dpr);
+      c.height = Math.max(320, rect.height * dpr);
+    }
+  }
+  new ResizeObserver(resize).observe(document.body);
+  resize();
+
+  // === GLOBAL PANEL: Plenum ⇄ Collapse ===
+  function drawGlobal(){
+    const W = globalCanvas.width, H = globalCanvas.height;
+    const cx = W/2, cy = H/2;
+
+    gctx.setTransform(1,0,0,1,0,0);
+    gctx.clearRect(0,0,W,H);
+
+    // Background - will be computed from edge density below
+    const bgGrd = gctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W,H)*0.5);
+    bgGrd.addColorStop(0, '#0a1019');
+    bgGrd.addColorStop(1, '#070b12');
+    gctx.fillStyle = bgGrd;
+    gctx.fillRect(0,0,W,H);
+
+    // Determine if we should draw the collapsed graph
+    const showCollapsed = state.collapseProgress > 0.01;
+
+    if (showCollapsed) {
+      // COLLAPSED STATE (Everything = fully marked singularity)
+      const numNodes = state.nodes;
+      // Use circular radius (based on minimum dimension to ensure circle not oval)
+      const baseRadius = Math.min(W, H) * 0.35;
+      // Animate collapse: full radius when expanded (progress=0), tiny when collapsed (progress=1)
+      const graphRadius = baseRadius * (1 - state.collapseProgress * 0.95); // Shrinks to 5% of original
+      const nodes = [];
+      const edges = [];
+      const time = performance.now() * 0.0005;
+
+      // Create nodes in a perfect circle
+      for(let i=0; i<numNodes; i++){
+        const angle = (i/numNodes) * Math.PI * 2 + time * 0.3;
+        const spiral = 1 - (Math.sin(time + i*0.2) * 0.08); // Subtle pulsing
+        const r = graphRadius * spiral;
+        nodes.push({
+          x: cx + Math.cos(angle) * r,
+          y: cy + Math.sin(angle) * r
+        });
+      }
+
+      // Collect all edges for density computation
+      for(let i=0; i<numNodes; i++){
+        for(let j=i+1; j<numNodes; j++){
+          edges.push({ n1: nodes[i], n2: nodes[j] });
+        }
+      }
+
+      // Draw all edges (fully connected) with RADIANT glow effect
+      // Draw edges multiple times with decreasing width and increasing blur for glow
+      // LOCKED TO INFRARED - R nucleus has not been applied to plenum yet
+      const edgePasses = [
+        { width: 8, alpha: 0.02 },  // Outermost glow (widest, faintest)
+        { width: 5, alpha: 0.04 },  // Mid glow
+        { width: 3, alpha: 0.06 },  // Inner glow
+        { width: 1.5, alpha: 0.12 }, // Edge itself
+      ];
+
+      for(const pass of edgePasses){
+        gctx.globalAlpha = pass.alpha;
+        for(const edge of edges){
+          const n1 = edge.n1, n2 = edge.n2;
+          const centerDist = Math.hypot((n1.x+n2.x)/2-cx, (n1.y+n2.y)/2-cy);
+          const maxCenterDist = graphRadius || 1;
+
+          // INFRARED COLOR (locked, R value = 0.1 for dark red)
+          const distFactor = 1 - Math.min(1, centerDist/maxCenterDist);
+          const edgeR = Math.max(0, 0.1 - 0.08 * (1 - distFactor)); // Darker near center, infrared range
+
+          gctx.strokeStyle = getSpectrumColor(edgeR, 1);
+          gctx.lineWidth = pass.width * dpr;
+          gctx.beginPath();
+          gctx.moveTo(n1.x, n1.y);
+          gctx.lineTo(n2.x, n2.y);
+          gctx.stroke();
+        }
+      }
+      gctx.globalAlpha = 1;
+
+      // Draw nodes (larger and more visible) - INFRARED LOCKED
+      gctx.globalAlpha = 0.7;
+      for(const node of nodes){
+        const centerDist = Math.hypot(node.x-cx, node.y-cy);
+        const maxCenterDist = graphRadius || 1;
+        const distRatio = centerDist / maxCenterDist;
+        const baseSize = 3 * dpr;
+        const size = baseSize + (1 - distRatio) * 6 * dpr; // Bigger nodes near center
+        const nodeR = 0.1 * distRatio; // INFRARED (0.1 range)
+        gctx.fillStyle = getSpectrumColor(nodeR, 0.9);
+        gctx.beginPath();
+        gctx.arc(node.x, node.y, size, 0, Math.PI*2);
+        gctx.fill();
+
+        // Node glow
+        gctx.fillStyle = getSpectrumColor(nodeR, 0.3);
+        gctx.beginPath();
+        gctx.arc(node.x, node.y, size * 2, 0, Math.PI*2);
+        gctx.fill();
+      }
+      gctx.globalAlpha = 1;
+
+      // Central singularity (black hole) - grows with collapse progress - INFRARED LOCKED
+      const singularitySize = state.collapseProgress * (30*dpr + 10*dpr*Math.sin(time*2));
+      if (singularitySize > 5*dpr) {
+        const sGrd = gctx.createRadialGradient(cx,cy,0, cx,cy,singularitySize);
+        sGrd.addColorStop(0, '#000000');
+        sGrd.addColorStop(0.4, getSpectrumColor(0.03, 0.5 * state.collapseProgress)); // INFRARED
+        sGrd.addColorStop(0.7, getSpectrumColor(0.1, 0.8 * state.collapseProgress));  // INFRARED
+        sGrd.addColorStop(1, getSpectrumColor(0.1, 0));
+        gctx.globalAlpha = 0.5 * state.collapseProgress; // Opacity grows with collapse
+        gctx.fillStyle = sGrd;
+        gctx.fillRect(0,0,W,H);
+        gctx.globalAlpha = 1;
+
+        // Event horizon ring - INFRARED
+        gctx.strokeStyle = getSpectrumColor(0.1, 0.7 * state.collapseProgress);
+        gctx.lineWidth = 2*dpr;
+        gctx.beginPath();
+        gctx.arc(cx, cy, singularitySize*0.7, 0, Math.PI*2);
+        gctx.stroke();
+      }
+
+      // Update status based on collapse progress
+      if (state.collapseProgress > 0.8) {
+        globalCaption.textContent = 'Everything (fully marked — singularity)';
+        globalState.textContent = 'Collapsed';
+        distinctionCount.textContent = '1 (merged)';
+        plenumIndicator.className = 'status-indicator collapsed';
+        globalStateOverlay.textContent = 'Collapsed';
+        globalLoF.textContent = '●';  // Dot (marked singularity)
+        globalLogic.textContent = 'Marked';
+      } else if (state.collapseProgress > 0.01) {
+        globalCaption.textContent = `Collapsing... (${(state.collapseProgress*100).toFixed(0)}%)`;
+        globalState.textContent = 'Collapsing';
+        distinctionCount.textContent = `${numNodes} → 1`;
+        plenumIndicator.className = 'status-indicator';
+        globalStateOverlay.textContent = 'Collapsing';
+        globalLoF.textContent = '⊙ → ●';
+        globalLogic.textContent = 'Collapsing';
+      } else {
+        globalLoF.textContent = '⊙';  // Circle with dot (unmarked plenum)
+        globalLogic.textContent = 'Unmarked';
+      }
+
+      // Update global syntax overlay
+      globalNodes.textContent = state.nodes;
+
+    } else {
+      // PLENUM STATE (Nothing = unmarked potential) - already drew background above
+
+      // Latent field (potential but not actualized)
+      const fieldDensity = 120;
+      gctx.globalAlpha = 0.15;
+      for(let i=0; i<fieldDensity; i++){
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const size = (0.5 + Math.random()*1.5) * dpr;
+        gctx.fillStyle = `hsl(${200 + Math.random()*40}, 70%, ${60 + Math.random()*20}%)`;
+        gctx.beginPath();
+        gctx.arc(x, y, size, 0, Math.PI*2);
+        gctx.fill();
+      }
+      gctx.globalAlpha = 1;
+
+      // Potential connections (faint, latent)
+      gctx.globalAlpha = 0.08;
+      gctx.strokeStyle = '#6ea8ff';
+      gctx.lineWidth = 0.5*dpr;
+      const numPotential = 30;
+      for(let i=0; i<numPotential; i++){
+        const x1 = cx + (Math.random()-0.5) * W*0.6;
+        const y1 = cy + (Math.random()-0.5) * H*0.6;
+        const x2 = cx + (Math.random()-0.5) * W*0.6;
+        const y2 = cy + (Math.random()-0.5) * H*0.6;
+        gctx.beginPath();
+        gctx.moveTo(x1,y1);
+        gctx.lineTo(x2,y2);
+        gctx.stroke();
+      }
+      gctx.globalAlpha = 1;
+
+      globalCaption.textContent = 'Unmarked Nothing (plenum — latent potential)';
+      globalState.textContent = 'Plenum';
+      distinctionCount.textContent = '∞ (latent)';
+      plenumIndicator.className = 'status-indicator active';
+
+      // Update global syntax overlay
+      globalLoF.textContent = '⊙';  // Circle with dot
+      globalLogic.textContent = 'Unmarked';
+      globalNodes.textContent = `${state.nodes} (latent)`;
+      globalStateOverlay.textContent = 'Plenum';
+    }
+  }
+
+  // Helper function to draw secondary Euler circle with counter-rotating lines
+  function drawSecondaryEulerCircle(ctx, centerX, centerY, radius, spectrumR, alpha, phase, phaseOffset) {
+    // Dashed boundary circle
+    ctx.globalAlpha = 0.4 * alpha;
+    ctx.strokeStyle = getSpectrumColor(spectrumR, 1);
+    ctx.lineWidth = 1.5 * dpr;
+    ctx.setLineDash([4*dpr, 4*dpr]);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    // Counter-rotating radius lines (orthogonal to main Euler lines)
+    const angle1 = phase + phaseOffset;
+    const angle2 = -(phase + phaseOffset);
+    const ex1 = centerX + Math.cos(angle1) * radius;
+    const ey1 = centerY + Math.sin(angle1) * radius;
+    const ex2 = centerX + Math.cos(angle2) * radius;
+    const ey2 = centerY + Math.sin(angle2) * radius;
+
+    // Draw rotating lines with glow
+    const lineGlow = [
+      { width: 4, alpha: 0.05 * alpha },
+      { width: 2, alpha: 0.1 * alpha },
+      { width: 1, alpha: 0.3 * alpha }
+    ];
+
+    // Line 1
+    for(const pass of lineGlow){
+      ctx.globalAlpha = pass.alpha;
+      ctx.strokeStyle = getSpectrumColor(spectrumR, 1);
+      ctx.lineWidth = pass.width * dpr;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(ex1, ey1);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Line 2
+    for(const pass of lineGlow){
+      ctx.globalAlpha = pass.alpha;
+      ctx.strokeStyle = getSpectrumColor(spectrumR, 1);
+      ctx.lineWidth = pass.width * dpr;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(ex2, ey2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Helper function to draw secondary hypergraph at recursive re-entry locations
+  function drawSecondaryHypergraph(ctx, centerX, centerY, radius, spectrumR, alpha, time) {
+    const numNodes = Math.min(state.nodes, 12); // Smaller node count for secondary graphs
+    const nodes = [];
+
+    // Create nodes in circle
+    for(let i=0; i<numNodes; i++){
+      const angle = (i/numNodes) * Math.PI * 2 + time * 0.3;
+      const spiral = 1 - (Math.sin(time + i*0.2) * 0.08);
+      const r = radius * spiral;
+      nodes.push({
+        x: centerX + Math.cos(angle) * r,
+        y: centerY + Math.sin(angle) * r
+      });
+    }
+
+    // Draw edges (fully connected) with glow
+    const edgePasses = [
+      { width: 3, alpha: 0.02 * alpha },
+      { width: 1.5, alpha: 0.04 * alpha },
+      { width: 0.8, alpha: 0.08 * alpha }
+    ];
+
+    for(const pass of edgePasses){
+      ctx.globalAlpha = pass.alpha;
+      for(let i=0; i<numNodes; i++){
+        for(let j=i+1; j<numNodes; j++){
+          const n1 = nodes[i], n2 = nodes[j];
+          ctx.strokeStyle = getSpectrumColor(spectrumR, 1);
+          ctx.lineWidth = pass.width * dpr;
+          ctx.beginPath();
+          ctx.moveTo(n1.x, n1.y);
+          ctx.lineTo(n2.x, n2.y);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Draw nodes
+    ctx.globalAlpha = 0.5 * alpha;
+    for(const node of nodes){
+      const size = 1.5 * dpr;
+      ctx.fillStyle = getSpectrumColor(spectrumR, 0.9);
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, size, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // === LOCAL PANEL: First Oscillation via Re-entry ===
+  function drawLocal(){
+    const W = localCanvas.width, H = localCanvas.height;
+    const cx = W/2, cy = H/2;
+
+    lctx.setTransform(1,0,0,1,0,0);
+    lctx.clearRect(0,0,W,H);
+
+    // Background - will add computed radiance if oscillating
+    const bgGrd = lctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W,H)*0.5);
+    bgGrd.addColorStop(0, '#0b121b');
+    bgGrd.addColorStop(1, '#081018');
+    lctx.fillStyle = bgGrd;
+    lctx.fillRect(0,0,W,H);
+
+    const plenumTime = performance.now() * 0.0005; // Time for animations
+
+    if (state.oscillating) {
+      // OSCILLATOR ACTIVE: Show two opposing lines creating re-entry (the crossing)
+
+      const radius = Math.min(W,H) * 0.25;
+      const phase = state.oscillatorPhase;
+
+      // Phase oscillates: 0 (unmarked) → π (marked) → 2π (unmarked)
+      const markedness = (Math.sin(phase) + 1) / 2; // 0 to 1
+
+      // Pre-calculate convergence states for arrow scaling
+      // PAIR 1: Horizontal axis
+      const angle1H = phase;
+      const angle2H = -phase;
+      const angleDiffH = Math.abs(Math.cos(angle1H) - Math.cos(angle2H));
+      const linesMeetingH = angleDiffH < 0.3;
+
+      // PAIR 2: Vertical axis (orthogonal)
+      const angle1V = phase + Math.PI/2;
+      const angle2V = -(phase + Math.PI/2);
+      const angleDiffV = Math.abs(Math.cos(angle1V) - Math.cos(angle2V));
+      const linesMeetingV = angleDiffV < 0.3;
+
+      // Check if BOTH pairs are meeting (combinatorial convergence)
+      const bothMeeting = linesMeetingH && linesMeetingV;
+
+      // TWO OPPOSING LINES traveling toward each other (re-entry as crossing)
+      const lineLength = radius * 1.4;
+      const separation = radius * (1 - markedness); // They collapse together as markedness increases
+
+      // Line 1: Traveling from left (with COSINE wave flowing through it)
+      const x1Start = cx - lineLength - separation;
+      const x1End = cx - separation;
+
+      // Draw cosine wave flowing along line 1
+      const waveAmp = 12 * dpr * markedness; // Wave amplitude grows with markedness
+      const waveFreq = 3; // Number of wave cycles
+      lctx.strokeStyle = `rgba(102, 217, 239, ${0.6 + markedness*0.4})`;
+      lctx.lineWidth = 2*dpr;
+      lctx.beginPath();
+      const lineLen1 = x1End - x1Start;
+      for(let i=0; i<=50; i++){
+        const t = i/50;
+        const x = x1Start + t * lineLen1;
+        const waveOffset = Math.cos(t * Math.PI * 2 * waveFreq + phase * 2) * waveAmp;
+        if(i===0) lctx.moveTo(x, cy + waveOffset);
+        else lctx.lineTo(x, cy + waveOffset);
+      }
+      lctx.stroke();
+
+      // Base line 1 (faint reference)
+      lctx.strokeStyle = `rgba(102, 217, 239, ${0.2})`;
+      lctx.lineWidth = 1*dpr;
+      lctx.beginPath();
+      lctx.moveTo(x1Start, cy);
+      lctx.lineTo(x1End, cy);
+      lctx.stroke();
+
+      // Arrow on line 1 (pointing right →)
+      // Thicker when both horizontal and vertical pairs converge (combinatorial)
+      const arrowScale1 = bothMeeting ? 1.6 : 1.0;
+      lctx.fillStyle = `rgba(102, 217, 239, ${0.7 + markedness*0.3})`;
+      lctx.beginPath();
+      lctx.moveTo(x1End, cy);
+      lctx.lineTo(x1End - 8*dpr*arrowScale1, cy - 5*dpr*arrowScale1);
+      lctx.lineTo(x1End - 8*dpr*arrowScale1, cy + 5*dpr*arrowScale1);
+      lctx.closePath();
+      lctx.fill();
+
+      // Line 2: Traveling from right (with SINE wave flowing through it)
+      const x2Start = cx + lineLength + separation;
+      const x2End = cx + separation;
+
+      // Draw sine wave flowing along line 2
+      lctx.strokeStyle = `rgba(200, 140, 255, ${0.6 + markedness*0.4})`;
+      lctx.lineWidth = 2*dpr;
+      lctx.beginPath();
+      const lineLen2 = x2Start - x2End;
+      for(let i=0; i<=50; i++){
+        const t = i/50;
+        const x = x2Start - t * lineLen2;
+        const waveOffset = Math.sin(t * Math.PI * 2 * waveFreq - phase * 2) * waveAmp;
+        if(i===0) lctx.moveTo(x, cy + waveOffset);
+        else lctx.lineTo(x, cy + waveOffset);
+      }
+      lctx.stroke();
+
+      // Base line 2 (faint reference)
+      lctx.strokeStyle = `rgba(200, 140, 255, ${0.2})`;
+      lctx.lineWidth = 1*dpr;
+      lctx.beginPath();
+      lctx.moveTo(x2Start, cy);
+      lctx.lineTo(x2End, cy);
+      lctx.stroke();
+
+      // Arrow on line 2 (pointing left ←)
+      // Thicker when both horizontal and vertical pairs converge (combinatorial)
+      const arrowScale2 = bothMeeting ? 1.6 : 1.0;
+      lctx.fillStyle = `rgba(200, 140, 255, ${0.7 + markedness*0.3})`;
+      lctx.beginPath();
+      lctx.moveTo(x2End, cy);
+      lctx.lineTo(x2End + 8*dpr*arrowScale2, cy - 5*dpr*arrowScale2);
+      lctx.lineTo(x2End + 8*dpr*arrowScale2, cy + 5*dpr*arrowScale2);
+      lctx.closePath();
+      lctx.fill();
+
+      // VERTICAL SINUSOIDAL WAVES (second dimension)
+      const verticalWaveAmp = 10 * dpr * markedness;
+      const verticalLineLength = radius * 1.4;
+      const verticalSeparation = radius * (1 - markedness);
+
+      // Vertical line 1: Traveling from top (with wave)
+      const y1Start = cy - verticalLineLength - verticalSeparation;
+      const y1End = cy - verticalSeparation;
+      lctx.strokeStyle = `rgba(255, 180, 100, ${0.5 + markedness*0.4})`; // Orange
+      lctx.lineWidth = 2*dpr;
+      lctx.beginPath();
+      const verticalLen1 = y1End - y1Start;
+      for(let i=0; i<=50; i++){
+        const t = i/50;
+        const y = y1Start + t * verticalLen1;
+        const waveOffset = Math.cos(t * Math.PI * 2 * waveFreq + phase * 2 + Math.PI/2) * verticalWaveAmp;
+        if(i===0) lctx.moveTo(cx + waveOffset, y);
+        else lctx.lineTo(cx + waveOffset, y);
+      }
+      lctx.stroke();
+
+      // Vertical arrow (pointing down ↓)
+      // Thicker when both horizontal and vertical pairs converge (combinatorial)
+      const arrowScale3 = bothMeeting ? 1.6 : 1.0;
+      lctx.fillStyle = `rgba(255, 180, 100, ${0.6 + markedness*0.3})`;
+      lctx.beginPath();
+      lctx.moveTo(cx, y1End);
+      lctx.lineTo(cx - 5*dpr*arrowScale3, y1End - 8*dpr*arrowScale3);
+      lctx.lineTo(cx + 5*dpr*arrowScale3, y1End - 8*dpr*arrowScale3);
+      lctx.closePath();
+      lctx.fill();
+
+      // Vertical line 2: Traveling from bottom (with wave)
+      const y2Start = cy + verticalLineLength + verticalSeparation;
+      const y2End = cy + verticalSeparation;
+      lctx.strokeStyle = `rgba(180, 255, 150, ${0.5 + markedness*0.4})`; // Yellow-green
+      lctx.lineWidth = 2*dpr;
+      lctx.beginPath();
+      const verticalLen2 = y2Start - y2End;
+      for(let i=0; i<=50; i++){
+        const t = i/50;
+        const y = y2Start - t * verticalLen2;
+        const waveOffset = Math.sin(t * Math.PI * 2 * waveFreq - phase * 2 + Math.PI/2) * verticalWaveAmp;
+        if(i===0) lctx.moveTo(cx + waveOffset, y);
+        else lctx.lineTo(cx + waveOffset, y);
+      }
+      lctx.stroke();
+
+      // Vertical arrow (pointing up ↑)
+      // Thicker when both horizontal and vertical pairs converge (combinatorial)
+      const arrowScale4 = bothMeeting ? 1.6 : 1.0;
+      lctx.fillStyle = `rgba(180, 255, 150, ${0.6 + markedness*0.3})`;
+      lctx.beginPath();
+      lctx.moveTo(cx, y2End);
+      lctx.lineTo(cx - 5*dpr*arrowScale4, y2End + 8*dpr*arrowScale4);
+      lctx.lineTo(cx + 5*dpr*arrowScale4, y2End + 8*dpr*arrowScale4);
+      lctx.closePath();
+      lctx.fill();
+
+      // DIAGONAL SINUSOIDAL WAVES (third dimension - depth perception)
+      const depthWaveAmp = 8 * dpr * markedness;
+      const diagonalAngle = Math.PI / 4; // 45 degrees
+      const diagLineLength = radius * 1.2;
+      const diagSeparation = radius * (1 - markedness) * 0.7;
+
+      // Diagonal line 1: Front-left to back-right
+      const dx1 = Math.cos(diagonalAngle);
+      const dy1 = Math.sin(diagonalAngle);
+      lctx.strokeStyle = `rgba(150, 200, 255, ${0.4 + markedness*0.3})`; // Light blue
+      lctx.lineWidth = 1.5*dpr;
+      lctx.beginPath();
+      for(let i=0; i<=40; i++){
+        const t = i/40;
+        const baseX = cx - (diagLineLength + diagSeparation) * dx1 + t * (diagLineLength * 2 * dx1);
+        const baseY = cy - (diagLineLength + diagSeparation) * dy1 + t * (diagLineLength * 2 * dy1);
+        const waveOffset = Math.cos(t * Math.PI * 2 * waveFreq + phase * 1.5) * depthWaveAmp;
+        const perpX = -dy1 * waveOffset;
+        const perpY = dx1 * waveOffset;
+        if(i===0) lctx.moveTo(baseX + perpX, baseY + perpY);
+        else lctx.lineTo(baseX + perpX, baseY + perpY);
+      }
+      lctx.stroke();
+
+      // Diagonal line 2: Back-left to front-right
+      const dx2 = Math.cos(-diagonalAngle);
+      const dy2 = Math.sin(-diagonalAngle);
+      lctx.strokeStyle = `rgba(255, 150, 200, ${0.4 + markedness*0.3})`; // Pink
+      lctx.lineWidth = 1.5*dpr;
+      lctx.beginPath();
+      for(let i=0; i<=40; i++){
+        const t = i/40;
+        const baseX = cx - (diagLineLength + diagSeparation) * dx2 + t * (diagLineLength * 2 * dx2);
+        const baseY = cy - (diagLineLength + diagSeparation) * dy2 + t * (diagLineLength * 2 * dy2);
+        const waveOffset = Math.sin(t * Math.PI * 2 * waveFreq - phase * 1.5) * depthWaveAmp;
+        const perpX = -dy2 * waveOffset;
+        const perpY = dx2 * waveOffset;
+        if(i===0) lctx.moveTo(baseX + perpX, baseY + perpY);
+        else lctx.lineTo(baseX + perpX, baseY + perpY);
+      }
+      lctx.stroke();
+
+      // RECURSIVE RE-ENTRY: Hypergraphs appear at ALL wave extents (6 total for 3D)
+      if (markedness > 0.4 && waveAmp > 5*dpr) {
+        const secondaryR = Math.min(0.35, state.R * 0.6 + 0.1); // Red-orange range
+        const secondaryRadius = waveAmp * 1.2; // Size based on wave amplitude
+        const secondaryAlpha = (markedness - 0.4) / 0.6; // Fade in after markedness 0.4
+
+        // Draw boundary circles with rotating lines FIRST (behind hypergraphs)
+        // Each location has orthogonal phase offset for 3D sphere perception
+
+        // Horizontal axis (top and bottom) - phase offset 0 and π
+        drawSecondaryEulerCircle(lctx, cx, cy - waveAmp * 1.5, secondaryRadius * 1.15, secondaryR, secondaryAlpha, phase, 0);
+        drawSecondaryEulerCircle(lctx, cx, cy + waveAmp * 1.5, secondaryRadius * 1.15, secondaryR, secondaryAlpha, phase, Math.PI);
+
+        // Vertical axis (left and right) - phase offset π/2 and 3π/2
+        drawSecondaryEulerCircle(lctx, cx - verticalWaveAmp * 1.5, cy, secondaryRadius * 1.15 * 0.9, secondaryR + 0.05, secondaryAlpha * 0.9, phase, Math.PI/2);
+        drawSecondaryEulerCircle(lctx, cx + verticalWaveAmp * 1.5, cy, secondaryRadius * 1.15 * 0.9, secondaryR + 0.05, secondaryAlpha * 0.9, phase, 3*Math.PI/2);
+
+        // Depth axis (diagonal - front and back perception) - phase offset π/4 and 5π/4
+        const depthDist = depthWaveAmp * 1.3;
+        drawSecondaryEulerCircle(lctx, cx - depthDist * dx1, cy - depthDist * dy1, secondaryRadius * 1.15 * 0.7, secondaryR + 0.08, secondaryAlpha * 0.7, phase, Math.PI/4);
+        drawSecondaryEulerCircle(lctx, cx + depthDist * dx1, cy + depthDist * dy1, secondaryRadius * 1.15 * 0.7, secondaryR + 0.08, secondaryAlpha * 0.7, phase, 5*Math.PI/4);
+
+        // Now draw the hypergraphs on top
+        // Horizontal axis (top and bottom)
+        drawSecondaryHypergraph(lctx, cx, cy - waveAmp * 1.5, secondaryRadius, secondaryR, secondaryAlpha, plenumTime);
+        drawSecondaryHypergraph(lctx, cx, cy + waveAmp * 1.5, secondaryRadius, secondaryR, secondaryAlpha, plenumTime);
+
+        // Vertical axis (left and right)
+        drawSecondaryHypergraph(lctx, cx - verticalWaveAmp * 1.5, cy, secondaryRadius * 0.9, secondaryR + 0.05, secondaryAlpha * 0.9, plenumTime);
+        drawSecondaryHypergraph(lctx, cx + verticalWaveAmp * 1.5, cy, secondaryRadius * 0.9, secondaryR + 0.05, secondaryAlpha * 0.9, plenumTime);
+
+        // Depth axis (diagonal - front and back perception)
+        drawSecondaryHypergraph(lctx, cx - depthDist * dx1, cy - depthDist * dy1, secondaryRadius * 0.7, secondaryR + 0.08, secondaryAlpha * 0.7, plenumTime);
+        drawSecondaryHypergraph(lctx, cx + depthDist * dx1, cy + depthDist * dy1, secondaryRadius * 0.7, secondaryR + 0.08, secondaryAlpha * 0.7, plenumTime);
+      }
+
+      // TWO EULER CIRCLES: One for horizontal axis, one for vertical axis
+      // Both circles emerge from the crossing/collision (re-entry creates boundary)
+      const circleAlpha = markedness; // Circles appear as lines meet
+      if (circleAlpha > 0.05) {
+        const circlePasses = [
+          { width: 12, alpha: 0.08 * circleAlpha },  // Outermost glow
+          { width: 8, alpha: 0.12 * circleAlpha },   // Mid glow
+          { width: 5, alpha: 0.2 * circleAlpha },    // Inner glow
+          { width: 2 + markedness*4, alpha: 0.6 * circleAlpha }, // Circle itself
+        ];
+
+        // First circle (horizontal axis - connects to horizontal arrows)
+        for(const pass of circlePasses){
+          lctx.globalAlpha = pass.alpha;
+          lctx.strokeStyle = getSpectrumColor(state.R, 1);
+          lctx.lineWidth = pass.width * dpr;
+          lctx.beginPath();
+          lctx.arc(cx, cy, radius, 0, Math.PI*2);
+          lctx.stroke();
+        }
+        lctx.globalAlpha = 1;
+
+        // Second circle (vertical axis - connects to vertical arrows)
+        // Slightly larger radius for visual distinction
+        const radius2 = radius * 1.08;
+        for(const pass of circlePasses){
+          lctx.globalAlpha = pass.alpha * 0.85; // Slightly fainter
+          lctx.strokeStyle = getSpectrumColor(state.R * 0.85, 1); // Slightly different color
+          lctx.lineWidth = pass.width * dpr;
+          lctx.setLineDash([6*dpr, 6*dpr]); // Dashed to distinguish
+          lctx.beginPath();
+          lctx.arc(cx, cy, radius2, 0, Math.PI*2);
+          lctx.stroke();
+          lctx.setLineDash([]);
+        }
+        lctx.globalAlpha = 1;
+      }
+
+      // FOUR COUNTER-ROTATING LINES: Two pairs orthogonal to each other
+
+      // PAIR 1: Horizontal axis lines (connected to horizontal arrows)
+      const ex1H = cx + Math.cos(angle1H) * radius;
+      const ey1H = cy + Math.sin(angle1H) * radius;
+      const ex2H = cx + Math.cos(angle2H) * radius;
+      const ey2H = cy + Math.sin(angle2H) * radius;
+
+      // PAIR 2: Vertical axis lines (orthogonal, connected to vertical arrows)
+      const radius2 = radius * 1.08;
+      const ex1V = cx + Math.cos(angle1V) * radius2;
+      const ey1V = cy + Math.sin(angle1V) * radius2;
+      const ex2V = cx + Math.cos(angle2V) * radius2;
+      const ey2V = cy + Math.sin(angle2V) * radius2;
+
+      const eulerBaseR = Math.max(0.25, state.R * 0.5); // Dark orange base
+      const eulerBrightR = Math.min(0.5, state.R * 0.8); // Brighter orange when meeting
+      const eulerRH = linesMeetingH ? eulerBrightR : eulerBaseR;
+      const eulerRV = linesMeetingV ? eulerBrightR : eulerBaseR;
+
+      // Glow passes for horizontal pair
+      const eulerGlowH = [
+        { width: 8, alpha: 0.08 },
+        { width: 5, alpha: 0.12 },
+        { width: 2, alpha: 0.6 }
+      ];
+
+      // Horizontal pair line 1
+      for(const pass of eulerGlowH){
+        lctx.globalAlpha = pass.alpha;
+        lctx.strokeStyle = getSpectrumColor(eulerRH, 1);
+        lctx.lineWidth = pass.width * dpr;
+        lctx.beginPath();
+        lctx.moveTo(cx, cy);
+        lctx.lineTo(ex1H, ey1H);
+        lctx.stroke();
+      }
+      lctx.globalAlpha = 1;
+
+      // Horizontal pair line 2
+      for(const pass of eulerGlowH){
+        lctx.globalAlpha = pass.alpha;
+        lctx.strokeStyle = getSpectrumColor(eulerRH, 1);
+        lctx.lineWidth = pass.width * dpr;
+        lctx.beginPath();
+        lctx.moveTo(cx, cy);
+        lctx.lineTo(ex2H, ey2H);
+        lctx.stroke();
+      }
+      lctx.globalAlpha = 1;
+
+      // Glow passes for vertical pair (slightly different color)
+      const eulerGlowV = [
+        { width: 7, alpha: 0.07 },
+        { width: 4, alpha: 0.11 },
+        { width: 1.5, alpha: 0.5 }
+      ];
+
+      // Vertical pair line 1
+      for(const pass of eulerGlowV){
+        lctx.globalAlpha = pass.alpha;
+        lctx.strokeStyle = getSpectrumColor(eulerRV * 0.9, 1);
+        lctx.lineWidth = pass.width * dpr;
+        lctx.beginPath();
+        lctx.moveTo(cx, cy);
+        lctx.lineTo(ex1V, ey1V);
+        lctx.stroke();
+      }
+      lctx.globalAlpha = 1;
+
+      // Vertical pair line 2
+      for(const pass of eulerGlowV){
+        lctx.globalAlpha = pass.alpha;
+        lctx.strokeStyle = getSpectrumColor(eulerRV * 0.9, 1);
+        lctx.lineWidth = pass.width * dpr;
+        lctx.beginPath();
+        lctx.moveTo(cx, cy);
+        lctx.lineTo(ex2V, ey2V);
+        lctx.stroke();
+      }
+      lctx.globalAlpha = 1;
+
+      // Endpoint circles when lines are fully extended
+      const fullyExtendedH = Math.abs(Math.abs(angleDiffH) - 2) < 0.3;
+      const fullyExtendedV = Math.abs(Math.abs(angleDiffV) - 2) < 0.3;
+
+      if (fullyExtendedH) {
+        const endpointR = eulerBaseR;
+        const endpointSize = 8 * dpr;
+
+        lctx.globalAlpha = 0.7;
+        lctx.fillStyle = getSpectrumColor(endpointR, 0.6);
+        lctx.beginPath();
+        lctx.arc(ex1H, ey1H, endpointSize, 0, Math.PI*2);
+        lctx.fill();
+
+        lctx.fillStyle = getSpectrumColor(endpointR, 0.6);
+        lctx.beginPath();
+        lctx.arc(ex2H, ey2H, endpointSize, 0, Math.PI*2);
+        lctx.fill();
+        lctx.globalAlpha = 1;
+      }
+
+      if (fullyExtendedV) {
+        const endpointR = eulerBaseR * 0.9;
+        const endpointSize = 8 * dpr;
+
+        lctx.globalAlpha = 0.7;
+        lctx.fillStyle = getSpectrumColor(endpointR, 0.6);
+        lctx.beginPath();
+        lctx.arc(ex1V, ey1V, endpointSize, 0, Math.PI*2);
+        lctx.fill();
+
+        lctx.fillStyle = getSpectrumColor(endpointR, 0.6);
+        lctx.beginPath();
+        lctx.arc(ex2V, ey2V, endpointSize, 0, Math.PI*2);
+        lctx.fill();
+        lctx.globalAlpha = 1;
+      }
+
+      // EULER COMPONENTS: cos(θ) and sin(θ) projections
+      // Cosine (horizontal projection from rotating line)
+      const cosProjection = Math.cos(angle1H) * radius;
+      lctx.strokeStyle = `rgba(102, 217, 239, ${0.5 + markedness*0.3})`;
+      lctx.lineWidth = 1.5*dpr;
+      lctx.setLineDash([3*dpr, 3*dpr]);
+      lctx.beginPath();
+      lctx.moveTo(cx, cy);
+      lctx.lineTo(cx + cosProjection, cy);
+      lctx.stroke();
+
+      // Sine (vertical projection from rotating line)
+      const sinProjection = Math.sin(angle1H) * radius;
+      lctx.strokeStyle = `rgba(200, 140, 255, ${0.5 + markedness*0.3})`;
+      lctx.lineWidth = 1.5*dpr;
+      lctx.beginPath();
+      lctx.moveTo(cx + cosProjection, cy);
+      lctx.lineTo(ex1H, ey1H);
+      lctx.stroke();
+      lctx.setLineDash([]);
+
+      // REPLICATE GLOBAL PLENUM in the center as arrows converge
+      if (markedness > 0.3) {
+        const plenumScale = markedness; // Grows from 0.3 to 1.0
+        const plenumRadius = radius * 0.4 * plenumScale; // Smaller than main circle
+        const numPlenumNodes = state.nodes;
+        const plenumNodes = [];
+        const plenumTime = performance.now() * 0.0005;
+
+        // Create nodes in circle (same as Global)
+        for(let i=0; i<numPlenumNodes; i++){
+          const angle = (i/numPlenumNodes) * Math.PI * 2 + plenumTime * 0.3;
+          const spiral = 1 - (Math.sin(plenumTime + i*0.2) * 0.08);
+          const r = plenumRadius * spiral;
+          plenumNodes.push({
+            x: cx + Math.cos(angle) * r,
+            y: cy + Math.sin(angle) * r
+          });
+        }
+
+        // Draw all edges (fully connected) - INFRARED like Global
+        const edgePasses = [
+          { width: 4, alpha: 0.015 * plenumScale },
+          { width: 2.5, alpha: 0.03 * plenumScale },
+          { width: 1.5, alpha: 0.045 * plenumScale },
+          { width: 0.8, alpha: 0.08 * plenumScale }
+        ];
+
+        for(const pass of edgePasses){
+          lctx.globalAlpha = pass.alpha;
+          for(let i=0; i<numPlenumNodes; i++){
+            for(let j=i+1; j<numPlenumNodes; j++){
+              const n1 = plenumNodes[i], n2 = plenumNodes[j];
+              const centerDist = Math.hypot((n1.x+n2.x)/2-cx, (n1.y+n2.y)/2-cy);
+              const distFactor = 1 - Math.min(1, centerDist/plenumRadius);
+              const edgeR = Math.max(0, 0.1 - 0.08 * (1 - distFactor)); // INFRARED
+
+              lctx.strokeStyle = getSpectrumColor(edgeR, 1);
+              lctx.lineWidth = pass.width * dpr;
+              lctx.beginPath();
+              lctx.moveTo(n1.x, n1.y);
+              lctx.lineTo(n2.x, n2.y);
+              lctx.stroke();
+            }
+          }
+        }
+        lctx.globalAlpha = 1;
+
+        // Draw nodes - INFRARED
+        lctx.globalAlpha = 0.5 * plenumScale;
+        for(const node of plenumNodes){
+          const centerDist = Math.hypot(node.x-cx, node.y-cy);
+          const distRatio = plenumRadius > 0 ? centerDist / plenumRadius : 0;
+          const baseSize = 1.5 * dpr;
+          const size = baseSize + (1 - distRatio) * 3 * dpr;
+          const nodeR = 0.1 * distRatio; // INFRARED
+
+          lctx.fillStyle = getSpectrumColor(nodeR, 0.9);
+          lctx.beginPath();
+          lctx.arc(node.x, node.y, size, 0, Math.PI*2);
+          lctx.fill();
+
+          // Node glow
+          lctx.fillStyle = getSpectrumColor(nodeR, 0.2);
+          lctx.beginPath();
+          lctx.arc(node.x, node.y, size * 2, 0, Math.PI*2);
+          lctx.fill();
+        }
+        lctx.globalAlpha = 1;
+      }
+
+      // R-fixed point indicator (Euler boundary)
+      const Rstrength = state.R;
+      const fixedness = markedness > 0.3 && markedness < 0.7 ? 1.0 : Rstrength; // Fixed at boundary
+
+      if (fixedness > 0.5) {
+        lctx.strokeStyle = 'rgba(68, 209, 141, 0.8)';
+        lctx.lineWidth = 1.5*dpr;
+        lctx.setLineDash([4*dpr, 4*dpr]);
+        lctx.beginPath();
+        lctx.arc(cx, cy, radius*1.15, 0, Math.PI*2);
+        lctx.stroke();
+        lctx.setLineDash([]);
+      }
+
+      // Update status
+      const stateDesc = markedness < 0.3 ? 'Separated (unmarked)' : (markedness > 0.7 ? 'Crossed (marked)' : 'Crossing (boundary)');
+      localCaption.textContent = `Lines ${stateDesc} — Circle ${markedness > 0.5 ? 'forming' : 'fading'} (${(phase/(Math.PI*2)*360).toFixed(0)}°)`;
+      oscillatorState.textContent = 'Active';
+      rfixedStatus.textContent = fixedness > 0.5 ? 'Yes' : 'No';
+      oscillatorIndicator.className = 'status-indicator active';
+
+      // Update syntax overlay (dynamic representations)
+      // LoF notation: unmarked ⟨ ⟩ → dual boundary → marked and coupled
+      if (markedness < 0.3) {
+        lofSyntax.textContent = '⟨ ⟩';  // Void/unmarked
+      } else if (markedness < 0.7) {
+        lofSyntax.textContent = '( ) (( ))';  // Dual marks (two axes)
+      } else {
+        if (bothMeeting) {
+          lofSyntax.textContent = '⟨( ) ∩ (( ))⟩';  // Both coupled
+        } else {
+          lofSyntax.textContent = '(( )) ((( )))';  // Marked/crossed
+        }
+      }
+
+      // Logic notation: void → dual marks → coupled dimensions
+      if (markedness < 0.3) {
+        logicSyntax.textContent = '⊥ (void)';
+      } else if (markedness < 0.7) {
+        logicSyntax.textContent = '¬H(·) ∧ ¬V(·)';  // Horizontal & Vertical marks
+      } else {
+        if (bothMeeting) {
+          logicSyntax.textContent = '⊥² → ⊤² (2D coupling)';
+        } else {
+          logicSyntax.textContent = '¬H(·) ⊕ ¬V(·)';
+        }
+      }
+
+      // Nucleus notation: showing R application on both axes
+      const RVal = state.R.toFixed(2);
+      if (fixedness > 0.5) {
+        nucleusSyntax.textContent = `R(∂○H ⊗ ∂○V) = fixed`;
+      } else {
+        nucleusSyntax.textContent = `R^${RVal}(H⊗V) → ·`;
+      }
+
+      // Dual Euler formula: showing both horizontal and vertical components
+      const thetaH = (angle1H/(Math.PI)*180).toFixed(0);
+      const thetaV = (angle1V/(Math.PI)*180).toFixed(0);
+      const cosValH = Math.cos(angle1H).toFixed(2);
+      const sinValH = Math.sin(angle1H).toFixed(2);
+      const cosValV = Math.cos(angle1V).toFixed(2);
+      const sinValV = Math.sin(angle1V).toFixed(2);
+
+      if (bothMeeting) {
+        eulerSyntax.textContent = `H∩V: (${cosValH},${sinValH})⊗(${cosValV},${sinValV})`;
+      } else if (linesMeetingH || linesMeetingV) {
+        const active = linesMeetingH ? 'H' : 'V';
+        eulerSyntax.textContent = `${active}: e^(i·${linesMeetingH ? thetaH : thetaV}°) aligned`;
+      } else {
+        eulerSyntax.textContent = `H:${thetaH}° V:${thetaV}° (orthogonal)`;
+      }
+
+    } else {
+      // INACTIVE: Waiting for re-entry (show potential crossing)
+
+      const radius = Math.min(W,H) * 0.25;
+
+      // Faint potential circle (dashed, spectrum colored)
+      lctx.strokeStyle = getSpectrumColor(state.R, 0.2);
+      lctx.lineWidth = 1.5*dpr;
+      lctx.setLineDash([6*dpr, 6*dpr]);
+      lctx.beginPath();
+      lctx.arc(cx, cy, radius, 0, Math.PI*2);
+      lctx.stroke();
+      lctx.setLineDash([]);
+
+      // Two potential lines (faint, separated)
+      const separation = radius * 0.8;
+      const lineLength = radius * 1.2;
+
+      // Left line (faint blue)
+      lctx.strokeStyle = 'rgba(102, 217, 239, 0.25)';
+      lctx.lineWidth = 2*dpr;
+      lctx.beginPath();
+      lctx.moveTo(cx - lineLength - separation, cy);
+      lctx.lineTo(cx - separation, cy);
+      lctx.stroke();
+
+      // Right line (faint purple)
+      lctx.strokeStyle = 'rgba(200, 140, 255, 0.25)';
+      lctx.beginPath();
+      lctx.moveTo(cx + lineLength + separation, cy);
+      lctx.lineTo(cx + separation, cy);
+      lctx.stroke();
+
+      // Central "ready" indicator
+      lctx.fillStyle = 'rgba(219, 230, 255, 0.3)';
+      lctx.beginPath();
+      lctx.arc(cx, cy, 4*dpr, 0, Math.PI*2);
+      lctx.fill();
+
+      localCaption.textContent = 'Awaiting re-entry — Lines ready to cross (click "Create Mark")';
+      oscillatorState.textContent = 'Inactive';
+      rfixedStatus.textContent = '—';
+      oscillatorIndicator.className = 'status-indicator';
+
+      // Update syntax overlay (inactive state - showing potential)
+      lofSyntax.textContent = '⟨ ⟩';  // Unmarked void
+      logicSyntax.textContent = '⊥ (void)';
+      nucleusSyntax.textContent = `R: ${state.R.toFixed(2)} (ready)`;
+      eulerSyntax.textContent = 'e^(i·0) = 1 + i·0';
+    }
+  }
+
+  // === EVENT HANDLERS ===
+
+  RSlider.addEventListener('input', (e) => {
+    state.R = (+e.target.value) / 100;
+    RValue.textContent = state.R.toFixed(2);
+    state.oscillatorSpeed = 0.001 + state.R * 0.003; // R controls oscillation speed
+  });
+
+  nodesSlider.addEventListener('input', (e) => {
+    state.nodes = +e.target.value;
+    nodesValue.textContent = state.nodes === 64 ? '∞' : state.nodes;
+  });
+
+  btnCollapse.addEventListener('click', () => {
+    state.collapsed = !state.collapsed;
+    state.collapseTarget = state.collapsed ? 1 : 0;
+
+    // Flash effect
+    globalCanvas.animate([
+      { filter: state.collapsed ? 'brightness(0.3)' : 'brightness(1.5)' },
+      { filter: 'brightness(1)' }
+    ], { duration: 600 });
+  });
+
+  btnOscillate.addEventListener('click', () => {
+    state.oscillating = !state.oscillating;
+    btnOscillate.textContent = state.oscillating ? 'Stop Oscillation' : 'Create Mark ¬(·)';
+
+    if (state.oscillating) {
+      state.oscillatorPhase = 0;
+      localCanvas.animate([
+        { filter: 'brightness(1.5) saturate(1.4)' },
+        { filter: 'brightness(1)' }
+      ], { duration: 700 });
+    }
+  });
+
+  btnReset.addEventListener('click', () => {
+    state.R = 0.50;
+    state.nodes = 16;
+    state.collapsed = false;
+    state.collapseProgress = 0;
+    state.collapseTarget = 0;
+    state.oscillating = false;
+    state.oscillatorPhase = 0;
+    RSlider.value = 50;
+    RValue.textContent = '0.50';
+    nodesSlider.value = 16;
+    nodesValue.textContent = '16';
+    btnOscillate.textContent = 'Create Mark ¬(·)';
+    drawGlobal();
+    drawLocal();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'c' || e.key === 'C') btnCollapse.click();
+    if (e.key === 'm' || e.key === 'M') btnOscillate.click();
+    if (e.key === 'r' || e.key === 'R') btnReset.click();
+  });
+
+  // === ANIMATION LOOP ===
+  let lastTime = performance.now();
+
+  function tick(now){
+    const dt = Math.min(now - lastTime, 50);
+    lastTime = now;
+
+    // Animate collapse progress (smooth transition)
+    const collapseSpeed = 0.003; // Collapse/expand speed
+    if (state.collapseProgress < state.collapseTarget) {
+      state.collapseProgress = Math.min(state.collapseTarget, state.collapseProgress + collapseSpeed * dt);
+    } else if (state.collapseProgress > state.collapseTarget) {
+      state.collapseProgress = Math.max(state.collapseTarget, state.collapseProgress - collapseSpeed * dt);
+    }
+
+    // Update oscillator phase
+    if (state.oscillating) {
+      state.oscillatorPhase += state.oscillatorSpeed * dt;
+      if (state.oscillatorPhase > Math.PI * 2) {
+        state.oscillatorPhase -= Math.PI * 2;
+      }
+    }
+
+    drawGlobal();
+    drawLocal();
+
+    requestAnimationFrame(tick);
+  }
+
+  // Initialize
+  RValue.textContent = state.R.toFixed(2);
+  nodesValue.textContent = state.nodes;
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

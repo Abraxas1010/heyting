@@ -2,10 +2,11 @@ import HeytingLean.Contracts.RoundTrip
 import HeytingLean.Logic.StageSemantics
 import HeytingLean.Epistemic.Occam
 
-/-!
+/-
 # Graph bridge
 
-The graph bridge uses the ambient type `α` as vertices with adjacency given by the order relation.
+The graph bridge reuses the ambient type `α` as its carrier while exposing the ladder operations via
+the existing re-entry nucleus.
 -/
 
 namespace HeytingLean
@@ -23,7 +24,7 @@ variable (α : Type u) [PrimaryAlgebra α]
 
 open scoped Classical
 
-/-- Graph bridge model: vertices and the core nucleus. -/
+/-- Graph bridge model: adjacency inherits the order on `α`. -/
 structure Model where
   R : Reentry α
 
@@ -34,12 +35,15 @@ variable {α : Type u} [PrimaryAlgebra α]
 def adjacency (_M : Model α) : α → α → Prop :=
   (· ≤ ·)
 
-noncomputable def encode (M : Model α) (a : M.R.Omega) : α := (a : α)
+def Carrier (_M : Model α) : Type u := α
 
-noncomputable def decode (M : Model α) (x : α) : M.R.Omega :=
+noncomputable def encode (M : Model α) (a : M.R.Omega) : M.Carrier :=
+  (a : α)
+
+noncomputable def decode (M : Model α) (x : M.Carrier) : M.R.Omega :=
   Reentry.Omega.mk (R := M.R) (M.R x) (M.R.idempotent _)
 
-noncomputable def contract (M : Model α) : RoundTrip (R := M.R) α where
+noncomputable def contract (M : Model α) : RoundTrip (R := M.R) M.Carrier where
   encode := M.encode
   decode := M.decode
   round := by
@@ -47,7 +51,7 @@ noncomputable def contract (M : Model α) : RoundTrip (R := M.R) α where
     apply Subtype.ext
     simp [encode, decode]
 
-noncomputable def logicalShadow (M : Model α) : α → α :=
+noncomputable def logicalShadow (M : Model α) : M.Carrier → α :=
   interiorized (R := M.R) M.contract
 
 @[simp] lemma logicalShadow_encode (M : Model α) (a : M.R.Omega) :
@@ -64,6 +68,7 @@ noncomputable def logicalShadow (M : Model α) : α → α :=
     M.decode (M.contract.encode a) = a := by
   change (M.contract.decode (M.contract.encode a)) = a
   exact M.contract.round a
+
 lemma encode_eulerBoundary (M : Model α) :
     M.encode M.R.eulerBoundary = M.R.primordial := by
   simp [Model.encode, Reentry.eulerBoundary_eq_process, Reentry.process_coe]
@@ -77,7 +82,8 @@ lemma adjacency_trans (M : Model α) {a b c : α}
   le_trans hab hbc
 
 /-- Stage-style MV addition lifted to the graph carrier. -/
-noncomputable def stageMvAdd (M : Model α) : α → α → α :=
+noncomputable def stageMvAdd (M : Model α) :
+    M.Carrier → M.Carrier → M.Carrier :=
   fun x y =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.mvAdd
@@ -85,20 +91,21 @@ noncomputable def stageMvAdd (M : Model α) : α → α → α :=
         (M.decode x) (M.decode y))
 
 /-- Stage-style effect compatibility on the graph carrier. -/
-def stageEffectCompatible (M : Model α) (x y : α) : Prop :=
+def stageEffectCompatible (M : Model α) (x y : M.Carrier) : Prop :=
   HeytingLean.Logic.Stage.DialParam.effectCompatible
     (P := HeytingLean.Logic.Modal.DialParam.base M.R)
     (M.decode x) (M.decode y)
 
 /-- Stage-style partial effect addition on the graph carrier. -/
 noncomputable def stageEffectAdd?
-    (M : Model α) (x y : α) : Option α :=
+    (M : Model α) (x y : M.Carrier) : Option M.Carrier :=
   (HeytingLean.Logic.Stage.DialParam.effectAdd?
       (P := HeytingLean.Logic.Modal.DialParam.base M.R)
       (M.decode x) (M.decode y)).map M.encode
 
 /-- Stage-style orthocomplement lifted to the graph carrier. -/
-noncomputable def stageOrthocomplement (M : Model α) : α → α :=
+noncomputable def stageOrthocomplement (M : Model α) :
+    M.Carrier → M.Carrier :=
   fun x =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.orthocomplement
@@ -106,13 +113,14 @@ noncomputable def stageOrthocomplement (M : Model α) : α → α :=
         (M.decode x))
 
 /-- Stage-style Heyting implication lifted to the graph carrier. -/
-noncomputable def stageHimp (M : Model α) : α → α → α :=
+noncomputable def stageHimp (M : Model α) :
+    M.Carrier → M.Carrier → M.Carrier :=
   fun x y =>
     M.encode ((M.decode x) ⇨ (M.decode y))
 
 /-- Stage-style collapse (at ladder index `n`) on the graph carrier. -/
 noncomputable def stageCollapseAt (M : Model α) (n : ℕ) :
-    α → α :=
+    M.Carrier → M.Carrier :=
   fun x =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.collapseAtOmega
@@ -120,7 +128,7 @@ noncomputable def stageCollapseAt (M : Model α) (n : ℕ) :
 
 /-- Stage-style expansion (at ladder index `n`) on the graph carrier. -/
 noncomputable def stageExpandAt (M : Model α) (n : ℕ) :
-    α → α :=
+    M.Carrier → M.Carrier :=
   fun x =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.expandAtOmega
@@ -128,7 +136,7 @@ noncomputable def stageExpandAt (M : Model α) (n : ℕ) :
 
 /-- Stage-style Occam reduction lifted to the graph carrier (via the contract). -/
 noncomputable def stageOccam (M : Model α) :
-    α → α :=
+    M.Carrier → M.Carrier :=
   Contracts.stageOccam (R := M.R) (C := M.contract)
 
 variable {α : Type u} [PrimaryAlgebra α]

@@ -19,6 +19,35 @@ open HeytingLean.Epistemic
 
 universe u
 
+/-- Bivector carrier for the Clifford bridge, storing two components of `α`. -/
+structure Pair (α : Type u) where
+  fst : α
+  snd : α
+
+namespace Pair
+
+variable {α : Type u}
+
+instance : Coe (Pair α) (α × α) := ⟨fun p => (p.fst, p.snd)⟩
+
+@[simp] lemma coe_mk (a b : α) : ((Pair.mk a b : Pair α) : α × α) = (a, b) := rfl
+
+@[simp, ext] lemma ext {x y : Pair α} (h₁ : x.fst = y.fst) (h₂ : x.snd = y.snd) :
+    x = y := by
+  cases x
+  cases y
+  cases h₁
+  cases h₂
+  rfl
+
+@[simp] lemma eta (p : Pair α) : Pair.mk p.fst p.snd = p := by cases p; rfl
+
+@[simp] lemma fst_mk (a b : α) : (Pair.mk a b).fst = a := rfl
+
+@[simp] lemma snd_mk (a b : α) : (Pair.mk a b).snd = b := rfl
+
+end Pair
+
 section
 variable (α : Type u) [PrimaryAlgebra α]
 
@@ -32,13 +61,15 @@ namespace Model
 
 variable {α : Type u} [PrimaryAlgebra α]
 
-noncomputable def encode (M : Model α) (a : M.R.Omega) : α × α :=
-  ((a : α), (a : α))
+def Carrier (_M : Model α) : Type u := Pair α
 
-noncomputable def decode (M : Model α) (p : α × α) : M.R.Omega :=
-  Reentry.Omega.mk (R := M.R) (M.R p.1) (M.R.idempotent _)
+noncomputable def encode (M : Model α) (a : M.R.Omega) : M.Carrier :=
+  Pair.mk (a : α) (a : α)
 
-noncomputable def contract (M : Model α) : RoundTrip (R := M.R) (α × α) where
+noncomputable def decode (M : Model α) (p : M.Carrier) : M.R.Omega :=
+  Reentry.Omega.mk (R := M.R) (M.R p.fst) (M.R.idempotent _)
+
+noncomputable def contract (M : Model α) : RoundTrip (R := M.R) M.Carrier where
   encode := M.encode
   decode := M.decode
   round := by
@@ -46,14 +77,15 @@ noncomputable def contract (M : Model α) : RoundTrip (R := M.R) (α × α) wher
     apply Subtype.ext
     simp [encode, decode]
 
-noncomputable def project (M : Model α) (p : α × α) : α × α :=
-  (M.R p.1, M.R p.1)
+noncomputable def project (M : Model α) (p : M.Carrier) : M.Carrier :=
+  Pair.mk (M.R p.fst) (M.R p.fst)
 
-lemma project_idem (M : Model α) (p : α × α) :
+lemma project_idem (M : Model α) (p : M.Carrier) :
     M.project (M.project p) = M.project p := by
-  ext <;> simp [project]
+  cases p
+  simp [project]
 
-noncomputable def logicalShadow (M : Model α) : α × α → α :=
+noncomputable def logicalShadow (M : Model α) : M.Carrier → α :=
   interiorized (R := M.R) M.contract
 
 @[simp] lemma logicalShadow_encode (M : Model α) (a : M.R.Omega) :
@@ -71,16 +103,16 @@ noncomputable def logicalShadow (M : Model α) : α × α → α :=
   change (M.contract.decode (M.contract.encode a)) = a
   exact M.contract.round a
 lemma encode_eulerBoundary_fst (M : Model α) :
-    (M.encode M.R.eulerBoundary).1 = M.R.primordial := by
+    (M.encode M.R.eulerBoundary).fst = M.R.primordial := by
   simp [Model.encode, Reentry.eulerBoundary_eq_process, Reentry.process_coe]
 
 lemma encode_eulerBoundary_snd (M : Model α) :
-    (M.encode M.R.eulerBoundary).2 = M.R.primordial := by
+    (M.encode M.R.eulerBoundary).snd = M.R.primordial := by
   simp [Model.encode, Reentry.eulerBoundary_eq_process, Reentry.process_coe]
 
 /-- Stage-style MV addition lifted to the Clifford carrier. -/
 noncomputable def stageMvAdd (M : Model α) :
-    (α × α) → (α × α) → α × α :=
+    M.Carrier → M.Carrier → M.Carrier :=
   fun p q =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.mvAdd
@@ -88,21 +120,21 @@ noncomputable def stageMvAdd (M : Model α) :
         (M.decode p) (M.decode q))
 
 /-- Stage-style effect compatibility on the Clifford carrier. -/
-def stageEffectCompatible (M : Model α) (p q : α × α) : Prop :=
+def stageEffectCompatible (M : Model α) (p q : M.Carrier) : Prop :=
   HeytingLean.Logic.Stage.DialParam.effectCompatible
     (P := HeytingLean.Logic.Modal.DialParam.base M.R)
     (M.decode p) (M.decode q)
 
 /-- Stage-style partial effect addition on the Clifford carrier. -/
 noncomputable def stageEffectAdd?
-    (M : Model α) (p q : α × α) : Option (α × α) :=
+    (M : Model α) (p q : M.Carrier) : Option M.Carrier :=
   (HeytingLean.Logic.Stage.DialParam.effectAdd?
       (P := HeytingLean.Logic.Modal.DialParam.base M.R)
       (M.decode p) (M.decode q)).map M.encode
 
 /-- Stage-style orthocomplement lifted to the Clifford carrier. -/
 noncomputable def stageOrthocomplement (M : Model α) :
-    (α × α) → (α × α) :=
+    M.Carrier → M.Carrier :=
   fun p =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.orthocomplement
@@ -111,13 +143,13 @@ noncomputable def stageOrthocomplement (M : Model α) :
 
 /-- Stage-style Heyting implication lifted to the Clifford carrier. -/
 noncomputable def stageHimp (M : Model α) :
-    (α × α) → (α × α) → α × α :=
+    M.Carrier → M.Carrier → M.Carrier :=
   fun p q =>
     M.encode ((M.decode p) ⇨ (M.decode q))
 
 /-- Stage-style collapse (at ladder index `n`) on the Clifford carrier. -/
 noncomputable def stageCollapseAt (M : Model α) (n : ℕ) :
-    (α × α) → α × α :=
+    M.Carrier → M.Carrier :=
   fun p =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.collapseAtOmega
@@ -125,7 +157,7 @@ noncomputable def stageCollapseAt (M : Model α) (n : ℕ) :
 
 /-- Stage-style expansion (at ladder index `n`) on the Clifford carrier. -/
 noncomputable def stageExpandAt (M : Model α) (n : ℕ) :
-    (α × α) → α × α :=
+    M.Carrier → M.Carrier :=
   fun p =>
     M.encode
       (HeytingLean.Logic.Stage.DialParam.expandAtOmega
@@ -133,7 +165,7 @@ noncomputable def stageExpandAt (M : Model α) (n : ℕ) :
 
 /-- Stage-style Occam reduction lifted to the Clifford carrier (via the contract). -/
 noncomputable def stageOccam (M : Model α) :
-    (α × α) → α × α :=
+    M.Carrier → M.Carrier :=
   Contracts.stageOccam (R := M.R) (C := M.contract)
 
 variable {α : Type u} [PrimaryAlgebra α]

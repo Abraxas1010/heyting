@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generative Ontology — Side‑by‑Side Explainer</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#111823; --ink:#e8f0ff; --muted:#96b4d4; --accent:#66d9ef; --ok:#44d18d; --warn:#ffb454; --bad:#ff6b6b;
+      --card:#0e1520; --stroke:#1b2736; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.3 system-ui,Segoe UI,Inter,Roboto,Arial}
+    .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100vh}
+    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(11,15,20,.95),rgba(11,15,20,.85));backdrop-filter:blur(8px);border-bottom:1px solid var(--stroke)}
+    .toolbar{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;padding:.8rem 1rem}
+    .control-section{display:flex;gap:.5rem;align-items:center;padding:.3rem .6rem;border-left:2px solid var(--stroke)}
+    .control-section:first-child{border-left:none}
+    .section-label{font-size:.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-right:.3rem;opacity:.7}
+    .toolbar .group{display:flex;gap:.5rem;align-items:center;background:var(--panel);border:1px solid var(--stroke);padding:.5rem .6rem;border-radius:12px}
+    label{color:var(--muted);font-size:.85rem}
+    [title]{cursor:help;border-bottom:1px dotted var(--stroke)}
+    select,input[type="range"],button{accent-color:var(--accent)}
+    select,button{background:#0b131d;color:var(--ink);border:1px solid var(--stroke);padding:.45rem .6rem;border-radius:10px}
+    button:hover{border-color:#2a3a52}
+    .seg{display:inline-grid;grid-auto-flow:column;border:1px solid var(--stroke);border-radius:10px;overflow:hidden}
+    .seg input{display:none}
+    .seg label{padding:.38rem .6rem;cursor:pointer}
+    .seg input:checked + label{background:#0b131d;color:#fff}
+
+    main{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;padding:1rem;position:relative}
+    .algebra-panel{grid-column:2;align-self:start;position:sticky;top:calc(4rem + 1rem);width:280px}
+    .sync-indicator{display:none}
+    .sync-line{width:2px;height:40px;background:linear-gradient(180deg,var(--accent),transparent);margin:0 auto}
+    .sync-label{background:var(--panel);border:1px solid var(--accent);padding:.3rem .6rem;border-radius:8px;font-size:.82rem;color:var(--accent);text-align:center;margin-top:.5rem}
+    .panel{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;box-shadow:var(--shadow);display:grid;grid-template-rows:auto 1fr auto;min-height:420px}
+    .panel h3{margin:0;padding:.8rem 1rem;border-bottom:1px solid var(--stroke);color:#c6d7f4}
+    .canvas-wrap{position:relative}
+    canvas{display:block;width:100%;height:100%;border-bottom-left-radius:16px;border-bottom-right-radius:16px}
+    .canvas-caption{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);font-size:.85rem;color:var(--muted);background:rgba(11,15,20,.85);backdrop-filter:blur(8px);padding:.4rem .8rem;border-radius:8px;border:1px solid var(--stroke);text-align:center;max-width:90%;pointer-events:none}
+    .legend{display:flex;gap:1.5rem;align-items:center;justify-content:space-between;padding:.8rem 1rem;border-top:1px solid var(--stroke);color:var(--muted);flex-wrap:wrap}
+    .meter{display:flex;gap:.85rem;align-items:center;min-width:280px}
+    .bar{width:140px;height:8px;background:#0b131d;border:1px solid var(--stroke);border-radius:999px;overflow:hidden}
+    .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--warn));width:40%;transition:width .3s ease}
+    .bar[data-kind="capacity"] > i{background:linear-gradient(90deg,#7aa7ff,#b585ff)}
+    .badge{font-size:.75rem;padding:.2rem .5rem;border:1px solid var(--stroke);border-radius:999px;background:#0b131d;color:#dae6f9;white-space:nowrap;transition:all .2s ease}
+    .badge.ok{border-color:#1b3e2f;background:#0e1f19;color:#a6f1cd}
+    .badge.warn{border-color:#3e2f1b;background:#1f1a0e;color:#ffdba6}
+    .badge.bad{border-color:#3e1b1b;background:#1f0e0e;color:#ffb7b7}
+
+    .callouts{padding:0 1rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .callout{background:var(--card);border:1px solid var(--stroke);border-radius:14px;padding:.8rem 1rem;color:#c9d6ef}
+    .callout h4{margin:.1rem 0 .5rem 0;color:#e4edff;font-size:.95rem}
+    .compact-list{margin:.5rem 0;padding-left:1.2rem;line-height:1.6}
+    .compact-list li{margin-bottom:.4rem}
+    .mapping-table{width:100%;font-size:.88rem;line-height:1.5;border-collapse:collapse}
+    .mapping-table td:first-child{color:var(--accent);white-space:nowrap;padding-right:.8rem;padding-bottom:.35rem}
+    .mapping-table td:last-child{padding-bottom:.35rem}
+    .muted{color:var(--muted)}
+
+    footer{padding:.6rem 1rem;color:var(--muted);border-top:1px solid var(--stroke)}
+    .kbd{border:1px solid var(--stroke);border-bottom-color:#000;background:#0b121b;border-radius:6px;padding:0 .35rem;color:#a5c2ff}
+
+    .algebra-panel{background:var(--card);border:1px solid var(--stroke);border-radius:14px;box-shadow:var(--shadow);overflow-y:auto;max-height:600px}
+    .algebra-panel h4{margin:0;padding:.6rem .8rem;border-bottom:1px solid var(--stroke);color:#e4edff;font-size:.88rem;background:linear-gradient(180deg,rgba(102,217,239,.08),transparent)}
+    .algebra-content{padding:.6rem .8rem;font-size:.78rem;line-height:1.5}
+    .algebra-row{margin-bottom:.65rem;display:flex;flex-direction:column;gap:.25rem}
+    .algebra-row:last-child{margin-bottom:0}
+    .algebra-label{color:var(--accent);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
+    .algebra-value{color:var(--ink);font-family:ui-monospace,Consolas,monospace;font-size:.85rem;background:rgba(11,15,20,.4);padding:.3rem .5rem;border-radius:6px;border:1px solid rgba(27,39,54,.6)}
+    .algebra-ops{display:flex;flex-direction:column;gap:.25rem;font-size:.8rem}
+    .algebra-ops code{display:block;padding:.25rem .4rem;background:rgba(11,15,20,.3);border-radius:4px;font-family:ui-monospace,Consolas,monospace}
+    .algebra-status{display:inline-flex;align-items:center;gap:.3rem;font-size:.75rem;color:var(--ok);background:rgba(68,209,141,.1);padding:.2rem .4rem;border-radius:4px;border:1px solid rgba(68,209,141,.2)}
+    .algebra-status.warn{color:var(--warn);background:rgba(255,180,84,.1);border-color:rgba(255,180,84,.2)}
+
+    @media (max-width: 1100px){
+      main{grid-template-columns:1fr}
+      .sync-indicator{display:none}
+      .callouts{grid-template-columns:1fr}
+      .algebra-panel{position:static;width:100%;max-height:none;margin:1rem;order:-1}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="toolbar">
+      <div class="control-section">
+        <span class="section-label">View</span>
+        <div class="group">
+          <label for="lens" title="Select which bridge/lens to emphasize: All shows unified system, others focus on specific algebraic structures">Lens</label>
+          <select id="lens">
+            <option value="all">All (linked)</option>
+            <option value="logic">Logic</option>
+            <option value="graph">Graph</option>
+            <option value="clifford">Clifford</option>
+          </select>
+        </div>
+        <div class="group">
+          <label title="Dimensional progression: 0D (pre-symbolic) → 1D (Mark) → 2D (boundary) → 3D (volumetric)">Stage</label>
+          <div class="seg" id="stageSeg">
+            <input type="radio" name="stage" id="s0" value="0"><label for="s0" title="0D: Pre-symbolic Nothing (ontological)">0D ·</label>
+            <input type="radio" name="stage" id="s1" value="1"><label for="s1" title="1D: Symbolization — ¬(·) creates the Mark">1D |</label>
+            <input type="radio" name="stage" id="s2" value="2" checked><label for="s2" title="2D: Euler boundary — e^{iθ} on Bloch equator">2D ○</label>
+            <input type="radio" name="stage" id="s3" value="3"><label for="s3" title="3D: Volumetric pulsing — capacity ⇄ structure">3D ⊕</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-section">
+        <span class="section-label">Parameters</span>
+        <div class="group">
+          <label for="theta" title="Rotation angle of state vector e^{iθ}. Near 90° → orthogonal (meet stable), away from 90° → join dominates">θ</label>
+          <input type="range" id="theta" min="0" max="360" step="1" value="45"/>
+        </div>
+        <div class="group">
+          <label for="tight" title="R-nucleus tightness: controls interiorization strength. High R → intuitionistic (¬¬A ≠ A), Low R → classical (EM holds)">R‑tightness</label>
+          <input type="range" id="tight" min="0" max="100" step="1" value="30"/>
+        </div>
+        <div class="group">
+          <label for="nodes" title="Number of nodes in hypergraph">Nodes</label>
+          <input type="range" id="nodes" min="3" max="40" step="1" value="14"/>
+          <label for="density" title="Edge connection probability (ignored in plural-nothing mode)">Edge density</label>
+          <input type="range" id="density" min="0" max="100" step="1" value="35"/>
+        </div>
+      </div>
+
+      <div class="control-section">
+        <span class="section-label">Actions</span>
+        <div class="group">
+          <label for="presets">Presets</label>
+          <select id="presets">
+            <option value="">– Load State –</option>
+            <option value="classical">Classical Logic (R=0.8, θ=90°)</option>
+            <option value="heyting">Pure Heyting (R=0.2, θ=45°)</option>
+            <option value="collapse">Collapse Demo</option>
+            <option value="spinor">Spinor (360° vs 720°)</option>
+          </select>
+        </div>
+        <div class="group">
+          <button id="btnSymbolize" title="¬(·) — create the first Mark by advancing to stage 1">Symbolize ¬(·)</button>
+          <button id="btnCompute" title="Full 720° rotation — demonstrates spinor behavior and pure computation">Compute (full rotation)</button>
+          <button id="btnImp" title="Select a non-orthogonal state — demonstrates implication as directed selection">Implication (select)</button>
+          <button id="btnBreath" title="Toggle breathing animation — modulates size of visual elements">Breath: Off</button>
+          <button id="btnCollapse" title="Toggle equivalence collapse — all distinctions merge to singularity">Collapse</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <aside class="algebra-panel">
+    <h4>Live Algebraic State</h4>
+    <div class="algebra-content">
+      <div class="algebra-row">
+        <span class="algebra-label">Logic Type</span>
+        <span class="algebra-value" id="algebraLogic">Heyting (Intuitionistic)</span>
+      </div>
+      <div class="algebra-row">
+        <span class="algebra-label">Stage</span>
+        <span class="algebra-value" id="algebraStage">2D ○ (Euler boundary)</span>
+      </div>
+      <div class="algebra-row">
+        <span class="algebra-label">Operations (R=<span id="algebraR">0.30</span>)</span>
+        <div class="algebra-ops" id="algebraOps">
+          <code>A ∧ B         (meet)</code>
+          <code>R(A ∨ B)      (interiorized join)</code>
+          <code>R(¬A ∨ B)     (implication)</code>
+          <code>¬¬A ≠ A       (no DNE)</code>
+        </div>
+      </div>
+      <div class="algebra-row">
+        <span class="algebra-label">State Vector</span>
+        <div class="algebra-ops">
+          <code id="algebraState">e^{i45°} = 0.707 + 0.707i</code>
+          <code id="algebraBloch">|ψ⟩ = cos(22.5°)|0⟩ + sin(22.5°)|1⟩</code>
+        </div>
+      </div>
+      <div class="algebra-row">
+        <span class="algebra-label">Bridge Status (<span id="algebraLens">all</span>)</span>
+        <div class="algebra-ops">
+          <span class="algebra-status" id="algebraRT1">RT-1: shadow∘lift = id ✓</span>
+          <span class="algebra-status" id="algebraRT2">RT-2: lift∘shadow ≤ id ✓</span>
+          <span class="algebra-status" id="algebraTRI">TRI: residuation holds ✓</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="sync-indicator" id="syncViz">
+      <div class="sync-line"></div>
+      <div class="sync-label">R = <span id="syncRValue">0.30</span></div>
+    </div>
+
+    <section class="panel" id="leftPanel">
+      <h3>Global / Complex — Plenum ⇄ Hypergraph</h3>
+      <div class="canvas-wrap">
+        <canvas id="globalCanvas"></canvas>
+        <div class="canvas-caption" id="globalCaption">Plural Nothing (latent, fully connected)</div>
+      </div>
+      <div class="legend">
+        <div class="meter"><span class="muted" title="Structure: degree of differentiation/distinction in the hypergraph. High structure = many edges = meet (∧) dominates. Computed from edge density × breathing phase.">Structure</span>
+          <span class="bar" id="barStruct"><i style="width:35%"></i></span>
+          <span class="badge" id="badgeParadox" title="Equivalence collapse: all distinctions merge to singularity when plural-nothing collapses">equivalence: idle</span>
+        </div>
+        <div class="meter"><span class="muted" title="Capacity: potential for combination/union in the system. High capacity = open space = join (∨) dominates. Computed as complement of structure (capacity = 1 - structure).">Capacity</span>
+          <span class="bar" id="barCap" data-kind="capacity"><i style="width:65%"></i></span>
+          <span class="badge" id="badgePlural" title="Plural-nothing: latent fully-connected state (all potential connections active) vs structured distinctions (selective connections based on density and R)">plural‑nothing</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="rightPanel">
+      <h3>Local / Simple — Monad ⇄ Euler Boundary</h3>
+      <div class="canvas-wrap">
+        <canvas id="localCanvas"></canvas>
+        <div class="canvas-caption" id="localCaption">2D ○ — Euler boundary e^{iθ}: state (cosθ) + process (i sinθ)</div>
+      </div>
+      <div class="legend">
+        <div class="meter"><span class="muted">Logic</span>
+          <span class="badge" id="badgeLogic" title="Heyting: intuitionistic logic where ¬¬A ≠ A. Boolean: classical logic where ¬¬A = A">Heyting (¬¬A ≠ A)</span>
+          <span class="badge" id="badgeEM" title="EM (Excluded Middle): A ∨ ¬A. On in classical logic, off in intuitionistic logic">EM: off</span>
+        </div>
+        <div class="meter"><span class="muted">Spin</span>
+          <span class="badge" id="badgeSpin" title="Clifford algebra spinor property: full 360° rotation inverts state, 720° returns to original">Δ360° → −state</span>
+          <span class="badge ok" id="badgeRT" title="Round-trip contract: core ⇄ lens consistency. ∧ stable when orthogonal, ∨ lax otherwise">RT ✓</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="callouts">
+    <div class="callout">
+      <h4>⟷ Dual Perspectives</h4>
+      <ul class="compact-list">
+        <li><strong>Global/Complex:</strong> Plural nothing → dense graph → collapse → singularity (equivalence paradox) → reinflation</li>
+        <li><strong>Local/Simple:</strong> First oscillator e^{iθ} → 0D·→1D|→2D○→3D⊕ with optional breathing</li>
+        <li><strong>Dialectic actions:</strong> Symbolization ¬(·), Pure computation (full 720° rotation), Implication (directed selection)</li>
+      </ul>
+    </div>
+    <div class="callout">
+      <h4>⚙ Parameter Mappings</h4>
+      <table class="mapping-table">
+        <tr><td><strong>θ near 90°</strong></td><td>Orthogonal → ∧ (meet) succeeds → structure↑</td></tr>
+        <tr><td><strong>θ non-orthogonal</strong></td><td>∨ (join) dominates → capacity↑</td></tr>
+        <tr><td><strong>R-tightness ↑</strong></td><td>Classicalization: EM on, ¬¬A ≈ A, joins snap</td></tr>
+        <tr><td><strong>RT badge</strong></td><td>Core ⇄ lens consistency (∧ stable / ∨ lax)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <span class="muted">Keys:</span> <span class="kbd">B</span> breath • <span class="kbd">C</span> collapse • <span class="kbd">R</span> reset • <span class="kbd">Space</span> compute
+  </footer>
+</div>
+
+<script>
+(function(){
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const $ = (id)=>document.getElementById(id);
+
+  const state = {
+    lens: 'all', stage: 2,
+    theta: Math.PI/4, targetTheta: null,
+    R: .30, nodes: 14, density: .35,
+    plural: true, collapsed:false, collapsedStage: 2,
+    breathing:false, breathT:0, computeSpin:false,
+    // derived
+    structure: .35, capacity:.65,
+  };
+
+  // UI elements
+  const lensSel = $('lens');
+  const stageSeg = $('stageSeg');
+  const thetaRange = $('theta');
+  const tightRange = $('tight');
+  const nodesRange = $('nodes');
+  const densRange = $('density');
+  const presetsSel = $('presets');
+  const btnSym = $('btnSymbolize');
+  const btnCmp = $('btnCompute');
+  const btnImp = $('btnImp');
+  const btnBreath = $('btnBreath');
+  const btnCollapse = $('btnCollapse');
+
+  const barStruct = $('barStruct').querySelector('i');
+  const barCap = $('barCap').querySelector('i');
+  const badgeParadox = $('badgeParadox');
+  const badgePlural = $('badgePlural');
+  const badgeLogic = $('badgeLogic');
+  const badgeEM = $('badgeEM');
+  const badgeSpin = $('badgeSpin');
+  const badgeRT = $('badgeRT');
+
+  const globalCaption = $('globalCaption');
+  const localCaption = $('localCaption');
+  const syncRValue = $('syncRValue');
+
+  // Algebra panel elements
+  const algebraLogic = $('algebraLogic');
+  const algebraStage = $('algebraStage');
+  const algebraR = $('algebraR');
+  const algebraOps = $('algebraOps');
+  const algebraState = $('algebraState');
+  const algebraBloch = $('algebraBloch');
+  const algebraLens = $('algebraLens');
+  const algebraRT1 = $('algebraRT1');
+  const algebraRT2 = $('algebraRT2');
+  const algebraTRI = $('algebraTRI');
+
+  // Canvases
+  const gCanvas = $('globalCanvas');
+  const lCanvas = $('localCanvas');
+  const gctx = gCanvas.getContext('2d');
+  const lctx = lCanvas.getContext('2d');
+
+  function resize(){
+    for (const c of [gCanvas,lCanvas]){
+      const rect = c.parentElement.getBoundingClientRect();
+      c.width = Math.max(200, rect.width * dpr);
+      c.height = Math.max(220, (rect.height||340) * dpr);
+      c.style.height = (rect.height||340)+'px';
+    }
+  }
+  new ResizeObserver(resize).observe(document.body);
+  resize();
+
+  // ===== Hypergraph model =====
+  let nodes=[], edges=[];
+  function regenGraph(){
+    const W = gCanvas.width, H = gCanvas.height;
+    const cx = W/2, cy = H/2;
+    const baseRadius = Math.min(W,H) * 0.32;
+
+    nodes = Array.from({length: state.nodes}, (_,i)=>{
+      let x, y;
+      const t = i / state.nodes;
+      const angle = t * Math.PI * 2;
+
+      if (state.stage === 0) {
+        // 0D: cluster at center (pre-symbolic nothing)
+        x = cx + (Math.random()-0.5) * 20 * dpr;
+        y = cy + (Math.random()-0.5) * 20 * dpr;
+      } else if (state.stage === 1) {
+        // 1D: linear arrangement
+        x = cx + (t - 0.5) * baseRadius * 2 + (Math.random()-0.5) * 10 * dpr;
+        y = cy + (Math.random()-0.5) * 30 * dpr;
+      } else if (state.stage === 2) {
+        // 2D: circular (current default)
+        x = cx + Math.cos(angle) * (baseRadius + Math.random() * 20 * dpr);
+        y = cy + Math.sin(angle) * (baseRadius + Math.random() * 20 * dpr);
+      } else {
+        // 3D: spherical with depth (z-axis simulated)
+        const z = Math.sin(angle * 2) * 0.5; // pseudo z-coordinate
+        const scale = 0.7 + z * 0.3; // perspective scale
+        x = cx + Math.cos(angle) * baseRadius * scale;
+        y = cy + Math.sin(angle) * baseRadius * scale * 0.6; // flatten for 3D effect
+      }
+
+      return { x, y, vx:0, vy:0 };
+    });
+    rebuildEdges();
+  }
+  function rebuildEdges(){
+    edges = [];
+    const n = nodes.length;
+    const dens = state.plural? 1 : state.density;
+
+    for(let i=0;i<n;i++){
+      for(let j=i+1;j<n;j++){
+        if (state.plural) {
+          edges.push([i,j]); // fully connected
+        } else {
+          // R-tightness affects connection probability
+          // High R → prefer structured/orthogonal connections
+          // Calculate angle between nodes relative to center
+          const cx = gCanvas.width / 2, cy = gCanvas.height / 2;
+          const a1 = Math.atan2(nodes[i].y - cy, nodes[i].x - cx);
+          const a2 = Math.atan2(nodes[j].y - cy, nodes[j].x - cx);
+          const angleDiff = Math.abs(a1 - a2);
+          const orthogonality = Math.abs(angleDiff - Math.PI/2) / (Math.PI/2); // 0 = orthogonal, 1 = parallel
+
+          // R biases toward orthogonal connections
+          const rBias = state.R * (1 - orthogonality) * 0.5;
+          const connectionProb = dens + rBias;
+
+          if (Math.random() < connectionProb) edges.push([i,j]);
+        }
+      }
+    }
+  }
+  regenGraph();
+
+  function stepGraph(dt){
+    const W = gCanvas.width, H = gCanvas.height;
+    const cx = W/2, cy=H/2;
+    // gentle spring toward circle when not collapsed; toward center when collapsed
+    const targetR = state.collapsed? 2 : Math.min(W,H)*.32;
+    for (let i=0;i<nodes.length;i++){
+      const a = nodes[i];
+      const dx = a.x - cx, dy = a.y - cy;
+      const r = Math.hypot(dx,dy)+1e-6;
+      const ux = dx/r, uy = dy/r;
+      const tx = cx + ux*targetR, ty = cy + uy*targetR;
+      a.vx += (tx - a.x)*0.0015*dt; a.vy += (ty - a.y)*0.0015*dt;
+      a.vx *= 0.98; a.vy *= 0.98; a.x += a.vx; a.y += a.vy;
+    }
+    // recompute structure/capacity proxy
+    const eMax = nodes.length*(nodes.length-1)/2;
+    const eRatio = edges.length / Math.max(1,eMax);
+    const breathFactor = state.breathing? (0.6+0.4*Math.abs(Math.sin(state.breathT))) : 0.6;
+    state.structure = clamp( 0.15 + 0.7*eRatio*breathFactor, 0, 1 );
+    state.capacity = clamp( 1 - state.structure, 0, 1 );
+  }
+  function drawGraph(){
+    const W = gCanvas.width, H = gCanvas.height;
+    gctx.setTransform(1,0,0,1,0,0);
+    gctx.clearRect(0,0,W,H);
+
+    // Lens-specific color schemes
+    const lensColors = {
+      all: { bg1: '#0a1019', bg2: '#070b12', edge: '#6ea8ff', node: '#c9d6ef', nodeStroke: '#24364f' },
+      logic: { bg1: '#0a1219', bg2: '#070b14', edge: '#5ab9ff', node: '#c9e6ff', nodeStroke: '#1a3a5f' },
+      graph: { bg1: '#0a190f', bg2: '#070b0a', edge: '#5affb0', node: '#c9ffd6', nodeStroke: '#1a4f2f' },
+      clifford: { bg1: '#120a19', bg2: '#0b070b', edge: '#c77dff', node: '#e9c9ff', nodeStroke: '#3a1a4f' }
+    };
+    const colors = lensColors[state.lens] || lensColors.all;
+
+    // space glow
+    const grd = gctx.createRadialGradient(W/2,H/2,0, W/2,H/2, Math.min(W,H)*.55);
+    grd.addColorStop(0, colors.bg1); grd.addColorStop(1, colors.bg2);
+    gctx.fillStyle = grd; gctx.fillRect(0,0,W,H);
+
+    // edges - style depends on lens
+    const edgeAlpha = state.plural? 0.22 : (0.25 + 0.15 * state.R);
+    gctx.globalAlpha = edgeAlpha;
+    gctx.lineWidth = 1*dpr;
+
+    if (state.lens === 'logic') {
+      // Logic lens: show directed implications
+      for (const [i,j] of edges){
+        const a=nodes[i], b=nodes[j];
+        gctx.strokeStyle = (i < j) ? '#5ab9ff' : '#8ac9ff'; // direction indicator
+        gctx.beginPath();
+        gctx.moveTo(a.x,a.y); gctx.lineTo(b.x,b.y);
+        gctx.stroke();
+        // Small arrowhead for implication
+        const ang = Math.atan2(b.y-a.y,b.x-a.x);
+        const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+        gctx.fillStyle = '#5ab9ff';
+        gctx.save();
+        gctx.translate(mx,my); gctx.rotate(ang);
+        gctx.beginPath();
+        gctx.moveTo(0,0); gctx.lineTo(-4*dpr,2*dpr); gctx.lineTo(-4*dpr,-2*dpr);
+        gctx.closePath(); gctx.fill();
+        gctx.restore();
+      }
+    } else if (state.lens === 'clifford') {
+      // Clifford lens: show geometric product with color coding
+      for (const [i,j] of edges){
+        const a=nodes[i], b=nodes[j];
+        const dx = b.x-a.x, dy = b.y-a.y;
+        const dist = Math.hypot(dx,dy);
+        const hue = (dist / (Math.min(W,H)*0.2)) * 60; // vary hue by distance
+        gctx.strokeStyle = `hsl(${260 + hue}, 80%, 65%)`;
+        gctx.beginPath();
+        gctx.moveTo(a.x,a.y); gctx.lineTo(b.x,b.y);
+        gctx.stroke();
+      }
+    } else {
+      // Default (all/graph lens): standard edges
+      gctx.strokeStyle = colors.edge;
+      gctx.beginPath();
+      for (const [i,j] of edges){
+        const a=nodes[i], b=nodes[j];
+        gctx.moveTo(a.x,a.y); gctx.lineTo(b.x,b.y);
+      }
+      gctx.stroke();
+    }
+
+    gctx.globalAlpha = 1;
+
+    // nodes
+    for (let idx = 0; idx < nodes.length; idx++){
+      const n = nodes[idx];
+      gctx.beginPath(); gctx.arc(n.x,n.y, 3.2*dpr, 0, Math.PI*2);
+      gctx.fillStyle = colors.node; gctx.fill();
+      gctx.strokeStyle= colors.nodeStroke; gctx.stroke();
+
+      // Logic lens: label nodes as propositions
+      if (state.lens === 'logic' && !state.plural && idx < 8) {
+        gctx.fillStyle = colors.node;
+        gctx.font = `${10*dpr}px system-ui`;
+        gctx.textAlign = 'center';
+        gctx.fillText(String.fromCharCode(65 + idx), n.x, n.y - 10*dpr);
+      }
+    }
+
+    // Update HTML caption
+    const lensName = { all: 'Unified system', logic: 'Propositional structure', graph: 'Graph topology', clifford: 'Geometric algebra' }[state.lens] || 'System';
+    globalCaption.textContent = state.plural? `Plural Nothing (${lensName})` : `Structured distinctions (${lensName})`;
+  }
+
+  // ===== Local Monad / Clifford‑ish view =====
+  function drawLocal(dt){
+    const W = lCanvas.width, H = lCanvas.height; const cx=W/2, cy=H/2;
+    lctx.setTransform(1,0,0,1,0,0); lctx.clearRect(0,0,W,H);
+
+    // Lens-specific color schemes for local panel
+    const localColors = {
+      all: { bg1: '#0b121b', bg2: '#081018', primary: '#dbe6ff', line: '#9bc9ff', circle: '#5aa9ff', phi: '#77ffc5', arrow1: '#e6f0ff', arrow2: 'rgba(200,140,255,.9)' },
+      logic: { bg1: '#0b141b', bg2: '#081218', primary: '#c9e6ff', line: '#7ab9ff', circle: '#4a99ff', phi: '#5ac9ff', arrow1: '#d6f0ff', arrow2: 'rgba(150,180,255,.9)' },
+      graph: { bg1: '#0b1b11', bg2: '#081810', primary: '#c9ffd6', line: '#7bff90', circle: '#4aff70', phi: '#5affc0', arrow1: '#d6fff0', arrow2: 'rgba(150,255,180,.9)' },
+      clifford: { bg1: '#130b1b', bg2: '#0d0818', primary: '#e9c9ff', line: '#c77dff', circle: '#a74dff', phi: '#d77dff', arrow1: '#f6d6ff', arrow2: 'rgba(200,120,255,.9)' }
+    };
+    const lcolors = localColors[state.lens] || localColors.all;
+
+    // background
+    const grd = lctx.createRadialGradient(cx,cy,0,cx,cy, Math.min(W,H)*.55);
+    grd.addColorStop(0, lcolors.bg1); grd.addColorStop(1, lcolors.bg2); lctx.fillStyle=grd; lctx.fillRect(0,0,W,H);
+
+    // Stage visuals
+    let captionText = '';
+    if (state.stage===0){ // dot
+      dot(cx,cy, 6*dpr, lcolors.primary);
+      captionText = '0D · — pre-symbolic Nothing (ontological)';
+    }
+    if (state.stage>=1){ // line
+      const L = Math.min(W,H)*.28 * (state.breathing? (0.7+0.25*Math.sin(state.breathT)) : 1);
+      lctx.strokeStyle = lcolors.line; lctx.lineWidth=2.5*dpr; line(cx-L,cy, cx+L, cy);
+      captionText = '1D | — symbolization ¬(·) creates the Mark';
+    }
+    if (state.stage>=2){ // circle (Euler boundary / Bloch equator)
+      const R = Math.min(W,H)*.28 * (state.breathing? (0.85+0.15*Math.sin(state.breathT)) : 1);
+      circle(cx,cy,R, lcolors.circle);
+      // rotor e^{iθ}
+      const theta = state.theta;
+      const vx = cx + R*Math.cos(theta), vy = cy + R*Math.sin(theta);
+      arrow(cx,cy, vx,vy, lcolors.arrow1);
+      // counter‑vector e^{i(θ+π)}
+      const vx2 = cx + R*Math.cos(theta+Math.PI), vy2 = cy + R*Math.sin(theta+Math.PI);
+      arrow(cx,cy, vx2,vy2, lcolors.arrow2);
+      // meet vs join cue using a second line at φ (computed from θ)
+      const phi = (theta + (Math.PI/2 - 0.35*Math.cos(state.breathT||0)) );
+      const ux = Math.cos(phi), uy = Math.sin(phi);
+      line(cx-ux*R, cy-uy*R, cx+ux*R, cy+uy*R, lcolors.phi);
+      const ang = Math.abs(wrapAngle(theta - phi));
+      const nearOrtho = Math.abs(ang - Math.PI/2) < (0.22 + 0.4*state.R);
+      nearOrthoGlobal = nearOrtho; // update global for pulsation
+      // badges
+      updateBadge(badgeRT, nearOrtho? 'RT ✓ (∧ stable)' : 'RT • (∨ lax join)', nearOrtho? 'ok':'warn');
+      // spin badge
+      const turns = (theta/(Math.PI*2)) % 2; const spinPhase = turns<1? 'Δ360° → −state' : 'Δ720° → state';
+      updateBadge(badgeSpin, spinPhase, '');
+      captionText = '2D ○ — Euler boundary e^{iθ}: state (cosθ) + process (i sinθ)';
+    }
+    if (state.stage>=3){ // sphere proxy (filled circle + latitude line)
+      const R = Math.min(W,H)*.28 * (state.breathing? (0.9+0.1*Math.sin(state.breathT)) : 1);
+      filledCircle(cx,cy,R,'rgba(86,134,255,.06)','rgba(120,160,255,.25)');
+      lctx.strokeStyle='rgba(200,220,255,.6)'; lctx.lineWidth=1.5*dpr;
+      lctx.beginPath(); lctx.ellipse(cx,cy, R, R*0.35, 0, 0, Math.PI*2); lctx.stroke();
+      captionText = '3D ⊕ — volumetric pulsing; capacity ⇄ structure';
+    }
+
+    // Update HTML caption
+    localCaption.textContent = captionText;
+
+    // logic badges
+    const classical = (state.R>0.68);
+    updateBadge(badgeLogic, classical? 'Boolean (¬¬A = A)' : 'Heyting (¬¬A ≠ A)', '');
+    updateBadge(badgeEM, classical? 'EM: on' : 'EM: off', classical? 'ok' : 'warn');
+  }
+
+  // ===== Drawing helpers =====
+  function line(x1,y1,x2,y2, color){ lctx.beginPath(); lctx.moveTo(x1,y1); lctx.lineTo(x2,y2); lctx.strokeStyle=color||lctx.strokeStyle; lctx.stroke(); }
+  function circle(x,y,r, color){ lctx.beginPath(); lctx.arc(x,y,r,0,Math.PI*2); lctx.strokeStyle=color||lctx.strokeStyle; lctx.lineWidth=2*dpr; lctx.stroke(); }
+  function filledCircle(x,y,r, fill, stroke){ lctx.beginPath(); lctx.arc(x,y,r,0,Math.PI*2); lctx.fillStyle=fill; lctx.fill(); if(stroke){ lctx.strokeStyle=stroke; lctx.stroke(); } }
+  function dot(x,y,r,color){ lctx.beginPath(); lctx.arc(x,y,r,0,Math.PI*2); lctx.fillStyle=color; lctx.fill(); }
+  function arrow(x1,y1,x2,y2, color){
+    lctx.save(); lctx.strokeStyle=color; lctx.fillStyle=color; lctx.lineWidth=2*dpr; line(x1,y1,x2,y2,color);
+    const ang = Math.atan2(y2-y1,x2-x1);
+    lctx.translate(x2,y2); lctx.rotate(ang);
+    lctx.beginPath(); lctx.moveTo(0,0); lctx.lineTo(-8*dpr, 3.5*dpr); lctx.lineTo(-8*dpr, -3.5*dpr); lctx.closePath(); lctx.fill(); lctx.restore();
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+  function wrapAngle(a){ while(a<=-Math.PI) a+=Math.PI*2; while(a>Math.PI) a-=Math.PI*2; return a; }
+
+  // Enhanced badge update with visual feedback
+  function updateBadge(badge, newText, newClass){
+    const changed = (badge.textContent !== newText);
+    badge.textContent = newText;
+    badge.className = 'badge ' + newClass;
+    if (changed) {
+      badge.animate([
+        { transform: 'scale(1)', background: 'var(--accent)', color: '#000' },
+        { transform: 'scale(1.12)', background: 'var(--accent)', color: '#000' },
+        { transform: 'scale(1)', background: '', color: '' }
+      ], { duration: 400 });
+    }
+  }
+
+  // ===== Algebra Display Update =====
+  function updateAlgebraDisplay(){
+    const classical = state.R > 0.68;
+
+    // Logic type
+    algebraLogic.textContent = classical ? 'Boolean (Classical)' : 'Heyting (Intuitionistic)';
+
+    // Stage
+    const stageNames = ['0D · (pre-symbolic)', '1D | (Mark)', '2D ○ (Euler boundary)', '3D ⊕ (volumetric)'];
+    algebraStage.textContent = stageNames[state.stage] || '2D ○ (Euler boundary)';
+
+    // R value
+    algebraR.textContent = state.R.toFixed(2);
+
+    // Operations
+    if (classical) {
+      algebraOps.innerHTML = `
+        <code>A ∧ B         (meet)</code>
+        <code>A ∨ B         (join)</code>
+        <code>A ⇒ B         (material implication)</code>
+        <code>¬¬A = A       (DNE holds)</code>
+      `;
+    } else {
+      algebraOps.innerHTML = `
+        <code>A ∧ B         (meet)</code>
+        <code>R(A ∨ B)      (interiorized join)</code>
+        <code>R(¬A ∨ B)     (implication)</code>
+        <code>¬¬A ≠ A       (no DNE)</code>
+      `;
+    }
+
+    // State vector
+    const deg = Math.round(state.theta * 180 / Math.PI);
+    const cos = Math.cos(state.theta).toFixed(3);
+    const sin = Math.sin(state.theta).toFixed(3);
+    algebraState.textContent = `e^{i${deg}°} = ${cos} + ${sin}i`;
+
+    // Bloch sphere representation
+    const halfTheta = state.theta / 2;
+    const cosHalf = Math.cos(halfTheta).toFixed(3);
+    const sinHalf = Math.sin(halfTheta).toFixed(3);
+    algebraBloch.textContent = `|ψ⟩ = ${cosHalf}|0⟩ + ${sinHalf}|1⟩`;
+
+    // Lens
+    algebraLens.textContent = state.lens;
+
+    // Bridge status - depends on lens and RT status
+    const nearOrtho = state.stage >= 2; // simplified for now
+    algebraRT1.className = 'algebra-status' + (nearOrtho ? '' : ' warn');
+    algebraRT1.textContent = nearOrtho ? 'RT-1: shadow∘lift = id ✓' : 'RT-1: shadow∘lift ≈ id ~';
+
+    algebraRT2.className = 'algebra-status';
+    algebraRT2.textContent = 'RT-2: lift∘shadow ≤ id ✓';
+
+    algebraTRI.className = 'algebra-status' + (classical ? '' : ' warn');
+    algebraTRI.textContent = classical ? 'TRI: residuation ✓' : 'TRI: residuation (R-adjusted) ✓';
+  }
+
+  // ===== Presets =====
+  const presets = {
+    classical: { R: 0.8, theta: Math.PI/2, stage: 2, breathing: false },
+    heyting: { R: 0.2, theta: Math.PI/4, stage: 2, breathing: false },
+    collapse: { R: 0.3, theta: Math.PI/4, stage: 2, collapsed: true, breathing: false },
+    spinor: { R: 0.3, theta: 0, stage: 2, computeSpin: true, breathing: false }
+  };
+
+  function loadPreset(name){
+    const p = presets[name];
+    if (!p) return;
+    state.R = p.R; tightRange.value = Math.round(p.R*100);
+    state.theta = p.theta; syncTheta();
+    state.stage = p.stage; document.getElementById('s'+p.stage).checked = true;
+    state.breathing = p.breathing; btnBreath.textContent = 'Breath: ' + (state.breathing? 'On':'Off');
+    if (p.collapsed !== undefined) {
+      state.collapsed = p.collapsed;
+      updateBadge(badgeParadox, state.collapsed? 'equivalence: collapse' : 'equivalence: idle', state.collapsed? 'warn' : '');
+    }
+    if (p.computeSpin) state.computeSpin = true;
+
+    // Rebuild graph structure and sync values
+    if (!state.plural) rebuildEdges();
+    syncRValue.textContent = state.R.toFixed(2);
+    regenGraph(); // Ensure stage-based layout is applied
+  }
+
+  // ===== UI wiring =====
+  lensSel.addEventListener('change', e=> state.lens = e.target.value);
+  stageSeg.addEventListener('change', e=> {
+    state.stage = +document.querySelector('input[name="stage"]:checked').value;
+    regenGraph(); // regenerate graph layout for new stage
+  });
+  thetaRange.addEventListener('input', e=> { state.theta = (+e.target.value) * Math.PI/180; });
+  tightRange.addEventListener('input', e=> {
+    state.R = (+e.target.value)/100;
+    syncRValue.textContent = (state.R).toFixed(2);
+    if (!state.plural) rebuildEdges(); // R affects graph structure
+  });
+  nodesRange.addEventListener('change', e=> { state.nodes = +e.target.value; regenGraph(); });
+  densRange.addEventListener('input', e=> { state.density = (+e.target.value)/100; if(!state.plural) rebuildEdges(); });
+
+  presetsSel.addEventListener('change', e=> {
+    if (e.target.value) {
+      loadPreset(e.target.value);
+      setTimeout(() => presetsSel.value = '', 300);
+    }
+  });
+
+  btnSym.addEventListener('click', ()=>{
+    state.stage = (state.stage + 1) % 4; // cycle 0→1→2→3→0
+    document.getElementById('s'+state.stage).checked = true;
+    regenGraph(); // regenerate graph layout for new stage
+
+    // Flash effect on both canvases
+    gCanvas.animate([
+      { filter: 'brightness(1.4) saturate(1.2)' },
+      { filter: 'brightness(1)' }
+    ], { duration: 600 });
+    lCanvas.animate([
+      { filter: 'brightness(1.5) saturate(1.3)' },
+      { filter: 'brightness(1)' }
+    ], { duration: 600 });
+
+    // Flash caption
+    localCaption.animate([
+      { backgroundColor: 'var(--accent)', color: '#000', transform: 'scale(1.02)' },
+      { backgroundColor: '', color: '', transform: 'scale(1)' }
+    ], { duration: 600 });
+    globalCaption.animate([
+      { backgroundColor: 'var(--accent)', color: '#000', transform: 'scale(1.02)' },
+      { backgroundColor: '', color: '', transform: 'scale(1)' }
+    ], { duration: 600 });
+
+    pulseBadge(badgeLogic);
+  });
+  btnCmp.addEventListener('click', ()=>{ state.computeSpin = true; pulseBadge(badgeSpin); });
+  btnImp.addEventListener('click', ()=>{ // select a non‑orthogonal angle
+    const oldTheta = state.theta;
+    const jitter = (Math.random()*.7 - .35);
+    state.theta = wrapAngle(state.theta + jitter);
+    syncTheta();
+
+    // Flash the theta range input
+    thetaRange.animate([
+      { backgroundColor: 'var(--accent)', transform: 'scale(1.05)' },
+      { backgroundColor: '', transform: 'scale(1)' }
+    ], { duration: 700 });
+
+    // Flash the state vector in algebra panel
+    if (algebraState) {
+      algebraState.animate([
+        { backgroundColor: 'var(--accent)', color: '#000', transform: 'scale(1.03)' },
+        { backgroundColor: '', color: '', transform: 'scale(1)' }
+      ], { duration: 800 });
+    }
+
+    // Flash the green phi line (implication line) in local canvas
+    lCanvas.animate([
+      { filter: 'hue-rotate(0deg) saturate(1.5)' },
+      { filter: 'hue-rotate(30deg) saturate(2)' },
+      { filter: 'hue-rotate(0deg) saturate(1)' }
+    ], { duration: 1000 });
+
+    pulseBadge(badgeEM);
+  });
+  btnBreath.addEventListener('click', ()=>{ state.breathing = !state.breathing; btnBreath.textContent = 'Breath: ' + (state.breathing? 'On':'Off'); });
+  btnCollapse.addEventListener('click', ()=>{
+    state.collapsed = !state.collapsed;
+
+    if (state.collapsed) {
+      // Remember current stage and collapse to nothing
+      state.collapsedStage = state.stage;
+      state.stage = 0;
+      document.getElementById('s0').checked = true;
+
+      // Flash both canvases
+      gCanvas.animate([{ filter: 'brightness(0.3)' }, { filter: 'brightness(1)' }], { duration: 800 });
+      lCanvas.animate([{ filter: 'brightness(0.3)' }, { filter: 'brightness(1)' }], { duration: 800 });
+    } else {
+      // Restore previous stage
+      state.stage = state.collapsedStage || 2;
+      document.getElementById('s'+state.stage).checked = true;
+
+      // Flash both canvases
+      gCanvas.animate([{ filter: 'brightness(1.5)' }, { filter: 'brightness(1)' }], { duration: 800 });
+      lCanvas.animate([{ filter: 'brightness(1.5)' }, { filter: 'brightness(1)' }], { duration: 800 });
+    }
+
+    updateBadge(badgeParadox, state.collapsed? 'equivalence: collapse' : 'equivalence: idle', state.collapsed? 'warn':'');
+    pulseBadge(badgeParadox);
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='b' || e.key==='B') btnBreath.click();
+    if(e.key==='c' || e.key==='C') btnCollapse.click();
+    if(e.key==='r' || e.key==='R'){ state.theta = Math.PI/4; syncTheta(); state.R=.3; tightRange.value=30; pulseBadge(badgeRT); }
+    if(e.code==='Space'){ e.preventDefault(); btnCmp.click(); }
+  });
+  function syncTheta(){ thetaRange.value = Math.round( state.theta * 180/Math.PI ); }
+  function pulseBadge(el){ el.animate([{transform:'scale(1)'},{transform:'scale(1.08)'},{transform:'scale(1)'}],{duration:420}); }
+
+  // ===== Main loop =====
+  let last=performance.now();
+  let nearOrthoGlobal = false; // track for RT badge pulsation
+
+  function tick(now){
+    const dt = clamp((now-last), 8, 34); last = now;
+    if (state.breathing){ state.breathT += dt*0.003; }
+    if (state.computeSpin){ state.theta += dt*0.0026*(1+state.R*1.5); syncTheta(); if (state.theta>Math.PI*4){ state.theta = state.theta%(Math.PI*4); state.computeSpin=false; } }
+    stepGraph(dt);
+
+    // update HUD
+    barStruct.style.width = Math.round(state.structure*100)+'%';
+    barCap.style.width = Math.round(state.capacity*100)+'%';
+    updateBadge(badgePlural, state.plural? 'plural‑nothing' : 'structured', '');
+    syncRValue.textContent = state.R.toFixed(2);
+
+    // RT badge continuous pulsation when stable
+    if (nearOrthoGlobal && state.stage >= 2) {
+      const pulse = 1 + 0.06 * Math.sin(now * 0.003);
+      badgeRT.style.transform = `scale(${pulse})`;
+    } else {
+      badgeRT.style.transform = 'scale(1)';
+    }
+
+    // Update algebra display
+    updateAlgebraDisplay();
+
+    drawGraph();
+    drawLocal(dt);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
+

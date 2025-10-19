@@ -7,6 +7,9 @@ import HeytingLean.Ontology.Primordial
 import HeytingLean.Bridges.Tensor
 import HeytingLean.Bridges.Graph
 import HeytingLean.Bridges.Clifford
+import HeytingLean.Bridges.Tensor.Intensity
+import HeytingLean.Bridges.Graph.Alexandroff
+import HeytingLean.Bridges.Clifford.Projector
 import HeytingLean.LoF.HeytingCore
 import HeytingLean.Epistemic.Occam
 import HeytingLean.Logic.PSR
@@ -48,6 +51,25 @@ theorem tensor_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
   simpa [Contracts.Examples.tensor]
     using Contracts.Examples.tensor_round (α := α) (R := R) (n := n) (a := a)
 
+theorem tensor_intensity_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
+    let model : Bridges.Tensor.Intensity.Model (α := α) :=
+      { core := Contracts.Examples.tensor (α := α) (R := R) n
+        profile :=
+          Bridges.Tensor.Intensity.Profile.ofPoint (α := α)
+            { ℓ1 := 0, ℓ2 := 0, ℓ1_nonneg := le_of_eq rfl, ℓ2_nonneg := le_of_eq rfl }
+            True
+            (Bridges.Tensor.Model.encode (M := Contracts.Examples.tensor (α := α) (R := R) n)
+              R.process)
+        dim_consistent := rfl }
+    model.decode (model.contract.encode a) = a := by
+  classical
+  intro model
+  change model.decode
+      (model.encode (bounds := model.profile.bounds) (normalised := True) a) = a
+  exact
+    Bridges.Tensor.Intensity.Model.decode_encode
+      (M := model) (bounds := model.profile.bounds) (normalised := True) (a := a)
+
 theorem graph_shadow_verified (R : Reentry α) (a : R.Omega) :
     (Bridges.Graph.Model.logicalShadow (Contracts.Examples.graph (α := α) (R := R)))
         ((Bridges.Graph.Model.contract (Contracts.Examples.graph (α := α) (R := R))).encode a)
@@ -59,6 +81,15 @@ theorem graph_rt2_verified (R : Reentry α) (a : R.Omega) :
         ((Contracts.Examples.graph (α := α) (R := R)).contract.encode a)
       = R a :=
   graph_shadow_verified (R := R) (a := a)
+
+theorem graph_alexandroff_round_verified (R : Reentry α) (a : R.Omega) :
+    let model : Bridges.Graph.Alexandroff.Model (α := α) :=
+      { core := Contracts.Examples.graph (α := α) (R := R)
+        openSet := Set.univ }
+    model.decode (model.contract.encode a) = a := by
+  classical
+  intro model
+  exact Bridges.Graph.Alexandroff.Model.decode_encode (M := model) (a := a)
 
 /-- Triangle (TRI-1): deduction, abduction, and induction coincide on the Heyting core. -/
 theorem residuated_triangle_verified (R : Reentry α)
@@ -150,7 +181,7 @@ theorem graph_round_verified (R : Reentry α) (a : R.Omega) :
   simpa [Contracts.Examples.graph]
     using Contracts.Examples.graph_round (α := α) (R := R) (a := a)
 
-theorem clifford_project_idem (R : Reentry α) (p : α × α) :
+theorem clifford_project_idem (R : Reentry α) (p : Bridges.Clifford.Pair α) :
     Bridges.Clifford.Model.project (Contracts.Examples.clifford (α := α) (R := R))
         (Bridges.Clifford.Model.project (Contracts.Examples.clifford (α := α) (R := R)) p)
         =
@@ -179,7 +210,7 @@ theorem theta_cycle_zero_sum (θ : ℝ) :
 
 theorem tensor_encode_euler (R : Reentry α) (n : ℕ) :
     Bridges.Tensor.Model.encode (Contracts.Examples.tensor (α := α) (R := R) n) R.eulerBoundary
-      = fun _ => R.primordial :=
+      = Bridges.Tensor.Point.mk (fun _ => R.primordial) :=
   Bridges.Tensor.Model.eulerBoundary_vector (Contracts.Examples.tensor (α := α) (R := R) n)
 
 theorem graph_encode_euler (R : Reentry α) :
@@ -189,10 +220,22 @@ theorem graph_encode_euler (R : Reentry α) :
 
 theorem clifford_encode_euler (R : Reentry α) :
     Bridges.Clifford.Model.encode (Contracts.Examples.clifford (α := α) (R := R)) R.eulerBoundary
-      = (R.primordial, R.primordial) := by
+      = Bridges.Clifford.Pair.mk R.primordial R.primordial := by
   classical
   simp [Bridges.Clifford.Model.encode, Contracts.Examples.clifford,
     Reentry.eulerBoundary_eq_process, Reentry.process_coe]
+
+theorem clifford_projector_round_verified (R : Reentry α) (a : R.Omega) :
+    let model : Bridges.Clifford.Projector.Model (α := α) (β := ℝ) :=
+      { core := Contracts.Examples.clifford (α := α) (R := R)
+        projector :=
+          { axis := (0 : ℝ)
+            idempotent := by simp
+            selfAdjoint := by simp } }
+  model.decode (model.encode a) = a := by
+  classical
+  intro model
+  exact Bridges.Clifford.Projector.Model.decode_encode (M := model) (a := a)
 
 theorem residuation_himp_closed (R : Reentry α) (a b : R.Omega) :
     R ((a : α) ⇨ (b : α)) = (a : α) ⇨ (b : α) :=

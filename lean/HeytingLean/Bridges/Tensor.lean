@@ -19,6 +19,30 @@ open HeytingLean.Epistemic
 
 universe u
 
+/-- Finite tensor point with `n.succ` coordinates in `α`. -/
+structure Point (α : Type u) (n : ℕ) where
+  coords : Fin (n.succ) → α
+
+namespace Point
+
+variable {α : Type u} {n : ℕ}
+
+instance : CoeFun (Point α n) (fun _ => Fin (n.succ) → α) :=
+  ⟨Point.coords⟩
+
+@[simp] lemma coe_mk (f : Fin (n.succ) → α) :
+    ((Point.mk f : Point α n) : Fin (n.succ) → α) = f := rfl
+
+@[simp, ext] lemma ext {x y : Point α n} (h : ∀ i, x.coords i = y.coords i) :
+    x = y := by
+  cases x
+  cases y
+  simpa using congrArg Point.mk (funext h)
+
+@[simp] lemma eta (p : Point α n) : Point.mk p.coords = p := by cases p; rfl
+
+end Point
+
 section
 variable (α : Type u) [PrimaryAlgebra α]
 
@@ -36,13 +60,13 @@ open scoped Classical
 variable {α : Type u} [PrimaryAlgebra α]
 
 def Carrier (M : Model α) : Type u :=
-  Fin M.dim.succ → α
+  Point α M.dim
 
 noncomputable def encode (M : Model α) (a : M.R.Omega) : M.Carrier :=
-  fun _ => (a : α)
+  Point.mk fun _ => (a : α)
 
 noncomputable def decode (M : Model α) (v : M.Carrier) : M.R.Omega :=
-  let value := ⨅ i, v i
+  let value := ⨅ i, v.coords i
   Reentry.Omega.mk (R := M.R) (M.R value) (M.R.idempotent _)
 
 noncomputable def contract (M : Model α) : RoundTrip (R := M.R) M.Carrier where
@@ -55,12 +79,13 @@ noncomputable def contract (M : Model α) : RoundTrip (R := M.R) M.Carrier where
     simp [encode, decode]
 
 noncomputable def interpret (M : Model α) (v : M.Carrier) : M.Carrier :=
-  fun i => M.R (v i)
+  Point.mk fun i => M.R (v.coords i)
 
 lemma interpret_idem (M : Model α) (v : M.Carrier) :
     M.interpret (M.interpret v) = M.interpret v := by
   classical
-  funext i
+  apply Point.ext
+  intro i
   simp [interpret]
 
 noncomputable def logicalShadow (M : Model α) : M.Carrier → α :=
@@ -81,21 +106,20 @@ noncomputable def logicalShadow (M : Model α) : M.Carrier → α :=
   change (M.contract.decode (M.contract.encode a)) = a
   exact M.contract.round a
 lemma eulerBoundary_vector (M : Model α) :
-    M.encode M.R.eulerBoundary = fun _ => M.R.primordial := by
-  classical
-  funext i
+    M.encode M.R.eulerBoundary = Point.mk (fun _ => M.R.primordial) := by
+  apply Point.ext; intro i
   simp [Model.encode, Reentry.eulerBoundary_eq_process, Reentry.process_coe]
 
 def pointwiseMin (M : Model α) (v w : M.Carrier) : M.Carrier :=
-  fun i => v i ⊓ w i
+  Point.mk fun i => v.coords i ⊓ w.coords i
 
 def pointwiseMax (M : Model α) (v w : M.Carrier) : M.Carrier :=
-  fun i => v i ⊔ w i
+  Point.mk fun i => v.coords i ⊔ w.coords i
 
 @[simp] lemma encode_inf (M : Model α) (a b : M.R.Omega) :
     M.encode (a ⊓ b) = M.pointwiseMin (M.encode a) (M.encode b) := by
   classical
-  funext i
+  apply Point.ext; intro i
   simp [encode, pointwiseMin]
 
 /-- Stage-style MV addition lifted to the tensor carrier. -/
