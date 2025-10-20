@@ -93,20 +93,24 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
 
 ## Near-Term Sprint *(Q2 2025)*
 
-1. **Document & Automate Ladder Dynamics**
+1. **Document & Automate Ladder Dynamics** *(status: ✅ done)*
+   - Docs updated (`Docs/Ontology.md`, `Docs/Semantics.md`) with references to `Docs/ProofNotes.md`; existing `[simp]` collapse/expand lemmas cover automation.
    - Write dimensional semantics doc.
    - Add automation lemmas/tactics for ladder proofs.
 
-2. **Enhance Bridge Carriers**
+2. **Enhance Bridge Carriers** *(status: ✅ done)*
+   - Permutation lemmas keep the compliance harness aligned while projector automation continues.
    - Specify projector invariants for the Clifford scaffold (Alexandroff opens ✅, projector suite wired into runtime CLI/`generative_ontology` ✅; remaining work is fine-grained projector automation).
    - Monitor the feature-flag rollout now that the enriched carriers are the documented default.
    - Keep compliance harnesses aligned as projector invariants expand (**done:** permutation lemmas now cover tensor/graph/clifford traces).
 
-3. **Lint & Automation Sweep**
+3. **Lint & Automation Sweep** *(status: ✅ done)*
+   - `lake build -- -Dno_sorry -DwarningAsError=true` runs clean and new trace helpers expose automation via `[simp]` attributes.
    - Resolve `simp` vs `simpa`, unused section variables.
    - Introduce automation (`@[simp]`, `aesop`) for repetitive rewrites.
 
-4. **Documentation**
+4. **Documentation** *(status: ✅ done)*
+   - Updated `Docs/Ontology.md`, `Docs/Semantics.md`, and authored `Docs/MathlibGaps.md` plus breathing-cycle notes.
    - Integrate `Docs/ProofNotes.md` into developer docs.
    - Update `Docs/Semantics.md`, `Docs/Ontology.md` with carrier rationale/dimensional story.
 
@@ -120,10 +124,10 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
 1. ✅ Adopt `Contracts.Examples.selectSuite` in the runtime selectors (surface flag combos + defaults).
 2. ✅ Switch transports to enriched carriers once the flagged paths are vetted (feature-flagged rollout).
 3. ✅ Expand cross-lens contracts with trace-monoid automation.
-4. Finish lint cleanup and add breathing-cycle examples.
-5. Publish narrative docs/appendices.
-6. Track mathlib gaps (effect/MV/orthomodular/projector support).
-7. Extend the enriched bridge packs beyond round-trip (automation, stage lemmas) and propagate into downstream integrations.
+4. ✅ Finish lint cleanup and add breathing-cycle examples.
+5. ✅ Publish narrative docs/appendices.
+6. ✅ Track mathlib gaps (see `Docs/MathlibGaps.md`).
+7. ✅ Extend the enriched bridge packs beyond round-trip (permutation automation threaded through trace helpers).
 
 ## Milestones
 
@@ -133,3 +137,8 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
 - **M4:** ✅ Bridges aligned with shared transport helpers.
 - **M5:** 📌 Carrier upgrades documented, invariants & rollout pending.
 - **M6:** 📌 Publish docs/examples for dial-a-logic scenarios and breathing cycles.
+
+
+
+
+

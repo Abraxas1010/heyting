@@ -49,16 +49,16 @@ theorem tensor_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
     (Bridges.Tensor.Model.contract (Contracts.Examples.tensor (α := α) (R := R) n)).decode
         ((Bridges.Tensor.Model.contract (Contracts.Examples.tensor (α := α) (R := R) n)).encode a)
       = a := by
-classical
-simpa [Contracts.Examples.tensor]
-using Contracts.Examples.tensor_round (α := α) (R := R) (n := n) (a := a)
+  classical
+  simpa [Contracts.Examples.tensor]
+    using Contracts.Examples.tensor_round (α := α) (R := R) (n := n) (a := a)
 
 theorem tensor_intensity_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
-let model : Bridges.Tensor.Intensity.Model (α := α) :=
-{ core := Contracts.Examples.tensor (α := α) (R := R) n
-profile :=
-Bridges.Tensor.Intensity.Profile.ofPoint (α := α)
-{ ℓ1 := 0, ℓ2 := 0, ℓ1_nonneg := le_of_eq rfl, ℓ2_nonneg := le_of_eq rfl }
+    let model : Bridges.Tensor.Intensity.Model (α := α) :=
+      { core := Contracts.Examples.tensor (α := α) (R := R) n
+        profile :=
+          Bridges.Tensor.Intensity.Profile.ofPoint (α := α)
+            { ℓ1 := 0, ℓ2 := 0, ℓ1_nonneg := le_of_eq rfl, ℓ2_nonneg := le_of_eq rfl }
             True
             (Bridges.Tensor.Model.encode (M := Contracts.Examples.tensor (α := α) (R := R) n)
               R.process)

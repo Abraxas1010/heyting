@@ -19,6 +19,7 @@
 
 - Tensor/Graph/Clifford bridges encode the Euler boundary into concrete carriers (lean/HeytingLean/Bridges/*.lean).
 - Compliance tests (`lean/HeytingLean/Tests/Compliance.lean`) assert the encoded outputs and θ-cycle arithmetic, and exercise Boolean collapses via `boolean_limit_verified`.
+- The permutation lemmas `bridge_occam_swap_tensor_graph` and `bridge_occam_rotate_tensor_graph_clifford` certify a full breathing loop across tensor/graph/Clifford carriers.
 - Python bindings now bootstrap the Lean runtime (`lake env lean --run Main`) on import, so downstream scripts automatically pick up the enriched tensor/graph/Clifford carriers when mirroring these proofs.
 
 ## Boolean Limit & Documentation
@@ -38,4 +39,5 @@ To illustrate the breathing cycle concretely:
 5. Finally, `boolean_limit_verified` demonstrates the Boolean limit in the identity-nucleus regime, capturing the classical endpoint of the ladder.
 
 These steps provide a narrative recipe the team can follow during reviews or demonstrations, referencing compiled lemmas rather than prose alone.
+
 
