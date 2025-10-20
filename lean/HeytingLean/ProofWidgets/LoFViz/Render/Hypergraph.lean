@@ -37,17 +37,14 @@ def hypergraphSvg (kernel : KernelData) : String :=
       <rect x='2' y='2' width='356' height='216' rx='20'
         fill='#0f172a' stroke='#1e293b' stroke-width='3'/>"
   let processNode := nodeSvg 90 70 28 "process (⊤)" true
-  let currentNode :=
-    nodeSvg 180 140 30
-      (if kernel.currentIsActive then "current (⊤)" else "current (⊥)")
-      kernel.currentIsActive
+  let currentLabel :=
+    if kernel.currentIsActive then s!"current {kernel.currentSetString}" else "current (∅)"
+  let currentNode := nodeSvg 180 140 30 currentLabel kernel.currentIsActive
+  let previousLabel := s!"previous {kernel.previousSetString}"
   let previousNode :=
-    match kernel.aggregate.previous with
-    | some prev =>
-        nodeSvg 70 180 24
-          (if setKind prev then "previous (⊤)" else "previous (⊥)")
-          (setKind prev)
-    | none => ""
+    if kernel.aggregate.previous.isSome then
+      nodeSvg 70 180 24 previousLabel kernel.previousIsActive
+    else ""
   let eulerNode :=
     nodeSvg 270 80 26 "Euler boundary" true
   let counterNode :=
@@ -59,18 +56,18 @@ def hypergraphSvg (kernel : KernelData) : String :=
          edgeSvg 270 106 190 136 true,
          edgeSvg 270 100 270 146 true,
          edgeSvg 90 98 270 84 true] ++
-        (match kernel.aggregate.previous with
-          | some prev => [edgeSvg 94 166 170 148 (setKind prev)]
-          | none      => [])
+        (if kernel.previousIsActive then
+           [edgeSvg 94 166 170 148 true]
+         else [])
   let title :=
-    s!"<text\,x='180'\,y='26'\,fill='#e2e8f0'\,text-anchor='middle'\,font-family='monospace'\,font-size='16'>Re-entry Hypergraph</text>"
+    s!"<text x='180' y='26' fill='#e2e8f0' text-anchor='middle' font-family='monospace' font-size='16'>Re-entry Hypergraph</text>"
   let subtitle :=
-    s!"<text\,x='180'\,y='210'\,fill='#94a3b8'\,text-anchor='middle'\,font-family='monospace'\,font-size='12'>{kernel.summary}</text>"
+    s!"<text x='180' y='210' fill='#94a3b8' text-anchor='middle' font-family='monospace' font-size='12'>{kernel.summary}</text>"
   background ++ processNode ++ eulerNode ++ counterNode ++ currentNode ++ previousNode
     ++ edges ++ title ++ subtitle ++ "</svg>"
 
 /-- Render the hypergraph mode. -/
-def renderHypergraph (state : State) (kernel : KernelData) : MetaM BridgeResult := do
+def renderHypergraph (state : State) (kernel : KernelData) : BridgeResult :=
   let hud : Hud :=
     { dialStage := state.dialStage
       lens := state.lens
@@ -81,7 +78,7 @@ def renderHypergraph (state : State) (kernel : KernelData) : MetaM BridgeResult 
             if kernel.aggregate.reentries > 0 then
               "Purple edges highlight re-entry events."
             else "No re-entry recorded, dependency graph is acyclic for the journal."] }
-  pure { svg := hypergraphSvg kernel, hud, certificates := kernel.certificates }
+  BridgeResult.mk (hypergraphSvg kernel) hud kernel.certificates
 
 end Render
 end LoFViz

@@ -5,13 +5,14 @@ namespace ProofWidgets
 namespace LoFViz
 
 open Lean
+open Lean Server
 
 /-- Primitive interactions exposed in the UI. -/
 inductive Primitive
   | unmark
   | mark
   | reentry
-  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson
+  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson, Server.RpcEncodable
 
 /-- Dimensional dial stages. -/
 inductive DialStage
@@ -19,7 +20,7 @@ inductive DialStage
   | s1_symbolic
   | s2_circle
   | s3_sphere
-  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson
+  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson, Server.RpcEncodable
 
 /-- Visual renderer modes. -/
 inductive VisualMode
@@ -29,7 +30,7 @@ inductive VisualMode
   | fiber
   | string
   | split
-  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson
+  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson, Server.RpcEncodable
 
 /-- Bridge lens selection. -/
 inductive Lens
@@ -37,7 +38,7 @@ inductive Lens
   | tensor
   | graph
   | clifford
-  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson
+  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson, Server.RpcEncodable
 
 /-- High-level event kind emitted by the widget. -/
 inductive EventKind
@@ -45,7 +46,7 @@ inductive EventKind
   | dial
   | lens
   | mode
-  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson
+  deriving DecidableEq, Inhabited, Repr, BEq, ToJson, FromJson, Server.RpcEncodable
 
 /-- Event payload forwarded from the widget via RPC. -/
 structure Event where
@@ -56,13 +57,13 @@ structure Event where
   mode?        : Option VisualMode := none
   clientVersion : String
   sceneId       : String
-  deriving Inhabited, Repr, ToJson, FromJson
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 /-- Internal journal entry for primitives. -/
 structure JournalEntry where
   primitive : Primitive
   timestamp : Nat
-  deriving Inhabited, Repr, ToJson, FromJson
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 /-- State tracked per scene. -/
 structure State where
@@ -72,7 +73,7 @@ structure State where
   lens       : Lens
   mode       : VisualMode
   nextStamp  : Nat
-  deriving Inhabited, Repr, ToJson, FromJson
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 instance : ToString DialStage :=
   ⟨fun
@@ -116,24 +117,24 @@ def applyPrimitive (s : State) (p : Primitive) : State :=
       nextStamp := s.nextStamp + 1 }
 
 /-- Interpret an incoming event, updating the state. -/
-def applyEvent (s : State) (evt : Event) : MetaM State :=
+def applyEvent (s : State) (evt : Event) : State :=
   match evt.kind with
   | .primitive =>
       match evt.primitive? with
-      | some p => pure <| applyPrimitive s p
-      | none   => pure s
+      | some p => applyPrimitive s p
+      | none   => s
   | .dial =>
-      pure <| match evt.dialStage? with
-              | some θ => { s with dialStage := θ }
-              | none   => s
+      match evt.dialStage? with
+      | some θ => { s with dialStage := θ }
+      | none   => s
   | .lens =>
-      pure <| match evt.lens? with
-              | some ℓ => { s with lens := ℓ }
-              | none   => s
+      match evt.lens? with
+      | some ℓ => { s with lens := ℓ }
+      | none   => s
   | .mode =>
-      pure <| match evt.mode? with
-              | some m => { s with mode := m }
-              | none   => s
+      match evt.mode? with
+      | some m => { s with mode := m }
+      | none   => s
 
 end Stepper
 

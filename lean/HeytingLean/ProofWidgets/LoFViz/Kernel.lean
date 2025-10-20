@@ -1,5 +1,4 @@
 import Lean
-import Mathlib.Data.Set.Lattice
 import HeytingLean.ProofWidgets.LoFViz.State
 
 namespace HeytingLean
@@ -7,7 +6,52 @@ namespace ProofWidgets
 namespace LoFViz
 
 open Lean
+open Lean Server
 open scoped Classical
+
+namespace RegionSet
+
+def contains : List String → String → Bool
+  | [], _ => false
+  | r :: rs, s => if r = s then true else contains rs s
+
+def insert (s : List String) (r : String) : List String :=
+  if contains s r then s else r :: s
+
+def erase : List String → String → List String
+  | [], _ => []
+  | r :: rs, s =>
+      if r = s then erase rs s else r :: erase rs s
+
+def union (a b : List String) : List String :=
+  b.foldl insert a
+
+def inter (a b : List String) : List String :=
+  a.filter (fun r => contains b r)
+
+def diff (u a : List String) : List String :=
+  u.filter (fun r => ¬ contains a r)
+
+def subset (a b : List String) : Bool :=
+  a.all (fun r => contains b r)
+
+def equal (a b : List String) : Bool :=
+  subset a b && subset b a
+
+@[simp] def card (s : List String) : Nat := s.length
+
+@[simp] def isEmpty (s : List String) : Bool := s.isEmpty
+
+@[simp] def toString (s : List String) : String :=
+  let body := String.intercalate ", " s.reverse
+  "{" ++ body ++ "}"
+
+end RegionSet
+
+private def regionCycle : Array String := #["α", "β", "γ", "δ"]
+private def coreRegion : String := "α"
+private def satelliteRegion : String := "δ"
+private def regionUniverse : List String := regionCycle.toList
 
 /-- Certificate bundle returned alongside renders. -/
 structure CertificateBundle where
@@ -16,12 +60,13 @@ structure CertificateBundle where
   rt₂           : Bool := true
   classicalized : Bool := false
   messages      : Array String := #[]
-  deriving Inhabited, ToJson
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 /-- Track aggregate information extracted from the primitive journal. -/
 structure Aggregate where
-  current   : Set Unit := (∅ : Set Unit)
-  previous  : Option (Set Unit) := none
+  current   : List String := []
+  previous  : Option (List String) := none
+  stack     : List String := []
   marks     : Nat := 0
   unmarks   : Nat := 0
   reentries : Nat := 0
@@ -29,30 +74,54 @@ structure Aggregate where
 
 namespace Aggregate
 
-def empty : Aggregate :=
-  { current := (∅ : Set Unit)
-    previous := none
-    marks := 0
-    unmarks := 0
-    reentries := 0 }
+private def nextRegion (agg : Aggregate) : String :=
+  let idx := agg.marks % regionCycle.size
+  regionCycle[idx]!
+
+@[inline] def pushUnique (stack : List String) (r : String) : List String :=
+  RegionSet.insert (RegionSet.erase stack r) r
+
+/-- Apply the nucleus closure used by the toy LoF model. -/
+def closure (base : List String) (nextReentry : Nat) : List String :=
+  if RegionSet.contains base coreRegion then
+    if nextReentry % 2 = 0 then RegionSet.insert base satelliteRegion else regionUniverse
+  else RegionSet.insert base coreRegion
+
+@[simp] def empty : Aggregate := {}
 
 /-- Update aggregate state with a primitive interaction. -/
 def step (agg : Aggregate) : Primitive → Aggregate
-  | .unmark =>
-      { agg with
-          previous := some agg.current
-          current := (∅ : Set Unit)
-          unmarks := agg.unmarks + 1 }
   | .mark =>
+      let region := nextRegion agg
       { agg with
           previous := some agg.current
-          current := (Set.univ : Set Unit)
+          current := RegionSet.insert agg.current region
+          stack := pushUnique agg.stack region
           marks := agg.marks + 1 }
+  | .unmark =>
+      match agg.stack with
+      | [] =>
+          { agg with
+              previous := some agg.current
+              current := []
+              stack := []
+              unmarks := agg.unmarks + 1 }
+      | region :: rest =>
+          { agg with
+              previous := some agg.current
+              current := RegionSet.erase agg.current region
+              stack := rest
+              unmarks := agg.unmarks + 1 }
   | .reentry =>
+      let nextReentry := agg.reentries + 1
+      let newCurrent := closure agg.current nextReentry
+      let additions := newCurrent.filter (fun region => ¬ RegionSet.contains agg.current region)
+      let newStack := additions.foldl pushUnique agg.stack
       { agg with
           previous := some agg.current
-          current := agg.current
-          reentries := agg.reentries + 1 }
+          current := newCurrent
+          stack := newStack
+          reentries := nextReentry }
 
 /-- Reduce a full journal into aggregate statistics. -/
 def ofJournal (journal : Array JournalEntry) : Aggregate :=
@@ -60,22 +129,18 @@ def ofJournal (journal : Array JournalEntry) : Aggregate :=
 
 end Aggregate
 
-/-- Classify a subset of `Unit` by whether it contains the unique point. -/
-@[inline] noncomputable def setKind (s : Set Unit) : Bool :=
-  decide ((() : Unit) ∈ s)
+private def renderSet (s : List String) : String :=
+  RegionSet.toString s
 
-@[inline] noncomputable def describeSet (s : Set Unit) : String :=
-  if setKind s then "⊤" else "⊥"
-
-@[inline] noncomputable def describeOptionSet : Option (Set Unit) → String
-  | some s => describeSet s
+private def renderOptionSet : Option (List String) → String
+  | some s => renderSet s
   | none   => "∅ (initial)"
 
 /-- Visualization kernel distilled from widget state. -/
 structure KernelData where
-  state          : State
-  aggregate      : Aggregate
-  summary        : String
+  state     : State
+  aggregate : Aggregate
+  summary   : String
 
 namespace KernelData
 
@@ -84,66 +149,111 @@ def fromState (s : State) : KernelData :=
   let agg := Aggregate.ofJournal s.journal
   let summary :=
     s!"scene={s.sceneId} • dial={s.dialStage} • lens={s.lens} • mode={s.mode} • marks={agg.marks} • re={agg.reentries}"
-  { state := s
-    aggregate := agg
-    summary }
+  { state := s, aggregate := agg, summary }
 
-@[inline] noncomputable def currentIsActive (k : KernelData) : Bool :=
-  setKind k.aggregate.current
+/-- Heyting nucleus closure used for proof calculations. -/
+def nucleus (s : List String) : List String :=
+  if RegionSet.contains s coreRegion then regionUniverse else RegionSet.insert s coreRegion
 
-@[inline] noncomputable def previousIsActive (k : KernelData) : Bool :=
+/-- Heyting implication in the toy lattice. -/
+def implication (a b : List String) : List String :=
+  nucleus (RegionSet.union (RegionSet.diff regionUniverse a) b)
+
+/-- Meet of two regions in the lattice. -/
+def meet (a b : List String) : List String :=
+  RegionSet.inter a b
+
+@[inline] def currentIsActive (k : KernelData) : Bool :=
+  ¬ RegionSet.isEmpty k.aggregate.current
+
+@[inline] def previousIsActive (k : KernelData) : Bool :=
   match k.aggregate.previous with
-  | some s => setKind s
-  | none   => false
+  | some prev => ¬ RegionSet.isEmpty prev
+  | none      => false
+
+/-- Synthetic breathing angle (θ) derived from the interaction counts. -/
+def breathingAngle (k : KernelData) : Nat :=
+  (90 * k.aggregate.reentries + 30 * k.aggregate.marks - 20 * k.aggregate.unmarks) % 360
 
 /-- Human-readable notes surfaced in the HUD. -/
-noncomputable def notes (k : KernelData) : Array String :=
+def notes (k : KernelData) : Array String :=
   #[
     k.summary,
-    s!"current subset: {describeSet k.aggregate.current}",
-    s!"previous subset: {describeOptionSet k.aggregate.previous}",
-    s!"counts → mark:{k.aggregate.marks} unmark:{k.aggregate.unmarks} re-entry:{k.aggregate.reentries}"
+    s!"current subset: {renderSet k.aggregate.current}",
+    s!"previous subset: {renderOptionSet k.aggregate.previous}",
+    s!"counts → mark:{k.aggregate.marks} unmark:{k.aggregate.unmarks} re-entry:{k.aggregate.reentries}",
+    s!"θ (breathing angle) ≈ {k.breathingAngle}°"
   ]
+
+/-- Public string form of the current nucleus subset. -/
+def currentSetString (k : KernelData) : String :=
+  renderSet k.aggregate.current
+
+/-- Public string form of the previous nucleus subset. -/
+def previousSetString (k : KernelData) : String :=
+  renderOptionSet k.aggregate.previous
+
+/-- Size of the current region selection. -/
+def currentCard (k : KernelData) : Nat :=
+  RegionSet.card k.aggregate.current
+
+/-- Size of the previous region selection. -/
+def previousCard (k : KernelData) : Nat :=
+  match k.aggregate.previous with
+  | some prev => RegionSet.card prev
+  | none      => 0
+
+/-- Status flags used to colour the fibre bundle visualisation. -/
+structure FiberStatus where
+  logicStable    : Bool
+  tensorBounded  : Bool
+  graphActivated : Bool
+  cliffordEven   : Bool
+  deriving Inhabited
+
+/-- Compute fibre status booleans for the HUD/renderer. -/
+def fiberStatus (k : KernelData) : FiberStatus :=
+  { logicStable :=
+      RegionSet.equal k.aggregate.current (nucleus k.aggregate.current)
+    tensorBounded := RegionSet.card k.aggregate.current ≤ 2
+    graphActivated := k.aggregate.reentries > 0
+    cliffordEven := k.aggregate.marks % 2 = 0 }
 
 /-- Notes specific to the fiber-bundle visualization. -/
-noncomputable def fiberNotes (k : KernelData) : Array String :=
+def fiberNotes (k : KernelData) : Array String :=
+  let status := k.fiberStatus
   #[
-    "Logic lens: identity round-trip witnessed.",
-    "Tensor lens (dim 0): encode/decode composed via canonical intensity profile.",
-    "Graph lens: round-trip on Alexandroff carrier verified.",
-    "Clifford lens: projector scaffold round-trip verified."
+    s!"Logic lens: closure {if status.logicStable then "stable" else "pending"} (nucleus fixed point).",
+    s!"Tensor lens: support {RegionSet.card k.aggregate.current} region(s) ({if status.tensorBounded then "within" else "beyond"} linear capacity).",
+    s!"Graph lens: re-entry {if status.graphActivated then "observed" else "not yet witnessed"} in journal.",
+    s!"Clifford lens: mark parity {if status.cliffordEven then "even (dualised)" else "odd (torsion)"}."
   ]
 
-/-- Bool arithmetic for `Unit` subsets (meet). -/
-@[inline] noncomputable def meetKind (s t : Set Unit) : Bool :=
-  setKind s && setKind t
+private def previous (k : KernelData) : List String :=
+  k.aggregate.previous.getD []
 
 /-- Certificates computed from the aggregates and the canonical LoF nucleus. -/
-noncomputable def certificates (k : KernelData) : CertificateBundle :=
-  let currentKind := setKind k.aggregate.current
-  let previousKind := match k.aggregate.previous with
-    | some s => setKind s
-    | none   => false
-  let meetOk :=
-    match k.aggregate.previous with
-    | some prev =>
-        let meet := meetKind prev k.aggregate.current
-        if meet then currentKind else true
-    | none => true
+def certificates (k : KernelData) : CertificateBundle :=
+  let prev := previous k
+  let curr := k.aggregate.current
+  let closedPrev := nucleus prev
+  let closedCurr := nucleus curr
+  let adjunction := RegionSet.subset prev (implication curr closedCurr)
+  let rt₁ := RegionSet.equal closedPrev prev
+  let rt₂ := RegionSet.equal closedCurr curr
   let classicalized :=
     match k.state.dialStage with
     | .s3_sphere => true
     | _          => false
-  { adjunction := meetOk
-    rt₁ := true
-    rt₂ := true
+  { adjunction
+    rt₁
+    rt₂
     classicalized
     messages :=
       k.notes ++
-        #[ if currentKind then "Current subset contains the primordial point."
-            else "Current subset is below the Euler boundary."
-         , if previousKind then "Previous subset was active." else "Previous subset was inactive."
-         , "Identity round-trip and shadow contracts witnessed canonically." ] }
+        #[ s!"meet(current, previous) = {renderSet (meet curr prev)}",
+           s!"implication(previous ⇒ current) = {renderSet (implication prev curr)}",
+           s!"nucleus(current) = {renderSet closedCurr}" ] }
 
 end KernelData
 

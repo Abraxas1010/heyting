@@ -8,6 +8,7 @@ namespace LoFViz
 namespace Render
 
 open Lean
+open Lean Server
 
 /-- Minimal HUD payload delivered with the SVG render. -/
 structure Hud where
@@ -15,7 +16,7 @@ structure Hud where
   lens      : Lens
   mode      : VisualMode
   notes     : Array String := #[]
-  deriving Inhabited, Repr, ToJson
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 /-- Raw render result emitted by a renderer. -/
 structure BridgeResult where
@@ -31,13 +32,13 @@ structure RenderSummary where
   lens    : String
   svg     : String
   hud     : Hud
-  deriving Inhabited, Repr, ToJson
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 /-- Full RPC response payload. -/
 structure ApplyResponse where
   render : RenderSummary
   proof  : CertificateBundle
-  deriving Inhabited, Repr, ToJson
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 end Render
 end LoFViz

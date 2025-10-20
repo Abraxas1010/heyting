@@ -19,22 +19,31 @@ open Lean
   | .mark   => "#22c55e"
   | .reentry => "#a855f7"
 
-/-- Produce SVG snippets for the primitive timeline. -/
+/-- Produce SVG snippets for the primitive timeline, spacing events evenly. -/
 def buildTimeline (state : State) : String :=
-  let events := state.journal.toList.enum
+  let events := state.journal.toList
+  let count := events.length
+  let spacing :=
+    if count ≤ 1 then 0 else Nat.max 30 (220 / (count - 1))
   let baseLine :=
     "<path d='M40 140 C120 100, 240 100, 320 140' fill='none' stroke='#64748b' stroke-width='3' stroke-dasharray='6 6' opacity='0.6'/>"
-  let notches :=
-    events.map fun (idx, entry) =>
-      let x := toString (80 * idx + 60)
-      let color := eventColor entry.primitive
-      let label := eventLabel entry.primitive
-      s!"<g>
-          <line x1='{x}' y1='70' x2='{x}' y2='180' stroke='{color}' stroke-width='4' opacity='0.85'/>
-          <circle cx='{x}' cy='120' r='18' fill='{color}' opacity='0.35' stroke='{color}' stroke-width='3'/>
-          <text x='{x}' y='118' text-anchor='middle' fill='#e2e8f0' font-family='monospace' font-size='11'>{label}</text>
-        </g>"
-  baseLine ++ String.intercalate "" notches
+  let (_, fragments) :=
+    events.foldl
+      (fun (state : Nat × String) entry =>
+        let (idx, acc) := state
+        let xVal : Nat := 60 + spacing * idx
+        let x := toString xVal
+        let color := eventColor entry.primitive
+        let label := eventLabel entry.primitive
+        let fragment :=
+          s!"<g>
+              <line x1='{x}' y1='70' x2='{x}' y2='180' stroke='{color}' stroke-width='4' opacity='0.85'/>
+              <circle cx='{x}' cy='120' r='16' fill='{color}' opacity='0.35' stroke='{color}' stroke-width='3'/>
+              <text x='{x}' y='118' text-anchor='middle' fill='#e2e8f0' font-family='monospace' font-size='10'>{label}</text>
+            </g>"
+        (idx + 1, acc ++ fragment))
+      (0, "")
+  baseLine ++ fragments
 
 /-- Build the string diagram SVG summarising process/counter-process. -/
 def stringSvg (kernel : KernelData) (state : State) : String :=
@@ -50,13 +59,24 @@ def stringSvg (kernel : KernelData) (state : State) : String :=
       "<path d='M40 80 C120 140, 240 140, 320 80' fill='none' stroke='#a855f7' stroke-width='3' opacity='0.65'/>"
     else ""
   let timeline := buildTimeline state
+  let eventCount := state.journal.size
+  let lastEvent? :=
+    if eventCount = 0 then
+      none
+    else
+      state.journal[(eventCount - 1)]?
+  let lastLabel :=
+    match lastEvent? with
+    | some entry => s!"Last event: {eventLabel entry.primitive}"
+    | none => "No event yet"
   let caption :=
     s!"<text x='180' y='32' text-anchor='middle' font-family='monospace' font-size='16' fill='#e2e8f0'>Process Strings</text>
-        <text x='180' y='210' text-anchor='middle' font-family='monospace' font-size='12' fill='#94a3b8'>{kernel.summary}</text>"
+        <text x='180' y='198' text-anchor='middle' font-family='monospace' font-size='12' fill='#94a3b8'>{kernel.summary}</text>
+        <text x='180' y='214' text-anchor='middle' font-family='monospace' font-size='11' fill='#64748b'>events: {eventCount} • {lastLabel}</text>"
   header ++ processStrand ++ counterStrand ++ crossings ++ timeline ++ caption ++ "</svg>"
 
 /-- Render the string diagram view. -/
-def renderString (state : State) (kernel : KernelData) : MetaM BridgeResult := do
+def renderString (state : State) (kernel : KernelData) : BridgeResult :=
   let hudNotes :=
     kernel.notes ++
       #[
@@ -71,7 +91,7 @@ def renderString (state : State) (kernel : KernelData) : MetaM BridgeResult := d
       lens := state.lens
       mode := state.mode
       notes := hudNotes }
-  pure { svg := stringSvg kernel state, hud, certificates := kernel.certificates }
+  BridgeResult.mk (stringSvg kernel state) hud kernel.certificates
 
 end Render
 end LoFViz

@@ -19,89 +19,57 @@ This plan turns the narrative in `HeytingLean/TBD/visualization_system.md` into 
 
 ## Execution Roadmap
 
-### 0. Repository Scaffolding *(status: ⏳ planned)*
-- Create `lean/ProofWidgets/LoF/` with submodules:
-  - `State.lean` (journal & kernel state machine)
-  - `Kernel.lean` (derives `(R, Ω_R, θ)` from the journal)
-  - `Render/Types.lean` (`BridgeResult`, proof badge structures)
-  - `Render/Boundary.lean`, `Hypergraph.lean`, `FiberBundle.lean`, `String.lean`
-  - `Render/Router.lean`
-  - `Rpc.lean`
-- Add widget entries:
-  - `widget/src/types.ts` (LoFEvent, VisualMode, Lens, LoFPrimitive)
-  - `widget/src/LoFVisualApp.tsx` (UI shell)
-  - `widget/src/proofBadges.tsx` (HUD renderer)
+### 0. Repository Scaffolding *(status: ✅ infrastructure in place)*
+- Lean modules for `HeytingLean/ProofWidgets/LoFViz/` (state machine, kernel, renderers, RPC, tests) are live under the new namespace.
+- Widget sources (`ProofWidgets/widget/src/{LoFVisualApp,types,proofBadges}.tsx`) now ship with the repo and export the `"LoFVisualApp"` component consumed by `VisualizationDemo.lean`.
+- Developers can import `HeytingLean.ProofWidgets.LoFViz` for the umbrella module or tree-shake individual renderers.
 
-### 1. Lean State & Journal *(status: ⏳ planned)*
-1. Implement `LoFPrimitive`/`LoFEvent` mirroring the TypeScript types.
-2. Define `LoFJournal` as a list of primitive entries with timestamps and dial/lens transitions.
-3. Provide `Stepper.applyEvent : LoFState → LoFEvent → MetaM LoFState` maintaining:
-   - current dial stage (S0–S3),
-   - active lens (`Logic`/`Tensor`/`Graph`/`Clifford`),
-   - view mode (`Boundary`/`Euler`/`Hypergraph`/`Fiber`/`String`/`Split`),
-   - cached `KernelData` (below).
-4. Implement serialization helpers for persistence (Lean JSON instances).
+### 1. Lean State & Journal *(status: ✅ baseline state machine; persistence TBD)*
+1. `Primitive`, `DialStage`, `Lens`, `VisualMode`, and RPC `Event` types exist with JSON derivations.
+2. `State` tracks the primitive journal (`Array JournalEntry`), dial/lens/mode, and a monotone timestamp counter.
+3. `Stepper.applyEvent : State → Event → MetaM State` handles primitive appends and mode/lens/dial switches.
+4. TODO: add explicit serialization utilities plus a persistence hook once we replace the in-memory cache (see Stage 4).
 
-### 2. Kernel Construction *(status: ⏳ planned)*
-1. Build `Kernel.fromJournal (j : LoFJournal) : MetaM KernelData` that:
-   - Interprets the sequence of `Mark`/`Unmark`/`Reentry` as LoF regions `(a,b,…)`.
-   - Computes the nucleus `R`, fixed-point lattice `Ω_R`, Euler boundary, and breathing angle `θ`.
-   - Supplies transport handles for Tensor/Graph/Clifford bridges using existing encode/decode contracts.
-2. Provide convenience functions:
-   - `Kernel.himp`, `Kernel.mvAdd`, `Kernel.effectAdd?`, `Kernel.orthocomplement`.
-   - `Kernel.certificates : KernelData → CertificateBundle` (adjunction, RT-1/RT-2, effect definedness, OML, classicalisation).
+### 2. Kernel Construction *(status: ✅ first structured nucleus)*
+1. `KernelData.fromState` replays the journal into an explicit finite-set nucleus (regions `α…δ`), preserving a stack, cardinalities, and re-entry closures.
+2. `KernelData` exposes `nucleus`, `implication`, `meet`, `breathingAngle`, and human-readable subset renderings.
+3. Certificates now check adjunction (`prev ⊆ (current ⇒ nucleus current)`), nucleus stability (RT-1/RT-2), and surface a classicalisation flag from the dial stage.
+4. Future refinements: extend the region lattice beyond the toy model and introduce bridge helpers (`himp`, `mvAdd`, `effectAdd?`, etc.) that discharge bona fide Lean proofs.
 
-### 3. Renderers *(status: ⏳ planned)*
-For each visual mode implement `renderX : KernelData → MetaM BridgeResult`.
+### 3. Renderers *(status: ✅ server-driven visuals with HUD data)*
+Each mode returns SVG strings + HUD metadata derived from the enriched kernel:
 
-| Mode              | Renderer responsibilities                                                                                             | Proof badges          |
-|-------------------|------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| `Boundary`/`Euler`| • Draw nested SVG paths for regions `(a,b,R a,R (¬a ∨ b))`.<br>• Encode breathing cycles via θ timeline.               | adjunction, EM/¬¬, RT |
-| `Hypergraph`      | • Build nodes/edges from re-entry preorder & Alexandroff opens.<br>• Mark loops for re-entry.                          | adjunction, RT (graph)|
-| `FiberBundle`     | • Draw base + 3 fibers (Tensor/Graph/Clifford) with arrows labelled `encode/decode` & RT statuses.                     | RT-1/RT-2 per lens    |
-| `String`          | • Serialize process/counter-process as string diagram (cuts, braids, collapses).                                      | residuation triangle  |
-| `Split`           | • Compose two renderer outputs side by side (call `route` twice).                                                     | union of both         |
+| Mode              | Current implementation                                                                                     | Follow-ups                          |
+|-------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------|
+| `Boundary`/`Euler`| Radii and fills respond to nucleus cardinality; subtitles carry breathing summaries.                       | Upgrade to `ProofWidgets.Svg` primitives for composition. |
+| `Hypergraph`      | Node labels render concrete subsets; edges highlight live dependencies and re-entry.                       | Integrate Alexandroff order once the full lattice lands.  |
+| `Fiber`           | HUD badges report lens-specific invariants (closure, boundedness, parity).                                  | Connect to genuine bridge transports.                     |
+| `String`          | Timeline overlays remain journal-driven; process/counter annotations pulled from state.                     | Extend with bridge-aware animations.                      |
+| `Split`           | Combines route outputs while preserving proof metadata.                                                     | Allow user-configurable pairings beyond Boundary/Hypergraph. |
 
-All SVG generation should rely on pure functions producing `ProofWidgets.Svg.Svg`. Attach HUD metadata (dial stage, active lens, classicalisation flag, oscillation trace coordinates).
+### 4. RPC Wiring *(status: ✅ minimal in-memory RPC; persistence + error handling pending)*
+1. `Render.route` delegates to the renderer modules; `BridgeResult`/`RenderSummary` structures defined in `Render/Types.lean`.
+2. `[widget.rpc_method] def apply` maintains an `IO.Ref` cache keyed by `sceneId`, runs the state stepper, rebuilds kernel data, and returns `{ render, proof }`.
+3. Next steps:
+   - Swap to `ProofWidgets.PersistentStore` (or similar) for multi-process robustness.
+   - Emit richer diagnostics / `diagnostics` traces when certificates flag failures.
 
-### 4. RPC Wiring *(status: ⏳ planned)*
-1. Implement `Render.route : VisualMode → KernelData → MetaM BridgeResult`.
-2. Implement `[widget.rpc] def apply`:
-   - Load/save state from `ProofWidgets.PersistentStore`.
-   - Apply the event, recompute kernel, route renderer.
-   - Return JSON serializable structure with `{ render := RenderResult, proof := CertificateBundle }`.
-3. Add unit tests in `ProofWidgets/LoF/Tests.lean` covering:
-   - Primitive sequences leading to known kernels.
-   - Dial & lens switches.
-   - Renderer snapshot hashes for golden cases.
+### 5. Frontend Shell *(status: ✅ wired to RPC)*
+1. `LoFVisualApp.tsx` emits Lean events, displays server SVG, and streams HUD/proof badges with loading affordances.
+2. Shared `types.ts` mirrors Lean JSON encodings; `proofBadges.tsx` formats certificate status/message text.
+3. The widget registers against `HeytingLean.ProofWidgets.LoFViz.apply`, so `VisualizationDemo.lean` loads cleanly in InfoView.
 
-### 5. Frontend Shell *(status: ⏳ planned)*
-1. Create `LoFVisualApp.tsx` with controls:
-   - Primitive buttons (`Unmark`, `Mark`, `Re-entry`).
-   - Mode selector (Boundary/Euler/Hypergraph/Fiber/String/Split).
-   - Lens selector (Logic/Tensor/Graph/Clifford).
-   - Dial slider/toggle (S0–S3).
-2. Use the existing widget RPC hook to call `"LoF.apply"`.
-3. Inject returned SVG via `dangerouslySetInnerHTML`, render proof badges using metadata.
-4. Implement split view layout (two SVG containers) driven solely by server payload.
+### 6. Testing & Validation *(status: 🚧 minimal Lean sanity lemmas)*
+1. `Tests.lean` covers summarised text properties (`KernelData` notes/messages length).
+2. Outstanding testing work:
+   - Property tests around journal transitions and certificate expectations.
+   - Renderer snapshot/golden tests once SVG stabilises.
+   - Frontend integration tests (Playwright/Cypress) and CI wiring for `lake build -- -DwarningAsError=true`.
 
-### 6. Testing & Validation *(status: ⏳ planned)*
-1. Extend `Tests/Compliance.lean` with visualization-oriented property tests:
-   - `renderBoundary` returns adjunction badge `true` when `Kernel.certificates.adjunction`.
-   - `renderFiberBundle` reports RT statuses matching bridge contracts.
-2. Introduce golden SVG tests:
-   - Store hashed outputs under `tests/golden/lof/*.svg`.
-   - Use Lean tests to compare against baseline for deterministic states.
-3. Frontend verification:
-   - Add Playwright (or existing Cypress) script to load each mode and assert proof badge text.
-4. CI: ensure `lake build -- -Dno_sorry -DwarningAsError=true` and `npm test` remain mandatory.
-
-### 7. Documentation & Handover *(status: ⏳ planned)*
-1. Author `Docs/Visualization.md` summarizing:
-   - Event → renderer → proof badge flow.
-   - Mode meanings and how to interpret HUD outputs.
-2. Update `README.md` with instructions to launch the widget.
-3. Provide onboarding notes for future contributors (how to add a new mode or lens).
+### 7. Documentation & Handover *(status: ⏳ not started)*
+1. Still need `Docs/Visualization.md` describing the end-to-end flow.
+2. Update `README.md` with widget launch instructions.
+3. Draft contributor notes for extending modes, lenses, or certificates.
 
 ## Milestones
 

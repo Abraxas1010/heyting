@@ -36,7 +36,7 @@ export function LoFVisualApp(props: { sceneId?: string; clientVersion?: string }
       setIsLoading(true);
       const payload: LoFEvent = { ...event, sceneId, clientVersion };
       try {
-        const result = (await rpc.call("LoF.apply", payload)) as ApplyResponse;
+        const result = (await rpc.call("HeytingLean.ProofWidgets.LoFViz.apply", payload)) as ApplyResponse;
         setResponse(result);
       } finally {
         setIsLoading(false);

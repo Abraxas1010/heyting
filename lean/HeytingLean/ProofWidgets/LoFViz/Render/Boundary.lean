@@ -15,12 +15,14 @@ def circle (cx cy r : Nat) (fill stroke : String) (opacity : String := "1") : St
 
 /-- Render the boundary/euler visualization using the canonical LoF nucleus. -/
 def boundarySvg (kernel : KernelData) (mode : VisualMode) : String :=
+  let currentCard := kernel.currentCard
+  let previousCard := kernel.previousCard
   let baseFill := if kernel.currentIsActive then "#38bdf8" else "rgba(56,189,248,0.15)"
   let prevStroke := if kernel.previousIsActive then "#f97316" else "rgba(249,115,22,0.3)"
   let showEuler := mode = .euler
   let eulerStroke := if showEuler then "#facc15" else "#3b82f6"
-  let currentRadius := if kernel.currentIsActive then 55 else 24
-  let previousRadius := if kernel.previousIsActive then 70 else 36
+  let currentRadius := (24 + currentCard * 10)
+  let previousRadius := (36 + previousCard * 8)
   let background :=
     "<rect x='2' y='2' width='356' height='196' rx='20' fill='#0f172a' stroke='#1e293b' stroke-width='3'/>"
   let eulerCircle :=
@@ -38,7 +40,7 @@ def boundarySvg (kernel : KernelData) (mode : VisualMode) : String :=
   "<svg viewBox='0 0 360 200' xmlns='http://www.w3.org/2000/svg'>" ++ background ++ eulerCircle ++ previousCircle ++ currentCircle ++ label ++ subtitle ++ "</svg>"
 
 /-- Render the boundary/euler mode. -/
-def renderBoundary (state : State) (kernel : KernelData) : MetaM BridgeResult := do
+def renderBoundary (state : State) (kernel : KernelData) : BridgeResult :=
   let extra :=
     if state.mode = .euler then
       kernel.notes.push "Euler boundary is emphasised."
@@ -49,7 +51,7 @@ def renderBoundary (state : State) (kernel : KernelData) : MetaM BridgeResult :=
       mode := state.mode
       notes := extra }
   let svg := boundarySvg kernel state.mode
-  pure { svg, hud, certificates := kernel.certificates }
+  BridgeResult.mk svg hud kernel.certificates
 
 end Render
 end LoFViz
