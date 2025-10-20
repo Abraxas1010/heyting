@@ -46,7 +46,6 @@ variable {β : Type u} [Mul β] [Star β]
 structure Model where
   core : Clifford.Model α
   projector : Carrier β
-  stabilised : Prop := True
 
 namespace Model
 

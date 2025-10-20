@@ -62,7 +62,15 @@ theorem tensor_intensity_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega)
             True
             (Bridges.Tensor.Model.encode (M := Contracts.Examples.tensor (α := α) (R := R) n)
               R.process)
-        dim_consistent := rfl }
+        dim_consistent := rfl
+        stabilised := by
+          intro _
+          classical
+          simp [Contracts.Examples.tensor,
+            Bridges.Tensor.Intensity.Profile.ofPoint,
+            Bridges.Tensor.Model.encode,
+            Reentry.process_coe,
+            Reentry.primordial_apply (R := R)] }
     model.decode (model.contract.encode a) = a := by
   classical
   intro model

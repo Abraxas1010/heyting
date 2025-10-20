@@ -6,7 +6,6 @@ import HeytingLean.Bridges.Graph
 import HeytingLean.Bridges.Graph.Alexandroff
 import HeytingLean.Bridges.Clifford
 import HeytingLean.Bridges.Clifford.Projector
-import HeytingLean.Bridges.Clifford.Projector
 import Mathlib.Algebra.Star.Basic
 import Mathlib.Data.Complex.Basic
 
@@ -171,8 +170,13 @@ noncomputable def projectorModel (R : Reentry α) :
     projector :=
       { axis := (0 : ℂ)
         idempotent := by simp
-        selfAdjoint := by simp }
-    stabilised := True }
+        selfAdjoint := by simp } }
+
+@[simp] lemma projectorModel_invariants (R : Reentry α) :
+    Bridges.Clifford.Projector.Model.Invariants
+      (M := projectorModel (α := α) (R := R)) :=
+  Bridges.Clifford.Projector.Model.invariants
+    (M := projectorModel (α := α) (R := R))
 
 /-- Convenience flag enabling the projector carrier. -/
 def projectorFlags : BridgeFlags :=
@@ -189,7 +193,13 @@ noncomputable def tensorIntensityModel (R : Reentry α) :
           ℓ2_nonneg := le_of_eq rfl }
         True
         (Bridges.Tensor.Model.encode (M := tensor α R 0) R.process)
-    dim_consistent := rfl }
+    dim_consistent := rfl
+    stabilised := by
+      intro _
+      classical
+      simp [Bridges.Tensor.Intensity.Profile.ofPoint,
+        Bridges.Tensor.Model.encode, tensor,
+        Reentry.process_coe, Reentry.primordial_apply (R := R)] }
 
 /-- Select the graph bridge based on feature flags. -/
 noncomputable def graphPack (R : Reentry α)

@@ -68,7 +68,9 @@ structure Model where
   core : Tensor.Model α
   profile : Profile α
   dim_consistent : profile.dim = core.dim
-  stabilised : Prop := True
+  stabilised :
+    ∀ i : Fin (profile.dim.succ),
+      core.R (profile.coords i) = profile.coords i
 
 namespace Model
 
@@ -84,6 +86,9 @@ def intensityPoint (M : Model (α := α)) : Point α M.core.dim :=
 structure Carrier (M : Model (α := α)) where
   profile : Profile α
   dim_ok : profile.dim = M.core.dim
+  coords_fixed :
+    ∀ i : Fin (profile.dim.succ),
+      M.core.R (profile.coords i) = profile.coords i
 
 namespace Carrier
 
@@ -97,19 +102,28 @@ variable {M : Model (α := α)}
 def toPoint (c : Carrier M) : Point α M.core.dim :=
   c.dim_ok ▸ c.profile.asPoint
 
-/-- Build a carrier from a core point and metadata. -/
-def fromPoint
+/-- Build a carrier by encoding an element of the fixed-point core. -/
+noncomputable def fromOmega
     (bounds : Bounds)
     (normalised : Prop := True)
-    (v : Point α M.core.dim) : Carrier M :=
-  { profile := Profile.ofPoint (α := α) bounds normalised v
-    dim_ok := rfl }
+    (a : M.core.R.Omega) : Carrier M :=
+  { profile :=
+      Profile.ofPoint (α := α) bounds normalised
+        (Tensor.Model.encode (M := M.core) a)
+    dim_ok := rfl
+    coords_fixed := by
+      intro i
+      classical
+      simp [Profile.ofPoint, Tensor.Model.encode,
+        Reentry.Omega.apply_coe] }
 
-@[simp] lemma toPoint_fromPoint
-    (bounds : Bounds) (normalised : Prop := True)
-    (v : Point α M.core.dim) :
-    (fromPoint (M := M) bounds normalised v).toPoint = v := by
-  simp [fromPoint, toPoint]
+@[simp] lemma toPoint_fromOmega
+    (bounds : Bounds := M.profile.bounds)
+    (normalised : Prop := True)
+    (a : M.core.R.Omega) :
+    (fromOmega (M := M) bounds normalised a).toPoint =
+      Tensor.Model.encode (M := M.core) a := by
+  simp [fromOmega, toPoint]
 
 end Carrier
 
@@ -121,8 +135,7 @@ noncomputable def encode
     (normalised : Prop := True) :
     M.core.R.Omega → Carrier M :=
   fun a =>
-    Carrier.fromPoint (M := M) bounds normalised
-      (Tensor.Model.encode (M := M.core) a)
+    Carrier.fromOmega (M := M) bounds normalised a
 
 /-- Decode an intensity carrier by delegating to the core bridge. -/
 noncomputable def decode (c : Carrier M) : M.core.R.Omega :=
@@ -135,7 +148,7 @@ noncomputable def decode (c : Carrier M) : M.core.R.Omega :=
     (a : M.core.R.Omega) :
     M.decode (M.encode bounds normalised a) = a := by
   unfold Model.decode Model.encode
-  simp [Carrier.toPoint_fromPoint]
+  simp [Carrier.toPoint_fromOmega]
   exact Tensor.Model.decode_encode (M := M.core) (a := a)
 
 /-- Round-trip contract on the intensity carrier, powered by the core transport. -/
@@ -148,7 +161,7 @@ noncomputable def contract
     round := by
       intro a
       unfold encode decode
-      simp [Carrier.toPoint_fromPoint]
+      simp [Carrier.toPoint_fromOmega]
       exact Tensor.Model.decode_encode (M := M.core) (a := a) }
 
 /-- Logical shadow lifted to the intensity carrier. -/
@@ -164,7 +177,7 @@ noncomputable def logicalShadow :
     M.logicalShadow (M.encode bounds normalised a) =
       M.core.R a := by
   unfold Model.logicalShadow Model.encode
-  simp [Carrier.toPoint_fromPoint, Tensor.Model.logicalShadow_encode']
+  simp [Carrier.toPoint_fromOmega, Tensor.Model.logicalShadow_encode']
 
 /-- Stage-style MV addition lifted to the intensity carrier. -/
 noncomputable def stageMvAdd
@@ -172,9 +185,10 @@ noncomputable def stageMvAdd
     (normalised : Prop := True) :
     Carrier M → Carrier M → Carrier M :=
   fun v w =>
-    Carrier.fromPoint (M := M) bounds normalised
-      (Tensor.Model.stageMvAdd (M := M.core)
-        (Carrier.toPoint v) (Carrier.toPoint w))
+    Carrier.fromOmega (M := M) bounds normalised
+      (HeytingLean.Logic.Stage.DialParam.mvAdd
+        (P := HeytingLean.Logic.Modal.DialParam.base M.core.R)
+        (M.decode v) (M.decode w))
 
 /-- Stage-style effect compatibility on the intensity carrier. -/
 def stageEffectCompatible (v w : Carrier M) : Prop :=
@@ -186,9 +200,10 @@ noncomputable def stageEffectAdd?
     (bounds : Bounds := M.profile.bounds)
     (normalised : Prop := True)
     (v w : Carrier M) : Option (Carrier M) :=
-  (Tensor.Model.stageEffectAdd? (M := M.core)
-        (Carrier.toPoint v) (Carrier.toPoint w)).map
-      (Carrier.fromPoint (M := M) bounds normalised)
+  (HeytingLean.Logic.Stage.DialParam.effectAdd?
+      (P := HeytingLean.Logic.Modal.DialParam.base M.core.R)
+      (M.decode v) (M.decode w)).map
+    (Carrier.fromOmega (M := M) bounds normalised)
 
 /-- Stage-style orthocomplement lifted to the intensity carrier. -/
 noncomputable def stageOrthocomplement
@@ -196,18 +211,18 @@ noncomputable def stageOrthocomplement
     (normalised : Prop := True) :
     Carrier M → Carrier M :=
   fun v =>
-    Carrier.fromPoint (M := M) bounds normalised
-      (Tensor.Model.stageOrthocomplement (M := M.core)
-        (Carrier.toPoint v))
+    Carrier.fromOmega (M := M) bounds normalised
+      (HeytingLean.Logic.Stage.DialParam.orthocomplement
+        (P := HeytingLean.Logic.Modal.DialParam.base M.core.R)
+        (M.decode v))
 
 /-- Stage-style Heyting implication lifted to the intensity carrier. -/
 noncomputable def stageHimp
     (bounds : Bounds := M.profile.bounds)
     (normalised : Prop := True)
     (v w : Carrier M) : Carrier M :=
-  Carrier.fromPoint (M := M) bounds normalised
-    (Tensor.Model.stageHimp (M := M.core)
-      (Carrier.toPoint v) (Carrier.toPoint w))
+  Carrier.fromOmega (M := M) bounds normalised
+    ((M.decode v) ⇨ (M.decode w))
 
 /-- Stage-style collapse lifted to the intensity carrier. -/
 noncomputable def stageCollapseAt
@@ -216,9 +231,9 @@ noncomputable def stageCollapseAt
     (n : ℕ) :
     Carrier M → Carrier M :=
   fun v =>
-    Carrier.fromPoint (M := M) bounds normalised
-      (Tensor.Model.stageCollapseAt (M := M.core) n
-        (Carrier.toPoint v))
+    Carrier.fromOmega (M := M) bounds normalised
+      (HeytingLean.Logic.Stage.DialParam.collapseAtOmega
+        (α := α) (R := M.core.R) n (M.decode v))
 
 /-- Stage-style expansion lifted to the intensity carrier. -/
 noncomputable def stageExpandAt
@@ -227,9 +242,9 @@ noncomputable def stageExpandAt
     (n : ℕ) :
     Carrier M → Carrier M :=
   fun v =>
-    Carrier.fromPoint (M := M) bounds normalised
-      (Tensor.Model.stageExpandAt (M := M.core) n
-        (Carrier.toPoint v))
+    Carrier.fromOmega (M := M) bounds normalised
+      (HeytingLean.Logic.Stage.DialParam.expandAtOmega
+        (α := α) (R := M.core.R) n (M.decode v))
 
 /-- Stage-style Occam reduction lifted to the intensity carrier. -/
 noncomputable def stageOccam
