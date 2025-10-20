@@ -8,11 +8,13 @@
 - **Dial coordinates**: `Logic/ModalDial.lean` packages ladder slices via `Stage.DialParam`.  Each dial stage supplies MV identities (`mvAdd_zero_{left,right}`, `mvAdd_comm`) and exposes the Heyting interior carried by the LoF nucleus.
 - **Collapse/expand invariants**: `collapseAt` projects any dial stage back to the Heyting core while `expandAt` re-inflates core data at height `n`.  The auxiliary lemmas across the bridges (`stageCollapseAt_eq`, `stageExpandAt_eq`, `stageOccam_encode`) now line up for graph/tensor/clifford carriers, so a single `simp` reduces collapse/expand/Occam terms to the underlying nucleus.  `Tests/Compliance.lean` exercises the invariants through the Alexandroff `processUpper` open-set carrier and the tensor/clifford compliance suites.
 - **Feature gating**: `Contracts.Examples.BridgeFlags.runtime` (the new default) enables the Alexandroff/intensity/projector carriers, while `BridgeFlags.legacy` preserves the pre-rollout path. `Contracts.Examples.selectSuite` together with `Runtime.bridgeSuite` packages the active tensor/graph/clifford packs, and the compliance suite validates both enriched and legacy transports via these presets.
+- **Runtime bootstrap**: the Python bindings now run `lake env lean --run Main` on import, so CLI and notebook workflows automatically pick up the enriched carriers when mirroring these proofs.  Set `HEYTINGLEAN_SKIP_RUNTIME_INIT=1` to opt out and invoke `generative_ontology.initialise_runtime_bridge_suite()` manually if needed.
 - **Breathing & reachability**: `Logic/PSR.lean` supplies the `Step`, `reachable`, `breathe`, and `birth` APIs.  Lemmas such as `breathe_le_of_sufficient`, `sufficient_reachable`, and `reachable_collapse` ensure reasons propagate along breaths without leaving the nucleus.  The Alexandroff scaffold keeps these paths open via `mem_stageCollapseAt`, `mem_stageExpandAt`, and `mem_stageOccam`.
 - **Euler breathing example**: the regression lemma `psr_breathe_euler_boundary` shows that every breath bounded by the Euler boundary remains inside it, giving a concrete breathing trace that aligns with the enriched runtime suite.
 - **Dimensional slices**: ladder stages index constructive-to-classical drift (`Ω_{R₁} ⊆ Ω_{R₂} ⊆ ⋯`).  Collapses land inside the constructive base, while expansions track bias introduced by enriched carriers (intensity vectors, Alexandroff opens, projectors).
 - **Narrative hooks** *(next steps)*: document how breathing sequences realise the Euler boundary story, add diagrams tying collapse/expand to dimensional re-entry, and produce worked examples that log stage transitions in compliance traces.
 
+- **Proof reference**: see `Docs/ProofNotes.md` for detailed contract lemmas behind each carrier.
 ## Effect Algebra Connection
 - The `clifford_encode_euler` example pairs Euler boundary data, hinting at effect-algebra behaviour (partial addition of orthogonal effects). The current projectors serve as the nucleus needed for effect-style reasoning.
 - The `clifford_encode_euler` example pairs Euler boundary data, hinting at effect-algebra behaviour (partial addition of orthogonal effects). The current projectors serve as the nucleus needed for effect-style reasoning, and the `Projector.Invariants` scaffold captures the collapse/expand/Occam closure data required for the enriched rollout.
@@ -23,3 +25,4 @@
 - Recommended follow-up: port existing orthomodular lattice facts from mathlib or author bespoke ones for `closed_subspace` projectors.
 
 This note captures the roadmap for enriching MV/effect/orthomodular semantics without blocking the Phase 5 review.
+

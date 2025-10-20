@@ -72,6 +72,11 @@ If you prefer to manage this yourself, set `HEYTINGLEAN_SKIP_RUNTIME_INIT=1`
 before importing the package and invoke `generative_ontology.initialise_runtime_bridge_suite()`
 when appropriate.
 
+```
+Note: The Python bridges remain pure-PyTorch/PyG; initialise the Lean runtime to
+reuse the enriched contracts when cross-checking proofs against runtime traces.
+```
+
 ## Architecture
 
 ```

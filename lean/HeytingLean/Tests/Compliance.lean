@@ -49,16 +49,16 @@ theorem tensor_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
     (Bridges.Tensor.Model.contract (Contracts.Examples.tensor (α := α) (R := R) n)).decode
         ((Bridges.Tensor.Model.contract (Contracts.Examples.tensor (α := α) (R := R) n)).encode a)
       = a := by
-  classical
-  simpa [Contracts.Examples.tensor]
-    using Contracts.Examples.tensor_round (α := α) (R := R) (n := n) (a := a)
+classical
+simpa [Contracts.Examples.tensor]
+using Contracts.Examples.tensor_round (α := α) (R := R) (n := n) (a := a)
 
 theorem tensor_intensity_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega) :
-    let model : Bridges.Tensor.Intensity.Model (α := α) :=
-      { core := Contracts.Examples.tensor (α := α) (R := R) n
-        profile :=
-          Bridges.Tensor.Intensity.Profile.ofPoint (α := α)
-            { ℓ1 := 0, ℓ2 := 0, ℓ1_nonneg := le_of_eq rfl, ℓ2_nonneg := le_of_eq rfl }
+let model : Bridges.Tensor.Intensity.Model (α := α) :=
+{ core := Contracts.Examples.tensor (α := α) (R := R) n
+profile :=
+Bridges.Tensor.Intensity.Profile.ofPoint (α := α)
+{ ℓ1 := 0, ℓ2 := 0, ℓ1_nonneg := le_of_eq rfl, ℓ2_nonneg := le_of_eq rfl }
             True
             (Bridges.Tensor.Model.encode (M := Contracts.Examples.tensor (α := α) (R := R) n)
               R.process)
@@ -958,8 +958,214 @@ theorem clifford_round_verified (R : Reentry α) (a : R.Omega) :
       M.contract.decode (M.contract.encode a) = a
   exact Contracts.Examples.clifford_round (α := α) (R := R) (a := a)
 
+/-! ### Cross-lens concurrency helpers -/
+
+namespace TraceConcurrency
+
+open Contracts.Examples
+open List
+
+inductive BridgeOp
+  | tensor
+  | graph
+  | clifford
+  deriving DecidableEq
+
+variable {α : Type u} [PrimaryAlgebra α] (R : Reentry α)
+
+structure BridgeState (suite : BridgeSuite (α := α) (R := R)) where
+  tensor : suite.tensor.Carrier
+  graph : suite.graph.Carrier
+  clifford : suite.clifford.Carrier
+
+@[simp] noncomputable def bridgeStep (suite : BridgeSuite (α := α) (R := R))
+    : BridgeOp → BridgeState (R := R) suite → BridgeState (R := R) suite
+  | BridgeOp.tensor, st =>
+      { st with
+        tensor :=
+          Contracts.stageOccam (R := R)
+            (C := suite.tensor.contract) st.tensor }
+  | BridgeOp.graph, st =>
+      { st with
+        graph :=
+          Contracts.stageOccam (R := R)
+            (C := suite.graph.contract) st.graph }
+  | BridgeOp.clifford, st =>
+      { st with
+        clifford :=
+          Contracts.stageOccam (R := R)
+            (C := suite.clifford.contract) st.clifford }
+
+lemma bridgeStep_comm (suite : BridgeSuite (α := α) (R := R))
+    {a b : BridgeOp} (h : a ≠ b)
+    (st : BridgeState (R := R) suite) :
+    bridgeStep (R := R) suite b (bridgeStep (R := R) suite a st)
+      = bridgeStep (R := R) suite a (bridgeStep (R := R) suite b st) := by
+  cases st with
+  | mk tensor graph clifford =>
+      cases a <;> cases b <;> simp [bridgeStep, *] at h ⊢
+
+@[simp] noncomputable def bridgeActWord (suite : BridgeSuite (α := α) (R := R)) :
+    List BridgeOp → BridgeState (R := R) suite → BridgeState (R := R) suite
+  | [], st => st
+  | op :: ops, st => bridgeActWord suite ops (bridgeStep (R := R) suite op st)
+
+lemma bridgeActWord_append (suite : BridgeSuite (α := α) (R := R))
+    (l w : List BridgeOp)
+    (st : BridgeState (R := R) suite) :
+    bridgeActWord (R := R) suite (l ++ w) st =
+      bridgeActWord (R := R) suite w
+        (bridgeActWord (R := R) suite l st) := by
+  induction l generalizing st with
+  | nil =>
+      simp [bridgeActWord]
+  | cons op l ih =>
+      simp [bridgeActWord, List.cons_append, ih]
+
+lemma bridgeActWord_swap_adjacent (suite : BridgeSuite (α := α) (R := R))
+    {a b : BridgeOp} (h : a ≠ b)
+    (tail : List BridgeOp)
+    (st : BridgeState (R := R) suite) :
+    bridgeActWord (R := R) suite (a :: b :: tail) st =
+      bridgeActWord (R := R) suite (b :: a :: tail) st := by
+  classical
+  have h_step :=
+    bridgeStep_comm (R := R) suite (a := a) (b := b) h st
+  simpa [bridgeActWord] using
+    congrArg (fun st' => bridgeActWord (R := R) suite tail st') h_step
+
+lemma bridgeActWord_swap_prefix (suite : BridgeSuite (α := α) (R := R))
+    {a b : BridgeOp} (h : a ≠ b)
+    (front : List BridgeOp) (tail : List BridgeOp)
+    (st : BridgeState (R := R) suite) :
+    bridgeActWord (R := R) suite (front ++ (a :: b :: tail)) st =
+      bridgeActWord (R := R) suite (front ++ (b :: a :: tail)) st := by
+  classical
+  have := bridgeActWord_swap_adjacent
+    (R := R) (suite := suite) (h := h) (tail := tail)
+    (st := bridgeActWord (R := R) suite front st)
+  simpa [bridgeActWord_append, List.append_assoc] using this
+
+lemma bridgeActWord_of_perm (suite : BridgeSuite (α := α) (R := R))
+    {ops ops' : List BridgeOp}
+    (h : ops ~ ops')
+    (st : BridgeState (R := R) suite) :
+    bridgeActWord (R := R) suite ops st =
+      bridgeActWord (R := R) suite ops' st := by
+  classical
+  revert st
+  induction h with
+  | nil =>
+      intro st
+      simp [bridgeActWord]
+  | cons a h ih =>
+      intro st
+      simpa [bridgeActWord] using ih (st := bridgeStep (R := R) suite a st)
+  | swap a b tail =>
+      intro st
+      by_cases h' : a = b
+      · subst h'
+        simp [bridgeActWord]
+      · exact (bridgeActWord_swap_adjacent
+          (R := R) (suite := suite) (h := h') (tail := tail) (st := st)).symm
+  | trans _ _ ih₁ ih₂ =>
+      intro st
+      exact (ih₁ st).trans (ih₂ st)
+
+@[simp] lemma bridgeActWord_singleton_tensor
+    (suite : BridgeSuite (α := α) (R := R))
+    (st : BridgeState (R := R) suite) :
+    bridgeActWord (R := R) suite [BridgeOp.tensor] st =
+      bridgeStep (R := R) suite BridgeOp.tensor st := by
+  simp [bridgeActWord]
+
+lemma bridge_tensor_graph_commute
+    (flags : BridgeFlags := BridgeFlags.default)
+    (suite := selectSuite (α := α) (R := R) flags)
+    (st : BridgeState (R := R) suite) :
+    bridgeStep (R := R) suite BridgeOp.tensor
+      (bridgeStep (R := R) suite BridgeOp.graph st)
+      =
+    bridgeStep (R := R) suite BridgeOp.graph
+      (bridgeStep (R := R) suite BridgeOp.tensor st) := by
+  classical
+  exact bridgeStep_comm (R := R) suite (a := BridgeOp.tensor)
+    (b := BridgeOp.graph) (st := st) (by decide)
+
+lemma bridge_graph_clifford_commute
+    (flags : BridgeFlags := BridgeFlags.default)
+    (suite := selectSuite (α := α) (R := R) flags)
+    (st : BridgeState (R := R) suite) :
+    bridgeStep (R := R) suite BridgeOp.graph
+      (bridgeStep (R := R) suite BridgeOp.clifford st)
+      =
+    bridgeStep (R := R) suite BridgeOp.clifford
+      (bridgeStep (R := R) suite BridgeOp.graph st) := by
+  classical
+  exact bridgeStep_comm (R := R) suite (a := BridgeOp.graph)
+    (b := BridgeOp.clifford) (st := st) (by decide)
+
+lemma bridge_tensor_clifford_commute
+    (flags : BridgeFlags := BridgeFlags.default)
+    (suite := selectSuite (α := α) (R := R) flags)
+    (st : BridgeState (R := R) suite) :
+    bridgeStep (R := R) suite BridgeOp.tensor
+      (bridgeStep (R := R) suite BridgeOp.clifford st)
+      =
+    bridgeStep (R := R) suite BridgeOp.clifford
+      (bridgeStep (R := R) suite BridgeOp.tensor st) := by
+  classical
+  exact bridgeStep_comm (R := R) suite (a := BridgeOp.tensor)
+    (b := BridgeOp.clifford) (st := st) (by decide)
+
+end TraceConcurrency
+
+open TraceConcurrency
+open Contracts.Examples
+open List
+
+@[simp] lemma bridge_occam_swap_tensor_graph
+    (flags : BridgeFlags := BridgeFlags.default)
+    (suite := selectSuite (α := α) (R := R) flags)
+    (st : TraceConcurrency.BridgeState (R := R) suite) :
+    TraceConcurrency.bridgeActWord (R := R) suite
+        [BridgeOp.tensor, BridgeOp.graph] st
+      =
+    TraceConcurrency.bridgeActWord (R := R) suite
+        [BridgeOp.graph, BridgeOp.tensor] st := by
+  classical
+  have hperm : List.Perm [BridgeOp.tensor, BridgeOp.graph] [BridgeOp.graph, BridgeOp.tensor] :=
+    (List.Perm.swap BridgeOp.tensor BridgeOp.graph ([] : List BridgeOp)).symm
+  exact TraceConcurrency.bridgeActWord_of_perm
+    (R := R) (suite := suite) hperm st
+
+@[simp] lemma bridge_occam_rotate_tensor_graph_clifford
+    (flags : BridgeFlags := BridgeFlags.default)
+    (suite := selectSuite (α := α) (R := R) flags)
+    (st : TraceConcurrency.BridgeState (R := R) suite) :
+    TraceConcurrency.bridgeActWord (R := R) suite
+        [BridgeOp.tensor, BridgeOp.graph, BridgeOp.clifford] st
+      =
+    TraceConcurrency.bridgeActWord (R := R) suite
+        [BridgeOp.graph, BridgeOp.clifford, BridgeOp.tensor] st := by
+  classical
+  have h₁ :
+      List.Perm [BridgeOp.tensor, BridgeOp.graph, BridgeOp.clifford]
+        [BridgeOp.graph, BridgeOp.tensor, BridgeOp.clifford] :=
+    (List.Perm.swap BridgeOp.tensor BridgeOp.graph [BridgeOp.clifford]).symm
+  have h₂ :
+      List.Perm [BridgeOp.graph, BridgeOp.tensor, BridgeOp.clifford]
+        [BridgeOp.graph, BridgeOp.clifford, BridgeOp.tensor] :=
+    List.Perm.cons BridgeOp.graph
+      ((List.Perm.swap BridgeOp.tensor BridgeOp.clifford ([] : List BridgeOp)).symm)
+  have hperm := h₁.trans h₂
+  exact TraceConcurrency.bridgeActWord_of_perm
+    (R := R) (suite := suite) hperm st
+
 end Tests
 end HeytingLean
+attribute [simp] HeytingLean.Tests.TraceConcurrency.bridgeActWord_of_perm
+attribute [simp] HeytingLean.Tests.TraceConcurrency.bridgeActWord_singleton_tensor
 attribute [simp] HeytingLean.Bridges.Graph.Model.adjacency_iff_le
 
 attribute [aesop safe apply]

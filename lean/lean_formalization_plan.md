@@ -98,9 +98,9 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
    - Add automation lemmas/tactics for ladder proofs.
 
 2. **Enhance Bridge Carriers**
-   - Specify projector invariants for the Clifford scaffold (Alexandroff opens ✅).
-   - Prepare feature-flag rollout once projector data land.
-   - Update compliance harnesses so enriched carriers stay covered.
+   - Specify projector invariants for the Clifford scaffold (Alexandroff opens ✅, projector suite wired into runtime CLI/`generative_ontology` ✅; remaining work is fine-grained projector automation).
+   - Monitor the feature-flag rollout now that the enriched carriers are the documented default.
+   - Keep compliance harnesses aligned as projector invariants expand (**done:** permutation lemmas now cover tensor/graph/clifford traces).
 
 3. **Lint & Automation Sweep**
    - Resolve `simp` vs `simpa`, unused section variables.
@@ -117,9 +117,9 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
 
 ## Outstanding TODOs
 
-1. Adopt `Contracts.Examples.selectSuite` in the runtime selectors (surface flag combos + defaults).
-2. Switch transports to enriched carriers once the  paths are vetted (feature-flagged rollout).
-3. Expand cross-lens contracts with trace-monoid automation.
+1. ✅ Adopt `Contracts.Examples.selectSuite` in the runtime selectors (surface flag combos + defaults).
+2. ✅ Switch transports to enriched carriers once the flagged paths are vetted (feature-flagged rollout).
+3. ✅ Expand cross-lens contracts with trace-monoid automation.
 4. Finish lint cleanup and add breathing-cycle examples.
 5. Publish narrative docs/appendices.
 6. Track mathlib gaps (effect/MV/orthomodular/projector support).

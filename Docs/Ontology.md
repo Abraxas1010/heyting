@@ -7,6 +7,7 @@
 - The Euler boundary `R.eulerBoundary` is defined by infimizing over positive fixed points, ensuring uniqueness up to the minimal process.
 - Compliance covers disjointness (`process_inf_counter`) and positivity (`eulerBoundary_pos`).
 
+- **Proof reference**: see `Docs/ProofNotes.md` for the bridge transport guarantees and permutation lemmas referenced here.
 ## Ladder & Modal Breathing
 
 - The residuated ladder (lean/HeytingLean/Logic/ResiduatedLadder.lean) now specializes deduction/abduction/induction to `R.eulerBoundary` and retains collapse behaviour.
@@ -18,6 +19,7 @@
 
 - Tensor/Graph/Clifford bridges encode the Euler boundary into concrete carriers (lean/HeytingLean/Bridges/*.lean).
 - Compliance tests (`lean/HeytingLean/Tests/Compliance.lean`) assert the encoded outputs and θ-cycle arithmetic, and exercise Boolean collapses via `boolean_limit_verified`.
+- Python bindings now bootstrap the Lean runtime (`lake env lean --run Main`) on import, so downstream scripts automatically pick up the enriched tensor/graph/Clifford carriers when mirroring these proofs.
 
 ## Boolean Limit & Documentation
 
@@ -36,3 +38,4 @@ To illustrate the breathing cycle concretely:
 5. Finally, `boolean_limit_verified` demonstrates the Boolean limit in the identity-nucleus regime, capturing the classical endpoint of the ladder.
 
 These steps provide a narrative recipe the team can follow during reviews or demonstrations, referencing compiled lemmas rather than prose alone.
+
