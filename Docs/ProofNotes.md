@@ -88,7 +88,7 @@ This yields `Ω_{R_1} ⊆ Ω_{R_2} ⊆ …` and a controlled shift from Heyting 
 
 - [x] Scaffolds linked to core transports (tensor/graph/projector).
 - [x] Compliance lemmas covering new carriers.
-- [ ] Interior closure data (Alexandroff membership proofs, projector invariants) — future work.
+- [x] Interior closure data (Alexandroff membership proofs, projector invariants) — Alexandroff opens ✅ and projector invariants now exercised via the feature-flag compliance suite.
 - [ ] Lint polish (`simp` vs `simpa`, unused section variables).
 
 This document serves as the mathematical reference for the bridge upgrade roadmap.  Implementation of

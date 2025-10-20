@@ -203,6 +203,26 @@ lemma actTrace_well_defined (C : ConcurrencySystem Σ I)
           simpa [List.append_assoc] using
             funext (fun s => (ih s).trans (hswap s))
 
+/-- Acting with the empty trace leaves the state unchanged. -/
+@[simp] lemma actTrace_one (C : ConcurrencySystem Σ I) (s : C.State) :
+    C.actTrace (1 : Trace.TraceMonoid Σ I) s = s := by
+  change C.actWord [] s = s
+  simpa using C.act_nil s
+
+/-- Trace action composes multiplicatively. -/
+@[simp] lemma actTrace_mul (C : ConcurrencySystem Σ I)
+    (x y : Trace.TraceMonoid Σ I) (s : C.State) :
+    C.actTrace (x * y) s = C.actTrace y (C.actTrace x s) := by
+  refine Quot.induction_on₂ x y ?_ ; intro w₁ w₂
+  change C.actWord (w₁ ++ w₂) s =
+      C.actWord w₂ (C.actWord w₁ s)
+  induction w₁ generalizing s with
+  | nil =>
+      simp [C.act_nil]
+  | cons a w ih =>
+      intro s
+      simp [C.act_cons, ih, List.append_assoc]
+
 end ConcurrencySystem
 
 end Trace

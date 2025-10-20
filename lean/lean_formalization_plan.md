@@ -69,7 +69,7 @@ Modal ladder and residuation equivalence complete. **Next:** document ladder sem
 
 ### 5. Bridge Realisations *(status: ✅ transports, 📌 carrier enrichment rollout)*
 
-Tensor/Graph/Clifford bridges share transports, and scaffolds (`Tensor/Intensity`, `Graph/Alexandroff`, `Clifford/Projector`) reuse core encode/decode/contract APIs with compliance coverage. **Next:** add openness/projector invariants, plan feature-flagged carrier rollout, and confirm compliance coverage across the enriched carrier paths.
+Tensor/Graph/Clifford bridges share transports, and scaffolds (`Tensor/Intensity`, `Graph/Alexandroff`, `Clifford/Projector`) reuse core encode/decode/contract APIs with compliance coverage. Stage automation (`stageCollapseAt_eq`, `stageExpandAt_eq`, `stageOccam_encode`) now lands uniformly across the carriers, so collapse/expand/Occam rewrites reduce to core nuclei with a single `simp`. **Next:** fold in the remaining carrier invariants—Alexandroff opens ✅, projector data pending—then feature-flag the enriched rollout and confirm compliance coverage across the new paths.
 
 ### 6. Cross-Lens Contracts *(status: ✅ base cases, 📌 automation)*
 
@@ -98,8 +98,8 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
    - Add automation lemmas/tactics for ladder proofs.
 
 2. **Enhance Bridge Carriers**
-   - Specify openness/projector invariants for the Alexandroff/projector scaffolds.
-   - Prepare feature-flag rollout once invariants/closure data are ready.
+   - Specify projector invariants for the Clifford scaffold (Alexandroff opens ✅).
+   - Prepare feature-flag rollout once projector data land.
    - Update compliance harnesses so enriched carriers stay covered.
 
 3. **Lint & Automation Sweep**
@@ -117,13 +117,13 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
 
 ## Outstanding TODOs
 
-1. Document ladder collapse/expand + reachability in docs.
-2. Introduce automation support for ladder/bridge proofs.
-3. Switch transports to enriched carriers once invariants land (feature-flagged rollout).
-4. Expand cross-lens contracts with trace-monoid automation.
-5. Finish lint cleanup and add breathing-cycle examples.
-6. Publish narrative docs/appendices.
-7. Track mathlib gaps (effect/MV/orthomodular/projector support).
+1. Adopt `Contracts.Examples.selectSuite` in the runtime selectors (surface flag combos + defaults).
+2. Switch transports to enriched carriers once the  paths are vetted (feature-flagged rollout).
+3. Expand cross-lens contracts with trace-monoid automation.
+4. Finish lint cleanup and add breathing-cycle examples.
+5. Publish narrative docs/appendices.
+6. Track mathlib gaps (effect/MV/orthomodular/projector support).
+7. Extend the enriched bridge packs beyond round-trip (automation, stage lemmas) and propagate into downstream integrations.
 
 ## Milestones
 

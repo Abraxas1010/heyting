@@ -48,5 +48,17 @@ lemma stageOccam_spec (R : Reentry α) {β : Type v}
   unfold stageOccam interiorized
   simp [Epistemic.occam_idempotent, C.round]
 
+@[simp] lemma stageOccam_encode (R : Reentry α) {β : Type v}
+    (C : RoundTrip (R := R) β) (a : R.Omega) :
+    stageOccam (R := R) (C := C) (C.encode a) =
+      C.encode
+        (Reentry.Omega.mk (R := R)
+          (Epistemic.occam (R := R) (a : α))
+          (Epistemic.occam_idempotent (R := R) (a := (a : α)))) := by
+  classical
+  unfold stageOccam
+  have hround := C.round a
+  simp [hround]
+
 end Contracts
 end HeytingLean

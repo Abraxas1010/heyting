@@ -1,8 +1,10 @@
 import Mathlib.Algebra.Star.Basic
 import HeytingLean.Bridges.Clifford
 import HeytingLean.Contracts.RoundTrip
+import HeytingLean.Logic.StageSemantics
 
 open HeytingLean.LoF
+open HeytingLean.Logic Stage
 
 /-
 Projector scaffolding for the Clifford bridge upgrade. Projector nets will realise the orthomodular
@@ -156,6 +158,22 @@ noncomputable def stageOccam (M : Model (α := α) (β := β)) :
     Carrier M → Carrier M :=
   Contracts.stageOccam (R := M.core.R) (C := M.contract)
 
+@[simp] lemma stageOccam_encode
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) (a : M.core.R.Omega) :
+    M.stageOccam (M.contract.encode a) =
+      M.contract.encode
+        (Reentry.Omega.mk (R := M.core.R)
+          (HeytingLean.Epistemic.occam (R := M.core.R) (a : α))
+          (HeytingLean.Epistemic.occam_idempotent
+            (R := M.core.R) (a := (a : α)))) := by
+  classical
+  unfold Model.stageOccam
+  exact
+    HeytingLean.Contracts.stageOccam_encode
+      (R := M.core.R) (C := M.contract) a
+
 end Model
 
 end
@@ -232,6 +250,57 @@ namespace Model
   classical
   unfold Model.stageOccam Contracts.stageOccam
   simp [Model.contract]
+
+/-- Projected subspace determined by the core projector. -/
+def projected
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) :
+    Set (Clifford.Pair α) :=
+  {p | M.core.project p = p}
+
+/-- Closure invariants required for the enriched projector rollout. -/
+structure Invariants
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) : Prop where
+  collapseClosed :
+    ∀ n (c : Carrier M),
+      Carrier.toPair (M.stageCollapseAt n c) ∈ projected (M := M)
+  expandClosed :
+    ∀ n (c : Carrier M),
+      Carrier.toPair (M.stageExpandAt n c) ∈ projected (M := M)
+  occamClosed :
+    ∀ c : Carrier M,
+      Carrier.toPair (M.stageOccam c) ∈ projected (M := M)
+  axisClosed :
+    Carrier.toPair (M.encode M.core.R.eulerBoundary) ∈ projected (M := M)
+
+/-- The current scaffold already satisfies the closure invariants thanks to the core projector. -/
+def invariants
+    {α : Type v} [PrimaryAlgebra α]
+    {β : Type u} [Mul β] [Star β]
+    (M : Model (α := α) (β := β)) : Invariants (M := M) :=
+{ collapseClosed := by
+    intro n c
+    refine Set.mem_setOf_eq.mpr ?_
+    exact
+      core_project_stageCollapseAt (M := M) (n := n) (c := c)
+  expandClosed := by
+    intro n c
+    refine Set.mem_setOf_eq.mpr ?_
+    exact
+      core_project_stageExpandAt (M := M) (n := n) (c := c)
+  occamClosed := by
+    intro c
+    refine Set.mem_setOf_eq.mpr ?_
+    exact
+      core_project_stageOccam (M := M) (c := c)
+  axisClosed := by
+    refine Set.mem_setOf_eq.mpr ?_
+    exact
+      core_project_encode (M := M) (a := M.core.R.eulerBoundary) }
+
 
 end Model
 

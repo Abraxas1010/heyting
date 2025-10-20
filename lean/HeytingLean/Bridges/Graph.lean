@@ -220,6 +220,18 @@ variable {α : Type u} [PrimaryAlgebra α]
   classical
   simp [Model.stageExpandAt, Model.decode_encode]
 
+@[simp] lemma stageOccam_encode (M : Model α) (a : M.R.Omega) :
+    M.stageOccam (M.contract.encode a) =
+      M.contract.encode
+        (Reentry.Omega.mk (R := M.R)
+          (Epistemic.occam (R := M.R) (a : α))
+          (Epistemic.occam_idempotent (R := M.R) (a := (a : α)))) := by
+  classical
+  unfold Model.stageOccam
+  exact
+    HeytingLean.Contracts.stageOccam_encode
+      (R := M.R) (C := M.contract) a
+
 @[simp] lemma logicalShadow_stageMvAdd_encode (M : Model α) (a b : M.R.Omega) :
     M.logicalShadow
         (M.stageMvAdd (M.contract.encode a) (M.contract.encode b))
@@ -272,7 +284,7 @@ variable {α : Type u} [PrimaryAlgebra α]
         (HeytingLean.Logic.Modal.DialParam.collapseAt
           (α := α) (R := M.R) n (a : α)) := by
   classical
-  simp [stageCollapseAt_encode, Model.logicalShadow_encode']
+  simp [Model.logicalShadow_encode']
 
 @[simp] lemma logicalShadow_stageExpandAt_encode
     (M : Model α) (n : ℕ) (a : M.R.Omega) :
@@ -282,7 +294,7 @@ variable {α : Type u} [PrimaryAlgebra α]
         (HeytingLean.Logic.Modal.DialParam.expandAt
           (α := α) (R := M.R) n (a : α)) := by
   classical
-  simp [stageExpandAt_encode, Model.logicalShadow_encode']
+  simp [Model.logicalShadow_encode']
 
 end Model
 

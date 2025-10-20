@@ -1,8 +1,14 @@
 import HeytingLean.Contracts.RoundTrip
 import HeytingLean.Bridges.RoundTrip
 import HeytingLean.Bridges.Tensor
+import HeytingLean.Bridges.Tensor.Intensity
 import HeytingLean.Bridges.Graph
+import HeytingLean.Bridges.Graph.Alexandroff
 import HeytingLean.Bridges.Clifford
+import HeytingLean.Bridges.Clifford.Projector
+import HeytingLean.Bridges.Clifford.Projector
+import Mathlib.Algebra.Star.Basic
+import Mathlib.Data.Complex.Basic
 
 /-!
 # Contract examples
@@ -114,6 +120,168 @@ def clifford : HeytingLean.Bridges.Clifford.Model α :=
         R (a ⇨ b) := by
   classical
   simp [clifford]
+
+/-! ## Feature flags and enriched bridge packs -/
+
+/-- Feature toggles controlling which enriched bridge carriers are selected. -/
+structure BridgeFlags where
+  useTensorIntensity : Bool := False
+  useGraphAlexandroff : Bool := False
+  useCliffordProjector : Bool := False
+  deriving DecidableEq, Repr, Inhabited
+
+/-- Legacy bridge flags with all enrichments disabled. -/
+def BridgeFlags.legacy : BridgeFlags := {}
+
+/-- Runtime bridge flags enabling every enriched carrier documented in `Docs/Semantics.md`. -/
+def BridgeFlags.runtime : BridgeFlags :=
+  { BridgeFlags.legacy with
+      useTensorIntensity := True
+      useGraphAlexandroff := True
+      useCliffordProjector := True }
+
+/-- Default bridge flags (runtime rollout of the enriched carriers). -/
+def BridgeFlags.default : BridgeFlags := BridgeFlags.runtime
+
+/-- Toggle enabling only the Alexandroff graph carrier. -/
+def alexandroffFlags : BridgeFlags :=
+  { BridgeFlags.legacy with useGraphAlexandroff := True }
+
+/-- Toggle enabling only the tensor intensity carrier. -/
+def intensityFlags : BridgeFlags :=
+  { BridgeFlags.legacy with useTensorIntensity := True }
+
+/-- Bridge execution pack: a carrier together with its round-trip contract. -/
+structure BridgePack (R : Reentry α) where
+  Carrier : Type u
+  contract : RoundTrip (R := R) Carrier
+
+/-- Collection of bridge packs for the tensor, graph, and Clifford lenses. -/
+structure BridgeSuite (R : Reentry α) where
+  tensor : BridgePack (α := α) (R := R)
+  graph  : BridgePack (α := α) (R := R)
+  clifford : BridgePack (α := α) (R := R)
+
+open scoped Classical
+
+/-- Canonical projector model used when the projector feature flag is enabled. -/
+noncomputable def projectorModel (R : Reentry α) :
+    HeytingLean.Bridges.Clifford.Projector.Model (α := α) (β := ℂ) :=
+  { core := clifford α R
+    projector :=
+      { axis := (0 : ℂ)
+        idempotent := by simp
+        selfAdjoint := by simp }
+    stabilised := True }
+
+/-- Convenience flag enabling the projector carrier. -/
+def projectorFlags : BridgeFlags :=
+  { BridgeFlags.legacy with useCliffordProjector := True }
+
+/-- Default intensity model used when promoting the tensor bridge. -/
+noncomputable def tensorIntensityModel (R : Reentry α) :
+    Bridges.Tensor.Intensity.Model (α := α) :=
+  { core := tensor α R 0
+    profile :=
+      Bridges.Tensor.Intensity.Profile.ofPoint (α := α)
+        { ℓ1 := 0, ℓ2 := 0
+          ℓ1_nonneg := le_of_eq rfl
+          ℓ2_nonneg := le_of_eq rfl }
+        True
+        (Bridges.Tensor.Model.encode (M := tensor α R 0) R.process)
+    dim_consistent := rfl }
+
+/-- Select the graph bridge based on feature flags. -/
+noncomputable def graphPack (R : Reentry α)
+    (flags : BridgeFlags := BridgeFlags.default) :
+    BridgePack (α := α) (R := R) :=
+by
+  classical
+  by_cases h : flags.useGraphAlexandroff
+  ·
+    let model := Bridges.Graph.Alexandroff.Model.univ
+        (α := α) (core := graph α R)
+    have hR : model.core.R = R := by
+      dsimp [model]
+      rfl
+    have hcontr : RoundTrip (R := model.core.R)
+        (Bridges.Graph.Alexandroff.Model.Carrier (M := model)) :=
+      Bridges.Graph.Alexandroff.Model.contract (M := model)
+    refine
+      { Carrier := Bridges.Graph.Alexandroff.Model.Carrier (M := model)
+        contract := ?_ }
+    simpa [hR] using hcontr
+  · exact
+      { Carrier := Bridges.Graph.Model.Carrier (graph α R)
+        contract := Bridges.Graph.Model.contract (graph α R) }
+
+/-- Select the tensor bridge based on feature flags. -/
+noncomputable def tensorPack (R : Reentry α)
+    (flags : BridgeFlags := BridgeFlags.default) :
+    BridgePack (α := α) (R := R) :=
+by
+  classical
+  by_cases h : flags.useTensorIntensity
+  ·
+    let model := tensorIntensityModel (α := α) (R := R)
+    have hR : model.core.R = R := by
+      dsimp [model, tensorIntensityModel]
+      rfl
+    have hcontr : RoundTrip (R := model.core.R)
+        (Bridges.Tensor.Intensity.Model.Carrier (M := model)) :=
+      Bridges.Tensor.Intensity.Model.contract
+        (M := model)
+        (bounds := model.profile.bounds)
+        (normalised := True)
+    refine
+      { Carrier := Bridges.Tensor.Intensity.Model.Carrier (M := model)
+        contract := ?_ }
+    simpa [hR] using hcontr
+  · exact
+      { Carrier := Bridges.Tensor.Model.Carrier (tensor α R 0)
+        contract := Bridges.Tensor.Model.contract (tensor α R 0) }
+
+/-- Select the Clifford bridge based on feature flags, returning the appropriate pack. -/
+noncomputable def cliffordPack (R : Reentry α)
+    (flags : BridgeFlags := BridgeFlags.default) :
+    BridgePack (α := α) (R := R) :=
+by
+  classical
+  by_cases h : flags.useCliffordProjector
+  ·
+    let model := projectorModel (α := α) (R := R)
+    have hR : model.core.R = R := by
+      dsimp [model, projectorModel]
+      rfl
+    have hcontr : RoundTrip (R := model.core.R)
+        (Bridges.Clifford.Projector.Model.Carrier (M := model)) :=
+      Bridges.Clifford.Projector.Model.contract (M := model)
+    refine
+      { Carrier := Bridges.Clifford.Projector.Model.Carrier (M := model)
+        contract := ?_ }
+    simpa [hR] using hcontr
+  · exact
+      { Carrier := Bridges.Clifford.Model.Carrier (clifford α R)
+        contract := Bridges.Clifford.Model.contract (clifford α R) }
+
+/-- Assemble bridge packs according to the requested feature flags. -/
+noncomputable def selectSuite (R : Reentry α)
+    (flags : BridgeFlags := BridgeFlags.default) :
+    BridgeSuite (α := α) (R := R) :=
+  { tensor := tensorPack (α := α) (R := R) flags
+    graph := graphPack (α := α) (R := R) flags
+    clifford := cliffordPack (α := α) (R := R) flags }
+
+/-- Legacy bridge suite retaining the pre-rollout carriers. -/
+noncomputable def legacySuite (R : Reentry α) :
+    BridgeSuite (α := α) (R := R) :=
+  selectSuite (α := α) (R := R) BridgeFlags.legacy
+
+/-- Default bridge suite used at runtime, selecting the enriched carriers. -/
+noncomputable def defaultSuite (R : Reentry α) :
+    BridgeSuite (α := α) (R := R) :=
+  selectSuite (α := α) (R := R) BridgeFlags.default
+
 end Examples
 end Contracts
 end HeytingLean

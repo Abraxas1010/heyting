@@ -14,6 +14,8 @@ import HeytingLean.LoF.HeytingCore
 import HeytingLean.Epistemic.Occam
 import HeytingLean.Logic.PSR
 import HeytingLean.Logic.Dialectic
+import HeytingLean.Runtime.BridgeSuite
+import Aesop
 
 open HeytingLean.LoF
 open HeytingLean.Ontology
@@ -70,6 +72,17 @@ theorem tensor_intensity_round_verified (R : Reentry α) (n : ℕ) (a : R.Omega)
     Bridges.Tensor.Intensity.Model.decode_encode
       (M := model) (bounds := model.profile.bounds) (normalised := True) (a := a)
 
+theorem runtime_tensor_round_verified (R : Reentry α) (a : R.Omega) :
+    let suite := HeytingLean.Runtime.bridgeSuite (α := α) (R := R)
+    suite.tensor.contract.decode (suite.tensor.contract.encode a) = a := by
+  classical
+  dsimp [HeytingLean.Runtime.bridgeSuite, HeytingLean.Runtime.bridgeFlags,
+    Contracts.Examples.selectSuite] -- inline the suite definition
+  simp [Contracts.Examples.tensorPack, Contracts.Examples.tensorIntensityModel,
+    Contracts.Examples.BridgeFlags.runtime,
+    Bridges.Tensor.Intensity.Model.contract,
+    Bridges.Tensor.Intensity.Model.decode_encode]
+
 theorem graph_shadow_verified (R : Reentry α) (a : R.Omega) :
     (Bridges.Graph.Model.logicalShadow (Contracts.Examples.graph (α := α) (R := R)))
         ((Bridges.Graph.Model.contract (Contracts.Examples.graph (α := α) (R := R))).encode a)
@@ -91,6 +104,60 @@ theorem graph_alexandroff_round_verified (R : Reentry α) (a : R.Omega) :
   classical
   intro model
   exact Bridges.Graph.Alexandroff.Model.decode_encode (M := model) (a := a)
+
+theorem runtime_graph_round_verified (R : Reentry α) (a : R.Omega) :
+    let suite := HeytingLean.Runtime.bridgeSuite (α := α) (R := R)
+    suite.graph.contract.decode (suite.graph.contract.encode a) = a := by
+  classical
+  dsimp [HeytingLean.Runtime.bridgeSuite, HeytingLean.Runtime.bridgeFlags,
+    Contracts.Examples.selectSuite]
+  simp [Contracts.Examples.graphPack, Contracts.Examples.BridgeFlags.runtime,
+    Bridges.Graph.Alexandroff.Model.contract]
+
+theorem graph_alexandroff_process_collapse (R : Reentry α)
+    (n : ℕ) (x : α)
+    (hx :
+      (Bridges.Graph.Alexandroff.Model.processUpper
+          (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).memOpen x) :
+    (Bridges.Graph.Alexandroff.Model.processUpper
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).memOpen
+      (Bridges.Graph.Model.stageCollapseAt
+        (M := Contracts.Examples.graph (α := α) (R := R)) n x) :=
+  Bridges.Graph.Alexandroff.Model.mem_stageCollapseAt
+    (M :=
+      Bridges.Graph.Alexandroff.Model.processUpper
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R)))
+    (n := n) hx
+
+theorem graph_alexandroff_process_expand (R : Reentry α)
+    (n : ℕ) (x : α)
+    (hx :
+      (Bridges.Graph.Alexandroff.Model.processUpper
+          (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).memOpen x) :
+    (Bridges.Graph.Alexandroff.Model.processUpper
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).memOpen
+      (Bridges.Graph.Model.stageExpandAt
+        (M := Contracts.Examples.graph (α := α) (R := R)) n x) :=
+  Bridges.Graph.Alexandroff.Model.mem_stageExpandAt
+    (M :=
+      Bridges.Graph.Alexandroff.Model.processUpper
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R)))
+    (n := n) hx
+
+theorem graph_alexandroff_process_occam (R : Reentry α)
+    (x : α)
+    (hx :
+      (Bridges.Graph.Alexandroff.Model.processUpper
+          (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).memOpen x) :
+    (Bridges.Graph.Alexandroff.Model.processUpper
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).memOpen
+      (Bridges.Graph.Model.stageOccam
+        (M := Contracts.Examples.graph (α := α) (R := R)) x) :=
+  Bridges.Graph.Alexandroff.Model.mem_stageOccam
+    (M :=
+      Bridges.Graph.Alexandroff.Model.processUpper
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R)))
+    hx
 
 /-- Triangle (TRI-1): deduction, abduction, and induction coincide on the Heyting core. -/
 theorem residuated_triangle_verified (R : Reentry α)
@@ -227,16 +294,130 @@ theorem clifford_encode_euler (R : Reentry α) :
     Reentry.eulerBoundary_eq_process, Reentry.process_coe]
 
 theorem clifford_projector_round_verified (R : Reentry α) (a : R.Omega) :
-    let model : Bridges.Clifford.Projector.Model (α := α) (β := ℝ) :=
+    let model : Bridges.Clifford.Projector.Model (α := α) (β := ℂ) :=
       { core := Contracts.Examples.clifford (α := α) (R := R)
         projector :=
-          { axis := (0 : ℝ)
+          { axis := (0 : ℂ)
             idempotent := by simp
             selfAdjoint := by simp } }
   model.decode (model.encode a) = a := by
   classical
   intro model
   exact Bridges.Clifford.Projector.Model.decode_encode (M := model) (a := a)
+
+theorem runtime_clifford_round_verified (R : Reentry α) (a : R.Omega) :
+    let suite := HeytingLean.Runtime.bridgeSuite (α := α) (R := R)
+    suite.clifford.contract.decode (suite.clifford.contract.encode a) = a := by
+  classical
+  dsimp [HeytingLean.Runtime.bridgeSuite, HeytingLean.Runtime.bridgeFlags,
+    Contracts.Examples.selectSuite]
+  simp [Contracts.Examples.cliffordPack, Contracts.Examples.projectorModel,
+    Contracts.Examples.BridgeFlags.runtime,
+    Bridges.Clifford.Projector.Model.contract,
+    Bridges.Clifford.Projector.Model.decode_encode]
+
+theorem clifford_projector_invariants_verified (R : Reentry α) :
+    let model := Contracts.Examples.projectorModel (α := α) (R := R)
+    Bridges.Clifford.Projector.Model.Invariants (M := model) := by
+  classical
+  intro model
+  simpa using Bridges.Clifford.Projector.Model.invariants (M := model)
+
+theorem clifford_projector_collapse_closed (R : Reentry α)
+    (n : ℕ)
+    (c :
+      Bridges.Clifford.Projector.Model.Carrier
+        (M := Contracts.Examples.projectorModel (α := α) (R := R))) :
+    Bridges.Clifford.Projector.Model.projected
+        (M := Contracts.Examples.projectorModel (α := α) (R := R))
+        (Bridges.Clifford.Projector.Model.Carrier.toPair
+          (Bridges.Clifford.Projector.Model.stageCollapseAt
+            (M := Contracts.Examples.projectorModel (α := α) (R := R)) n c)) := by
+  classical
+  have h :=
+    Bridges.Clifford.Projector.Model.invariants
+      (M := Contracts.Examples.projectorModel (α := α) (R := R))
+  exact h.collapseClosed n c
+
+theorem clifford_projector_expand_closed (R : Reentry α)
+    (n : ℕ)
+    (c :
+      Bridges.Clifford.Projector.Model.Carrier
+        (M := Contracts.Examples.projectorModel (α := α) (R := R))) :
+    Bridges.Clifford.Projector.Model.projected
+        (M := Contracts.Examples.projectorModel (α := α) (R := R))
+        (Bridges.Clifford.Projector.Model.Carrier.toPair
+          (Bridges.Clifford.Projector.Model.stageExpandAt
+            (M := Contracts.Examples.projectorModel (α := α) (R := R)) n c)) := by
+  classical
+  have h :=
+    Bridges.Clifford.Projector.Model.invariants
+      (M := Contracts.Examples.projectorModel (α := α) (R := R))
+  exact h.expandClosed n c
+
+theorem clifford_projector_occam_closed (R : Reentry α)
+    (c :
+      Bridges.Clifford.Projector.Model.Carrier
+        (M := Contracts.Examples.projectorModel (α := α) (R := R))) :
+    Bridges.Clifford.Projector.Model.projected
+        (M := Contracts.Examples.projectorModel (α := α) (R := R))
+        (Bridges.Clifford.Projector.Model.Carrier.toPair
+          (Bridges.Clifford.Projector.Model.stageOccam
+            (M := Contracts.Examples.projectorModel (α := α) (R := R)) c)) := by
+  classical
+  have h :=
+    Bridges.Clifford.Projector.Model.invariants
+      (M := Contracts.Examples.projectorModel (α := α) (R := R))
+  exact h.occamClosed c
+
+theorem clifford_projector_axis_closed (R : Reentry α) :
+    Bridges.Clifford.Projector.Model.projected
+        (M := Contracts.Examples.projectorModel (α := α) (R := R))
+        (Bridges.Clifford.Projector.Model.Carrier.toPair
+          ((Contracts.Examples.projectorModel (α := α) (R := R)).encode
+            (Contracts.Examples.projectorModel (α := α) (R := R)).core.R.eulerBoundary)) := by
+  classical
+  have h :=
+    Bridges.Clifford.Projector.Model.invariants
+      (M := Contracts.Examples.projectorModel (α := α) (R := R))
+  simpa using h.axisClosed
+
+theorem clifford_pack_projector_round_verified (R : Reentry α) (a : R.Omega) :
+    (Contracts.Examples.cliffordPack (α := α) (R := R)
+        Contracts.Examples.projectorFlags).contract.decode
+      ((Contracts.Examples.cliffordPack (α := α) (R := R)
+          Contracts.Examples.projectorFlags).contract.encode a) = a := by
+  classical
+  unfold Contracts.Examples.cliffordPack Contracts.Examples.projectorFlags
+  simp [Contracts.Examples.projectorModel,
+    Bridges.Clifford.Projector.Model.contract,
+    Bridges.Clifford.Projector.Model.decode_encode]
+
+theorem tensor_pack_intensity_round_verified (R : Reentry α) (a : R.Omega) :
+    (Contracts.Examples.tensorPack (α := α) (R := R)
+        Contracts.Examples.intensityFlags).contract.decode
+      ((Contracts.Examples.tensorPack (α := α) (R := R)
+          Contracts.Examples.intensityFlags).contract.encode a) = a := by
+  classical
+  change (Contracts.Examples.tensorIntensityModel (α := α) (R := R)).decode
+      ((Contracts.Examples.tensorIntensityModel (α := α) (R := R)).contract.encode a) = a
+  simp [Contracts.Examples.tensorIntensityModel,
+    Bridges.Tensor.Intensity.Model.contract,
+    Bridges.Tensor.Intensity.Model.decode_encode]
+
+theorem graph_pack_alexandroff_round_verified (R : Reentry α) (a : R.Omega) :
+    (Contracts.Examples.graphPack (α := α) (R := R)
+        Contracts.Examples.alexandroffFlags).contract.decode
+      ((Contracts.Examples.graphPack (α := α) (R := R)
+          Contracts.Examples.alexandroffFlags).contract.encode a) = a := by
+  classical
+  change (Bridges.Graph.Alexandroff.Model.univ
+      (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).decode
+    ((Bridges.Graph.Alexandroff.Model.univ
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R))).contract.encode a) = a
+  exact Bridges.Graph.Alexandroff.Model.decode_encode
+    (M := Bridges.Graph.Alexandroff.Model.univ
+        (α := α) (core := Contracts.Examples.graph (α := α) (R := R))) (a := a)
 
 theorem residuation_himp_closed (R : Reentry α) (a b : R.Omega) :
     R ((a : α) ⇨ (b : α)) = (a : α) ⇨ (b : α) :=
@@ -274,6 +455,17 @@ theorem psr_breathe_le (R : Reentry α) (a x : α)
     HeytingLean.Epistemic.breathe (R := R) n x ≤ a :=
   HeytingLean.Logic.PSR.breathe_le_of_sufficient
     (R := R) (a := a) (x := x) ha hx n
+
+theorem psr_breathe_euler_boundary (R : Reentry α) (x : α)
+    (hx : x ≤ (R.eulerBoundary : α)) (n : ℕ) :
+    HeytingLean.Epistemic.breathe (R := R) n x ≤ (R.eulerBoundary : α) := by
+  have hsuff := psr_sufficient_euler_boundary (R := R)
+  have hx' : x ≤ ((R.eulerBoundary : R.Omega) : α) := hx
+  simpa using psr_breathe_le
+    (R := R)
+    (a := ((R.eulerBoundary : R.Omega) : α))
+    (x := x)
+    hsuff hx' n
 
 theorem psr_reachable_stable (R : Reentry α) (a x y : α)
     (ha : HeytingLean.Logic.PSR.Sufficient R a) (hx : x ≤ a)
@@ -768,3 +960,10 @@ theorem clifford_round_verified (R : Reentry α) (a : R.Omega) :
 
 end Tests
 end HeytingLean
+attribute [simp] HeytingLean.Bridges.Graph.Model.adjacency_iff_le
+
+attribute [aesop safe apply]
+  HeytingLean.Bridges.Graph.Model.adjacency_refl
+  HeytingLean.Bridges.Graph.Model.adjacency_trans
+  HeytingLean.Bridges.Graph.Model.adjacency_mono_left
+  HeytingLean.Bridges.Graph.Model.adjacency_mono_right

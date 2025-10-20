@@ -59,6 +59,19 @@ bridge = go.get_clifford_bridge()
 result = bridge.wedge_product(state, other_state)
 ```
 
+### Lean runtime initialisation
+
+Importing `generative_ontology` automatically runs the Lean contract harness to
+activate the enriched tensor/graph/Clifford carriers:
+
+```bash
+lake env lean --run Main
+```
+
+If you prefer to manage this yourself, set `HEYTINGLEAN_SKIP_RUNTIME_INIT=1`
+before importing the package and invoke `generative_ontology.initialise_runtime_bridge_suite()`
+when appropriate.
+
 ## Architecture
 
 ```

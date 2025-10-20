@@ -2,6 +2,7 @@ import Mathlib.Order.Basic
 import Mathlib.Data.Set.Lattice
 import HeytingLean.Bridges.Graph
 import HeytingLean.Contracts.RoundTrip
+import HeytingLean.Logic.StageSemantics
 
 /-
 Minimal Alexandroff scaffolding for the graph bridge.  We keep a reference to the core graph model
@@ -15,6 +16,7 @@ namespace Alexandroff
 
 open HeytingLean.Contracts
 open HeytingLean.LoF
+open HeytingLean.Logic Stage
 
 universe u
 
@@ -48,6 +50,60 @@ structure Model where
         Graph.Model.stageOccam (M := core) x ∈ openSet
 
 namespace Model
+
+private lemma collapseAt_eq_reentry_aux (core : Graph.Model α) :
+    ∀ n,
+      HeytingLean.Logic.Modal.DialParam.collapseAt
+        (α := α) (R := core.R) n = fun a : α => core.R a
+  | 0 => by
+      funext a
+      simp
+  | Nat.succ n => by
+      funext a
+      have ih := collapseAt_eq_reentry_aux (core := core) n
+      have hsucc :=
+        congrArg (fun f => f a)
+          (HeytingLean.Logic.Modal.DialParam.collapseAt_succ
+            (α := α) (R := core.R) n)
+      have hprev :=
+        congrArg (fun f => f a) ih
+      exact hsucc.trans hprev
+
+private lemma expandAt_eq_reentry_aux (core : Graph.Model α) :
+    ∀ n,
+      HeytingLean.Logic.Modal.DialParam.expandAt
+        (α := α) (R := core.R) n = fun a : α => core.R a
+  | 0 => by
+      funext a
+      simp
+  | Nat.succ n => by
+      funext a
+      have ih := expandAt_eq_reentry_aux (core := core) n
+      have hsucc :=
+        congrArg (fun f => f a)
+          (HeytingLean.Logic.Modal.DialParam.expandAt_succ
+            (α := α) (R := core.R) n)
+      have hprev :=
+        congrArg (fun f => f a) ih
+      exact hsucc.trans hprev
+
+@[simp] lemma stageCollapseAt_eq (core : Graph.Model α)
+    (n : ℕ) (x : α) :
+    Graph.Model.stageCollapseAt (M := core) n x =
+      core.R x := by
+  classical
+  dsimp [Graph.Model.stageCollapseAt, Graph.Model.encode,
+    Graph.Model.decode, HeytingLean.Logic.Stage.DialParam.collapseAtOmega]
+  simp
+
+@[simp] lemma stageExpandAt_eq (core : Graph.Model α)
+    (n : ℕ) (x : α) :
+    Graph.Model.stageExpandAt (M := core) n x =
+      core.R x := by
+  classical
+  dsimp [Graph.Model.stageExpandAt, Graph.Model.encode,
+    Graph.Model.decode, HeytingLean.Logic.Stage.DialParam.expandAtOmega]
+  simp
 
 def Carrier (M : Model (α := α)) : Type u := M.core.Carrier
 
@@ -109,6 +165,75 @@ lemma mem_stageOccam (M : Model (α := α))
     (x : α) :
     (Model.univ (α := α) core).memOpen x := by
   simp [Model.memOpen]
+
+@[simp] def processUpper (core : Graph.Model α) : Model (α := α) :=
+  { core := core
+    openSet := {x | ((core.R.process : core.R.Omega) : α) ≤ x}
+    openUpper := by
+      intro x y hxy hx
+      exact le_trans hx hxy
+    openInfClosed := by
+      intro x y hx hy
+      exact le_inf hx hy
+    openSupClosed := by
+      intro x y hx hy
+      have hx_sup :
+          ((core.R.process : core.R.Omega) : α) ≤ x ⊔ y :=
+        le_sup_of_le_left hx
+      exact le_trans hx_sup (Reentry.le_apply (R := core.R) (a := x ⊔ y))
+    collapseClosed := by
+      intro n x hx
+      change ((core.R.process : core.R.Omega) : α) ≤
+          Graph.Model.stageCollapseAt (M := core) n x
+      have hxR :
+          ((core.R.process : core.R.Omega) : α) ≤ core.R x :=
+        le_trans hx (Reentry.le_apply (R := core.R) (a := x))
+      have hStage := stageCollapseAt_eq (core := core) (n := n) (x := x)
+      exact hStage.symm ▸ hxR
+    expandClosed := by
+      intro n x hx
+      change ((core.R.process : core.R.Omega) : α) ≤
+          Graph.Model.stageExpandAt (M := core) n x
+      have hxR :
+          ((core.R.process : core.R.Omega) : α) ≤ core.R x :=
+        le_trans hx (Reentry.le_apply (R := core.R) (a := x))
+      have hStage := stageExpandAt_eq (core := core) (n := n) (x := x)
+      exact hStage.symm ▸ hxR
+    occamClosed := by
+      intro x hx
+      have hxR :
+          ((core.R.process : core.R.Omega) : α) ≤ core.R x :=
+        le_trans hx (Reentry.le_apply (R := core.R) (a := x))
+      have hoccam :=
+        HeytingLean.Epistemic.occam_contains_candidate
+          (R := core.R) (a := core.R x)
+          (u := ((core.R.process : core.R.Omega) : α))
+          hxR
+          (by
+            simp)
+      change ((core.R.process : core.R.Omega) : α) ≤
+          Graph.Model.stageOccam (M := core) x
+      have hoccam' :
+          ((core.R.process : core.R.Omega) : α) ≤
+            HeytingLean.Epistemic.occam (R := core.R) (core.R x) := hoccam
+      have hstage :
+          HeytingLean.Epistemic.occam (R := core.R) (core.R x) =
+            Graph.Model.stageOccam (M := core) x := by
+        unfold Graph.Model.stageOccam
+        unfold Contracts.stageOccam
+        simp [Graph.Model.contract, Graph.Model.encode, Graph.Model.decode]
+      exact hstage ▸ hoccam' }
+
+@[simp] lemma memOpen_processUpper (core : Graph.Model α) (x : α) :
+    (processUpper (α := α) core).memOpen x ↔
+      ((core.R.process : core.R.Omega) : α) ≤ x := Iff.rfl
+
+@[simp] lemma process_mem_processUpper (core : Graph.Model α) :
+    (processUpper (α := α) core).memOpen
+        ((core.R.process : core.R.Omega) : α) := by
+  change ((core.R.process : core.R.Omega) : α) ≤
+      ((core.R.process : core.R.Omega) : α)
+  exact le_rfl
 
 noncomputable def encode (M : Model (α := α)) :
     M.core.R.Omega → M.Carrier :=

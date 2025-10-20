@@ -70,6 +70,7 @@ __all__ = [
     'CombinatorialNode',
     'CombinatorialPath',
     'CombinatorialReasoningEngine',
+    'initialise_runtime_bridge_suite',
 ]
 
 def create_state(*args, **kwargs):
@@ -86,6 +87,63 @@ def create_state(*args, **kwargs):
 create_state.from_vector = UnifiedState.from_vector
 create_state.zero = UnifiedState.zero
 create_state.scalar = UnifiedState.scalar
+
+# lean runtime integration ----------------------------------------------------
+from pathlib import Path
+import subprocess
+import warnings
+import os
+
+_RUNTIME_INITIALISED = False
+
+
+def initialise_runtime_bridge_suite(*, force: bool = False) -> None:
+    """
+    Ensure the Lean runtime initialises the enriched bridge suite.
+
+    By default this fires once at import time, running `lake env lean --run Main`
+    inside the bundled Lean project.  Set the environment variable
+    `HEYTINGLEAN_SKIP_RUNTIME_INIT=1` to disable the automatic call (useful when
+    Lean tooling is unavailable or when initialisation is managed elsewhere).
+    """
+    global _RUNTIME_INITIALISED
+    if _RUNTIME_INITIALISED and not force:
+        return
+    if os.environ.get("HEYTINGLEAN_SKIP_RUNTIME_INIT") == "1" and not force:
+        return
+
+    lean_root = Path(__file__).resolve().parent / "lean"
+    if not (lean_root / "lakefile.lean").exists():
+        warnings.warn(
+            f"HeytingLean runtime initialisation skipped: {lean_root} missing lakefile.",
+            RuntimeWarning,
+        )
+        return
+
+    cmd = ["lake", "env", "lean", "--run", "Main"]
+    try:
+        subprocess.run(
+            cmd,
+            cwd=lean_root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        _RUNTIME_INITIALISED = True
+    except FileNotFoundError as exc:
+        warnings.warn(
+            "HeytingLean runtime initialisation failed: `lake` executable not found.",
+            RuntimeWarning,
+        )
+    except subprocess.CalledProcessError as exc:
+        warnings.warn(
+            f"HeytingLean runtime initialisation failed ({exc.returncode}).",
+            RuntimeWarning,
+        )
+
+
+# Trigger the initialisation once on module import.
+initialise_runtime_bridge_suite()
 
 # Version info
 def get_version():

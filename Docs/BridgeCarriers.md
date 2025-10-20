@@ -74,6 +74,7 @@
   - Add targeted regression tests per bridge (intensity preservation, open-set invariance, projector orthomodularity).
 - **Automation**:
   - Introduce helper tactics (`simp` bundles, `aesop` rules) for common carrier-specific rewrites to keep proof scripts concise.
+- **Runtime rollout**: the default suite now points to `Contracts.Examples.BridgeFlags.runtime`; `BridgeFlags.legacy` remains available for regression scenarios via `Runtime.bridgeSuite`/`Runtime.legacyBridgeSuite`.
 
 ## Sprint Outlook
 - **Next Sprint Ready**:

@@ -14,5 +14,6 @@ import HeytingLean.Bridges.Graph
 import HeytingLean.Bridges.Clifford
 import HeytingLean.Contracts.RoundTrip
 import HeytingLean.Contracts.Examples
+import HeytingLean.Runtime.BridgeSuite
 import HeytingLean.Tests.Compliance
 import HeytingLean.Ontology.Primordial
