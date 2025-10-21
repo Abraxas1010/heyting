@@ -1,0 +1,33 @@
+title: Laws of Form Visualization System
+author: HeytingLean Project
+description: |
+  A formalized implementation of G. Spencer-Brown's Laws of Form calculus
+  in Lean 4, featuring the three primitive operators (mark, unmark, re-entry),
+  re-entry nucleus structure, Heyting core, and visualization system with
+  bridge transports across tensor, graph, and Clifford lenses.
+
+repo:
+  type: git
+  url: https://github.com/your-username/your-repo
+  branch: master
+
+dependencies:
+  - lean4
+  - mathlib4
+  - proofwidgets
+
+imports:
+  - HeytingLean.LoF.PrimaryAlgebra
+  - HeytingLean.LoF.Nucleus
+  - HeytingLean.LoF.HeytingCore
+  - HeytingLean.Logic.ResiduatedLadder
+  - HeytingLean.Logic.StageSemantics
+  - HeytingLean.Logic.ModalDial
+  - HeytingLean.Logic.PSR
+  - HeytingLean.Logic.Dialectic
+  - HeytingLean.Epistemic.Occam
+  - HeytingLean.Bridges.Tensor
+  - HeytingLean.Bridges.Graph
+  - HeytingLean.Bridges.Clifford
+  - HeytingLean.ProofWidgets.LoFViz
+  - HeytingLean.Tests.Compliance

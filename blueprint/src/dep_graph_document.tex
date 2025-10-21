@@ -1,0 +1,25 @@
+\documentclass{report}
+
+\usepackage[thms=definition+lemma+proposition+theorem+corollary]{depgraph}
+\usepackage{blueprint}
+
+\home{https://github.com/your-username/your-repo}
+\github{https://github.com/your-username/your-repo}
+\dochome{index.html}
+
+\begin{document}
+
+\title{Laws of Form: Declaration Dependency Graph}
+\maketitle
+
+This page shows the dependency graph of all definitions, theorems, and lemmas in the formalization.
+
+\section*{Interactive Graph}
+
+Click on nodes to navigate to their definitions. Hover to see dependencies.
+
+\begin{depgraph}
+\input{content}
+\end{depgraph}
+
+\end{document}

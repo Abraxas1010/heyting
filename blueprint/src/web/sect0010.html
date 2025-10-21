@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+  MathJax = { 
+    tex: {
+		    inlineMath: [['\\(','\\)']]
+	} }
+</script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+<meta name="generator" content="plasTeX" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Visualization System</title>
+<link rel="next" href="sec-visual-modes.html" title="Visual Modes" />
+<link rel="prev" href="sec-dialectic.html" title="Dialectic" />
+<link rel="up" href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint" />
+<link rel="stylesheet" href="styles/theme-white.css" />
+<link rel="stylesheet" href="styles/amsthm.css" />
+</head>
+
+<body>
+<header>
+<svg  id="toc-toggle" class="icon icon-list-numbered "><use xlink:href="symbol-defs.svg#icon-list-numbered"></use></svg>
+<h1 id="doc_title"><a href="sect0001.html">Laws of Form Visualization System:<br />A Formalized Blueprint</a></h1>
+</header>
+
+<div class="wrapper">
+<nav class="toc">
+<ul class="sub-toc-0">
+<li class=" active">
+  <a href="sect0001.html"><span class="toc_ref"></span> <span class="toc_entry">Laws of Form Visualization System:<br />A Formalized Blueprint</span></a>
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-1 active">
+     <li class="">
+  <a href="sect0002.html"><span class="toc_ref">1</span> <span class="toc_entry">Introduction</span></a>
+ </li>
+<li class="">
+  <a href="sect0003.html"><span class="toc_ref">2</span> <span class="toc_entry">LoF Primitives and State Machine</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-primitives.html"><span class="toc_ref">2.1</span> <span class="toc_entry">The Three Operators</span></a>
+ </li>
+<li class="">
+  <a href="sec-journal.html"><span class="toc_ref">2.2</span> <span class="toc_entry">Journal and State</span></a>
+ </li>
+<li class="">
+  <a href="sec-stepper.html"><span class="toc_ref">2.3</span> <span class="toc_entry">State Machine Semantics</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0004.html"><span class="toc_ref">3</span> <span class="toc_entry">Primary Algebra and Re-entry Nucleus</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-primary-algebra.html"><span class="toc_ref">3.1</span> <span class="toc_entry">Primary Algebra</span></a>
+ </li>
+<li class="">
+  <a href="sec-nucleus.html"><span class="toc_ref">3.2</span> <span class="toc_entry">Re-entry Nucleus</span></a>
+ </li>
+<li class="">
+  <a href="sec-heyting-core.html"><span class="toc_ref">3.3</span> <span class="toc_entry">The Heyting Core \(\Omega _R\)</span></a>
+ </li>
+<li class="">
+  <a href="sec-processes.html"><span class="toc_ref">3.4</span> <span class="toc_entry">Process and Counter-Process</span></a>
+ </li>
+<li class="">
+  <a href="sec-euler-boundary.html"><span class="toc_ref">3.5</span> <span class="toc_entry">Euler Boundary</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0005.html"><span class="toc_ref">4</span> <span class="toc_entry">Kernel Interpretation</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-region-model.html"><span class="toc_ref">4.1</span> <span class="toc_entry">Region Model</span></a>
+ </li>
+<li class="">
+  <a href="sec-aggregate.html"><span class="toc_ref">4.2</span> <span class="toc_entry">Aggregate State</span></a>
+ </li>
+<li class="">
+  <a href="sec-toy-nucleus.html"><span class="toc_ref">4.3</span> <span class="toc_entry">Toy Nucleus Closure</span></a>
+ </li>
+<li class="">
+  <a href="sec-kernel-data.html"><span class="toc_ref">4.4</span> <span class="toc_entry">Kernel Data</span></a>
+ </li>
+<li class="">
+  <a href="sec-certificates.html"><span class="toc_ref">4.5</span> <span class="toc_entry">Certificates</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0006.html"><span class="toc_ref">5</span> <span class="toc_entry">Dimensional Dial and Lenses</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-dial-stages.html"><span class="toc_ref">5.1</span> <span class="toc_entry">Dial Stages</span></a>
+ </li>
+<li class="">
+  <a href="sec-lenses.html"><span class="toc_ref">5.2</span> <span class="toc_entry">Bridge Lenses</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0007.html"><span class="toc_ref">6</span> <span class="toc_entry">Bridge Layer</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-tensor-bridge.html"><span class="toc_ref">6.1</span> <span class="toc_entry">Tensor Bridge</span></a>
+ </li>
+<li class="">
+  <a href="sec-graph-bridge.html"><span class="toc_ref">6.2</span> <span class="toc_entry">Graph Bridge</span></a>
+ </li>
+<li class="">
+  <a href="sec-clifford-bridge.html"><span class="toc_ref">6.3</span> <span class="toc_entry">Clifford Bridge</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0008.html"><span class="toc_ref">7</span> <span class="toc_entry">Modal Logic Layer</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-residuated-ladder.html"><span class="toc_ref">7.1</span> <span class="toc_entry">Residuated Ladder</span></a>
+ </li>
+<li class="">
+  <a href="sec-stage-semantics.html"><span class="toc_ref">7.2</span> <span class="toc_entry">Stage Semantics</span></a>
+ </li>
+<li class="">
+  <a href="sec-modal-breathing.html"><span class="toc_ref">7.3</span> <span class="toc_entry">Modal Breathing</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0009.html"><span class="toc_ref">8</span> <span class="toc_entry">Epistemic Layer</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-occam.html"><span class="toc_ref">8.1</span> <span class="toc_entry">Occam’s Principle</span></a>
+ </li>
+<li class="">
+  <a href="sec-psr.html"><span class="toc_ref">8.2</span> <span class="toc_entry">Principle of Sufficient Reason</span></a>
+ </li>
+<li class="">
+  <a href="sec-dialectic.html"><span class="toc_ref">8.3</span> <span class="toc_entry">Dialectic</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class=" active current">
+  <a href="sect0010.html"><span class="toc_ref">9</span> <span class="toc_entry">Visualization System</span></a>
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-2 active">
+     <li class="">
+  <a href="sec-visual-modes.html"><span class="toc_ref">9.1</span> <span class="toc_entry">Visual Modes</span></a>
+ </li>
+<li class="">
+  <a href="sec-render-models.html"><span class="toc_ref">9.2</span> <span class="toc_entry">Render Models</span></a>
+ </li>
+<li class="">
+  <a href="sec-rpc.html"><span class="toc_ref">9.3</span> <span class="toc_entry">RPC Interface</span></a>
+ </li>
+<li class="">
+  <a href="sec-breathing-angle.html"><span class="toc_ref">9.4</span> <span class="toc_entry">Breathing Angle</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0011.html"><span class="toc_ref">10</span> <span class="toc_entry">Proof Layer</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-proof-ingestion.html"><span class="toc_ref">10.1</span> <span class="toc_entry">Proof Ingestion</span></a>
+ </li>
+<li class="">
+  <a href="sec-proof-graph.html"><span class="toc_ref">10.2</span> <span class="toc_entry">Proof Graph</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0012.html"><span class="toc_ref">11</span> <span class="toc_entry">Testing and Compliance</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sec-compliance.html"><span class="toc_ref">11.1</span> <span class="toc_entry">Compliance Suite</span></a>
+ </li>
+<li class="">
+  <a href="sec-test-coverage.html"><span class="toc_ref">11.2</span> <span class="toc_entry">Test Coverage</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0013.html"><span class="toc_ref">12</span> <span class="toc_entry">Implementation Roadmap</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sect0014.html"><span class="toc_ref">12.1</span> <span class="toc_entry">Current Status (Q2 2025)</span></a>
+ </li>
+<li class="">
+  <a href="sect0015.html"><span class="toc_ref">12.2</span> <span class="toc_entry">Near-term Goals (Q3 2025)</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0016.html"><span class="toc_ref">13</span> <span class="toc_entry">File Map</span></a>
+  <span class="expand-toc">▶</span>
+  <ul class="sub-toc-2">
+     <li class="">
+  <a href="sect0017.html"><span class="toc_ref">13.1</span> <span class="toc_entry">Core LoF Layer</span></a>
+ </li>
+<li class="">
+  <a href="sect0018.html"><span class="toc_ref">13.2</span> <span class="toc_entry">Logic Layer</span></a>
+ </li>
+<li class="">
+  <a href="sect0019.html"><span class="toc_ref">13.3</span> <span class="toc_entry">Epistemic Layer</span></a>
+ </li>
+<li class="">
+  <a href="sect0020.html"><span class="toc_ref">13.4</span> <span class="toc_entry">Bridge Layer</span></a>
+ </li>
+<li class="">
+  <a href="sect0021.html"><span class="toc_ref">13.5</span> <span class="toc_entry">Visualization Backend</span></a>
+ </li>
+<li class="">
+  <a href="sect0022.html"><span class="toc_ref">13.6</span> <span class="toc_entry">Testing</span></a>
+ </li>
+<li class="">
+  <a href="sect0023.html"><span class="toc_ref">13.7</span> <span class="toc_entry">Documentation</span></a>
+ </li>
+
+  </ul>
+ </li>
+<li class="">
+  <a href="sect0024.html"><span class="toc_ref">14</span> <span class="toc_entry">References</span></a>
+ </li>
+
+  </ul>
+ </li>
+</ul>
+</nav>
+
+<div class="content">
+<div class="content-wrapper">
+
+
+<div class="main-text">
+<h1 id="a0000000011">9 Visualization System</h1>
+
+</div> <!--main-text -->
+</div> <!-- content-wrapper -->
+</div> <!-- content -->
+</div> <!-- wrapper -->
+
+<nav class="prev_up_next">
+  <a href="sec-dialectic.html" title="Dialectic"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+</a>
+  <a href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
+</a>
+  <a href="sec-visual-modes.html" title="Visual Modes"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+</a>
+</nav>
+
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/plastex.js"></script>
+<script type="text/javascript" src="js/svgxuse.js"></script>
+</body>
+</html>

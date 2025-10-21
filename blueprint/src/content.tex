@@ -1,0 +1,841 @@
+\documentclass{amsart}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{blueprint}
+
+\title{Laws of Form Visualization System:\\A Formalized Blueprint}
+\author{HeytingLean Project}
+\date{\today}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{proposition}[definition]{Proposition}
+\newtheorem{corollary}[definition]{Corollary}
+\newtheorem{example}[definition]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{Remark}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This blueprint documents the formalization of G. Spencer-Brown's Laws of Form (LoF) calculus within the Lean 4 proof assistant, focusing on the three primitive operators (mark, unmark, re-entry), the re-entry nucleus structure, its Heyting core, and the associated visualization system with bridge transports across tensor, graph, and Clifford lenses.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+The Laws of Form (LoF) calculus provides a minimal algebraic foundation for logic based on the primordial act of distinction. This formalization implements:
+
+\begin{itemize}
+\item Three primitive operators: \texttt{mark}, \texttt{unmark}, \texttt{reentry}
+\item A re-entry nucleus $R : \alpha \to \alpha$ on a primary algebra
+\item The fixed-point sublocale $\Omega_R$ as a Heyting algebra
+\item Bridge transports to tensor, graph, and Clifford representations
+\item An interactive visualization system with multiple rendering modes
+\end{itemize}
+
+All code is located within \texttt{/home/richard/Documents/heyting/lean}.
+
+\section{LoF Primitives and State Machine}
+
+\subsection{The Three Operators}
+\label{sec:primitives}
+
+\begin{definition}[Primitive Operators]
+\label{def:primitives}
+\lean{HeytingLean.ProofWidgets.LoFViz.State}{Primitive}
+\uses{}
+
+The LoF calculus is built on three atomic interactions:
+\begin{itemize}
+\item \textbf{Mark} (\texttt{.mark}): Creates a new boundary distinction, introducing a fresh region
+\item \textbf{Unmark} (\texttt{.unmark}): Removes the most recently marked boundary
+\item \textbf{Re-entry} (\texttt{.reentry}): Applies the nucleus closure operation, generating fixed points
+\end{itemize}
+\end{definition}
+
+\subsection{Journal and State}
+\label{sec:journal}
+
+\begin{definition}[Journal Entry]
+\label{def:journal-entry}
+\lean{HeytingLean.ProofWidgets.LoFViz.State}{JournalEntry}
+\uses{def:primitives}
+
+Each primitive interaction is recorded as a journal entry with a monotone timestamp, enabling deterministic replay and proof analysis.
+\end{definition}
+
+\begin{definition}[Widget State]
+\label{def:state}
+\lean{HeytingLean.ProofWidgets.LoFViz.State}{State}
+\uses{def:journal-entry}
+
+The global state tracks:
+\begin{itemize}
+\item \texttt{journal}: Array of primitive interactions
+\item \texttt{dialStage}: Current dimensional stage (ontic, symbolic, circle, sphere)
+\item \texttt{lens}: Selected bridge lens (logic, tensor, graph, clifford)
+\item \texttt{mode}: Visualization mode (boundary, euler, hypergraph, fiber, string, split)
+\item \texttt{nextStamp}: Monotone timestamp counter
+\end{itemize}
+\end{definition}
+
+\subsection{State Machine Semantics}
+\label{sec:stepper}
+
+\begin{definition}[State Stepper]
+\label{def:stepper}
+\lean{HeytingLean.ProofWidgets.LoFViz.State.Stepper}{applyEvent}
+\uses{def:state, def:primitives}
+
+The stepper function \texttt{applyEvent : State → Event → State} is a pure state transition that appends primitives to the journal and updates control parameters (dial, lens, mode).
+\end{definition}
+
+\section{Primary Algebra and Re-entry Nucleus}
+
+\subsection{Primary Algebra}
+\label{sec:primary-algebra}
+
+\begin{definition}[Primary Algebra]
+\label{def:primary-algebra}
+\lean{HeytingLean.LoF.PrimaryAlgebra}{PrimaryAlgebra}
+\uses{}
+
+A \emph{primary algebra} is a type $\alpha$ equipped with a frame structure, ensuring finite meets distribute over arbitrary joins. This provides the locale interpretation underlying the nucleus story.
+\end{definition}
+
+\subsection{Re-entry Nucleus}
+\label{sec:nucleus}
+
+\begin{definition}[Re-entry Structure]
+\label{def:reentry}
+\lean{HeytingLean.LoF.Reentry}{Reentry}
+\uses{def:primary-algebra}
+
+A re-entry operation on a primary algebra $\alpha$ consists of:
+\begin{itemize}
+\item A nucleus $R : \alpha \to \alpha$ (idempotent, inflationary, inf-preserving)
+\item A \emph{primordial} fixed point: $R(\text{primordial}) = \text{primordial}$
+\item A \emph{counter} fixed point: $R(\text{counter}) = \text{counter}$
+\item Orthogonality: $\text{primordial} \sqcap \text{counter} = \bot$
+\item Minimality: primordial is the least nontrivial fixed point
+\end{itemize}
+\end{definition}
+
+\begin{lemma}[Nucleus Properties]
+\label{lem:nucleus-props}
+\lean{HeytingLean.LoF.Reentry}{idempotent}
+\leanok
+\uses{def:reentry}
+
+For any re-entry nucleus $R$ and element $a : \alpha$:
+\begin{enumerate}
+\item $R(R(a)) = R(a)$ (idempotence)
+\item $a \leq R(a)$ (inflation)
+\item $R(a \sqcap b) = R(a) \sqcap R(b)$ (meets preserved)
+\item $R(\bot) = \bot$ (bottom preserved)
+\end{enumerate}
+\end{lemma}
+
+\subsection{The Heyting Core $\Omega_R$}
+\label{sec:heyting-core}
+
+\begin{definition}[Fixed-Point Sublocale]
+\label{def:omega}
+\lean{HeytingLean.LoF.Reentry}{Omega}
+\uses{def:reentry}
+
+The \emph{Heyting core} $\Omega_R$ is the sublocale of fixed points: $\Omega_R := \{x : \alpha \mid R(x) = x\}$.
+\end{definition}
+
+\begin{theorem}[Heyting Algebra Structure]
+\label{thm:heyting-instance}
+\lean{HeytingLean.LoF.Reentry.HeytingFacts}{instHeytingOmega}
+\leanok
+\uses{def:omega}
+
+$\Omega_R$ inherits a Heyting algebra structure with:
+\begin{itemize}
+\item Meet: $a \sqcap b$ (inherited from $\alpha$)
+\item Heyting implication: $a \Rightarrow b$ satisfying residuation
+\end{itemize}
+\end{theorem}
+
+\begin{theorem}[Heyting Adjunction]
+\label{thm:heyting-adjunction}
+\lean{HeytingLean.LoF.Reentry.HeytingFacts}{heyting\_adjunction}
+\leanok
+\uses{thm:heyting-instance}
+
+For all $a, b, c \in \Omega_R$:
+\[
+a \sqcap b \leq c \iff a \leq b \Rightarrow c
+\]
+\end{theorem}
+
+\begin{theorem}[Double Negation]
+\label{thm:double-neg}
+\lean{HeytingLean.LoF.Reentry.HeytingFacts}{double\_neg}
+\leanok
+\uses{thm:heyting-instance}
+
+For all $a \in \Omega_R$:
+\[
+a \leq ((a \Rightarrow \bot) \Rightarrow \bot)
+\]
+\end{theorem}
+
+\subsection{Process and Counter-Process}
+\label{sec:processes}
+
+\begin{definition}[Primordial Process]
+\label{def:process}
+\lean{HeytingLean.LoF.Reentry}{process}
+\uses{def:omega}
+
+The \emph{process} is the primordial fixed point viewed as an element of $\Omega_R$.
+\end{definition}
+
+\begin{definition}[Counter-Process]
+\label{def:counter-process}
+\lean{HeytingLean.LoF.Reentry}{counterProcess}
+\uses{def:omega}
+
+The \emph{counter-process} is the complementary fixed point in $\Omega_R$.
+\end{definition}
+
+\begin{lemma}[Process Orthogonality]
+\label{lem:process-ortho}
+\lean{HeytingLean.LoF.Reentry}{process\_inf\_counter}
+\leanok
+\uses{def:process, def:counter-process}
+
+The process and counter-process are disjoint:
+\[
+\text{process} \sqcap \text{counterProcess} = \bot
+\]
+\end{lemma}
+
+\subsection{Euler Boundary}
+\label{sec:euler-boundary}
+
+\begin{definition}[Euler Boundary]
+\label{def:euler-boundary}
+\lean{HeytingLean.LoF.Reentry}{eulerBoundary}
+\uses{def:process}
+
+The \emph{Euler boundary} is the infimum of all nontrivial fixed points in $\Omega_R$.
+\end{definition}
+
+\begin{theorem}[Euler Boundary Equals Process]
+\label{thm:euler-eq-process}
+\lean{HeytingLean.LoF.Reentry}{eulerBoundary\_eq\_process}
+\leanok
+\uses{def:euler-boundary, def:process}
+
+The Euler boundary coincides with the primordial process:
+\[
+\text{eulerBoundary} = \text{process}
+\]
+\end{theorem}
+
+\section{Kernel Interpretation}
+
+\subsection{Region Model}
+\label{sec:region-model}
+
+\begin{definition}[Region Cycle]
+\label{def:region-cycle}
+\lean{HeytingLean.ProofWidgets.LoFViz.Kernel}{regionCycle}
+\uses{}
+
+Regions are named cyclically: $\alpha, \beta, \gamma, \delta$. The core region is $\alpha$, and the satellite region is $\delta$.
+\end{definition}
+
+\subsection{Aggregate State}
+\label{sec:aggregate}
+
+\begin{definition}[Aggregate]
+\label{def:aggregate}
+\lean{HeytingLean.ProofWidgets.LoFViz.Kernel}{Aggregate}
+\uses{def:journal-entry}
+
+The aggregate state tracks:
+\begin{itemize}
+\item \texttt{current}: Current region subset (represents the nucleus state)
+\item \texttt{previous}: Previous region subset (for comparisons)
+\item \texttt{stack}: Stack of active regions (for unmark discipline)
+\item \texttt{marks}, \texttt{unmarks}, \texttt{reentries}: Interaction counters
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Aggregate Step]
+\label{def:aggregate-step}
+\lean{HeytingLean.ProofWidgets.LoFViz.Kernel.Aggregate}{step}
+\uses{def:aggregate, def:primitives}
+
+Each primitive updates the aggregate:
+\begin{itemize}
+\item \textbf{Mark}: Insert next region, push to stack, increment mark counter
+\item \textbf{Unmark}: Pop from stack, remove region from current set, increment unmark counter
+\item \textbf{Re-entry}: Apply nucleus closure, merge additions into stack, increment re-entry counter
+\end{itemize}
+\end{definition}
+
+\subsection{Toy Nucleus Closure}
+\label{sec:toy-nucleus}
+
+\begin{definition}[Nucleus Closure]
+\label{def:nucleus-closure}
+\lean{HeytingLean.ProofWidgets.LoFViz.Kernel.Aggregate}{closure}
+\uses{def:aggregate}
+
+The toy LoF nucleus closure operates on region sets:
+\[
+\text{closure}(S, n) = \begin{cases}
+\text{universe} & \text{if } \alpha \in S \land n \equiv 1 \pmod{2} \\
+S \cup \{\delta\} & \text{if } \alpha \in S \land n \equiv 0 \pmod{2} \\
+S \cup \{\alpha\} & \text{otherwise}
+\end{cases}
+\]
+where $n$ is the re-entry counter.
+\end{definition}
+
+\subsection{Kernel Data}
+\label{sec:kernel-data}
+
+\begin{definition}[Kernel Data]
+\label{def:kernel-data}
+\lean{HeytingLean.ProofWidgets.LoFViz.KernelData}{KernelData}
+\uses{def:state, def:aggregate}
+
+Kernel data packages the state, computed aggregate, and summary statistics for visualization.
+\end{definition}
+
+\begin{definition}[Heyting Nucleus]
+\label{def:heyting-nucleus}
+\lean{HeytingLean.ProofWidgets.LoFViz.KernelData}{nucleus}
+\uses{}
+
+The canonical Heyting nucleus used for proof calculations:
+\[
+\text{nucleus}(S) = \begin{cases}
+\text{universe} & \text{if } \alpha \in S \\
+S \cup \{\alpha\} & \text{otherwise}
+\end{cases}
+\]
+\end{definition}
+
+\begin{definition}[Heyting Implication]
+\label{def:heyting-impl}
+\lean{HeytingLean.ProofWidgets.LoFViz.KernelData}{implication}
+\uses{def:heyting-nucleus}
+
+Heyting implication in the toy lattice:
+\[
+a \Rightarrow b := \text{nucleus}((\text{universe} \setminus a) \cup b)
+\]
+\end{definition}
+
+\subsection{Certificates}
+\label{sec:certificates}
+
+\begin{definition}[Certificate Bundle]
+\label{def:certificates}
+\lean{HeytingLean.ProofWidgets.LoFViz.Kernel}{CertificateBundle}
+\uses{}
+
+Each render carries proof certificates:
+\begin{itemize}
+\item \texttt{adjunction}: Does previous satisfy $\text{prev} \subseteq (\text{curr} \Rightarrow \text{closure}(\text{curr}))$?
+\item \texttt{rt₁}: Is previous a nucleus fixed point?
+\item \texttt{rt₂}: Is current a nucleus fixed point?
+\item \texttt{classicalized}: Is the dial at the sphere stage?
+\end{itemize}
+\end{definition}
+
+\section{Dimensional Dial and Lenses}
+
+\subsection{Dial Stages}
+\label{sec:dial-stages}
+
+\begin{definition}[Dial Stages]
+\label{def:dial-stages}
+\lean{HeytingLean.ProofWidgets.LoFViz.State}{DialStage}
+\uses{}
+
+Four dimensional stages govern algebraic interpretations:
+\begin{itemize}
+\item \textbf{S0 (Ontic)}: Ground level, minimal structure
+\item \textbf{S1 (Symbolic)}: Symbolic logic layer
+\item \textbf{S2 (Circle)}: Circular/periodic dynamics
+\item \textbf{S3 (Sphere)}: Full classical logic (Boolean limit)
+\end{itemize}
+\end{definition}
+
+\subsection{Bridge Lenses}
+\label{sec:lenses}
+
+\begin{definition}[Lens Selection]
+\label{def:lens}
+\lean{HeytingLean.ProofWidgets.LoFViz.State}{Lens}
+\uses{}
+
+Four bridge lenses provide different algebraic perspectives:
+\begin{itemize}
+\item \textbf{Logic}: Direct Heyting interpretation
+\item \textbf{Tensor}: Tensor product representation with intensity
+\item \textbf{Graph}: Alexandroff topology and graph carriers
+\item \textbf{Clifford}: Clifford algebra with geometric projectors
+\end{itemize}
+\end{definition}
+
+\section{Bridge Layer}
+
+\subsection{Tensor Bridge}
+\label{sec:tensor-bridge}
+
+\begin{definition}[Tensor Carrier]
+\label{def:tensor-carrier}
+\lean{HeytingLean.Bridges.Tensor}{TensorCarrier}
+\uses{}
+
+The tensor bridge represents LoF states as tensor product structures with intensity fields.
+\end{definition}
+
+\begin{theorem}[Tensor Round-Trip]
+\label{thm:tensor-rt}
+\lean{HeytingLean.Bridges.Tensor}{encode\_decode}
+\leanok
+\uses{def:tensor-carrier}
+
+Encoding followed by decoding recovers the original state (up to canonical isomorphism).
+\end{theorem}
+
+\begin{theorem}[Tensor Stage Transport]
+\label{thm:tensor-stage}
+\lean{HeytingLean.Bridges.Tensor}{stageMvAdd\_encode}
+\leanok
+\uses{def:tensor-carrier}
+
+MV-algebra addition commutes with tensor encoding:
+\[
+\text{encode}(\text{mvAdd}(a, b)) = \text{mvAdd}(\text{encode}(a), \text{encode}(b))
+\]
+\end{theorem}
+
+\subsection{Graph Bridge}
+\label{sec:graph-bridge}
+
+\begin{definition}[Graph Carrier]
+\label{def:graph-carrier}
+\lean{HeytingLean.Bridges.Graph}{GraphCarrier}
+\uses{}
+
+The graph bridge interprets LoF states as Alexandroff topological spaces with graph adjacency.
+\end{definition}
+
+\begin{theorem}[Graph Round-Trip]
+\label{thm:graph-rt}
+\lean{HeytingLean.Bridges.Graph}{encode\_decode}
+\leanok
+\uses{def:graph-carrier}
+
+Graph encoding/decoding forms a round-trip pair.
+\end{theorem}
+
+\begin{theorem}[Graph Stage Transport]
+\label{thm:graph-stage}
+\lean{HeytingLean.Bridges.Graph}{stageEffectAdd\_encode}
+\leanok
+\uses{def:graph-carrier}
+
+Effect algebra operations transport through the graph bridge.
+\end{theorem}
+
+\subsection{Clifford Bridge}
+\label{sec:clifford-bridge}
+
+\begin{definition}[Clifford Carrier]
+\label{def:clifford-carrier}
+\lean{HeytingLean.Bridges.Clifford}{CliffordCarrier}
+\uses{}
+
+The Clifford bridge embeds LoF states into Clifford algebras via geometric projectors and bivectors.
+\end{definition}
+
+\begin{theorem}[Clifford Round-Trip]
+\label{thm:clifford-rt}
+\lean{HeytingLean.Bridges.Clifford}{encode\_decode}
+\leanok
+\uses{def:clifford-carrier}
+
+Clifford encoding/decoding satisfies the round-trip contract.
+\end{theorem}
+
+\begin{theorem}[Clifford Stage Transport]
+\label{thm:clifford-stage}
+\lean{HeytingLean.Bridges.Clifford}{stageOrthocomplement\_encode}
+\leanok
+\uses{def:clifford-carrier}
+
+Orthocomplementation commutes with Clifford encoding.
+\end{theorem}
+
+\section{Modal Logic Layer}
+
+\subsection{Residuated Ladder}
+\label{sec:residuated-ladder}
+
+\begin{definition}[Residuated Ladder]
+\label{def:residuated-ladder}
+\lean{HeytingLean.Logic.ResiduatedLadder}{ResiduatedLadder}
+\uses{}
+
+A residuated ladder equips a type with multiplication and division operators satisfying residuation.
+\end{definition}
+
+\subsection{Stage Semantics}
+\label{sec:stage-semantics}
+
+\begin{definition}[Stage Semantics]
+\label{def:stage-semantics}
+\lean{HeytingLean.Logic.StageSemantics}{StageSemantics}
+\uses{}
+
+Stage semantics layer provides MV-addition, effect algebra operations, and orthomodular structure operations that vary by dial stage.
+\end{definition}
+
+\subsection{Modal Breathing}
+\label{sec:modal-breathing}
+
+\begin{definition}[Collapse and Expand]
+\label{def:collapse-expand}
+\lean{HeytingLean.Logic.ModalDial}{collapseAt}
+\uses{def:stage-semantics}
+
+Modal operators transform between dial stages:
+\begin{itemize}
+\item \texttt{collapseAt}: Descend one stage
+\item \texttt{expandAt}: Ascend one stage
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Breathe and Birth]
+\label{def:breathe-birth}
+\lean{HeytingLean.Logic.PSR}{breathe}
+\uses{def:collapse-expand}
+
+Dynamic reasoning operators:
+\begin{itemize}
+\item \texttt{breathe}: Cyclic collapse-expand transformation
+\item \texttt{birth}: Emergence from ground state
+\end{itemize}
+\end{definition}
+
+\section{Epistemic Layer}
+
+\subsection{Occam's Principle}
+\label{sec:occam}
+
+\begin{definition}[Occam Reduction]
+\label{def:occam}
+\lean{HeytingLean.Epistemic.Occam}{occamReduce}
+\uses{}
+
+Occam's reduction eliminates redundant structure, collapsing representations to minimal normal forms.
+\end{definition}
+
+\subsection{Principle of Sufficient Reason}
+\label{sec:psr}
+
+\begin{definition}[PSR]
+\label{def:psr}
+\lean{HeytingLean.Logic.PSR}{psr}
+\uses{}
+
+The principle of sufficient reason ensures that every distinction has a generative nucleus witness.
+\end{definition}
+
+\subsection{Dialectic}
+\label{sec:dialectic}
+
+\begin{definition}[Dialectic Operator]
+\label{def:dialectic}
+\lean{HeytingLean.Logic.Dialectic}{dialectic}
+\uses{}
+
+The dialectic operator mediates between process and counter-process through Heyting implication.
+\end{definition}
+
+\section{Visualization System}
+
+\subsection{Visual Modes}
+\label{sec:visual-modes}
+
+\begin{definition}[Visualization Modes]
+\label{def:visual-modes}
+\lean{HeytingLean.ProofWidgets.LoFViz.State}{VisualMode}
+\uses{}
+
+Six rendering modes visualize different aspects:
+\begin{enumerate}
+\item \textbf{Boundary}: Traditional LoF boundary notation with nested regions
+\item \textbf{Euler}: Euler diagram representation showing region overlaps
+\item \textbf{Hypergraph}: Re-entry dependencies as hypergraph edges
+\item \textbf{Fiber}: Bridge transports as fiber bundle visualization
+\item \textbf{String}: Process/counter-process timeline strings
+\item \textbf{Split}: Side-by-side comparative dashboard
+\end{enumerate}
+\end{definition}
+
+\subsection{Render Models}
+\label{sec:render-models}
+
+\begin{definition}[Boundary Model]
+\label{def:boundary-model}
+\lean{HeytingLean.ProofWidgets.LoFViz.Render.Models}{BoundaryModel}
+\uses{def:kernel-data}
+
+Boundary models derive geometric parameters (radii, positions, nesting depth) from nucleus cardinals with certified coupling lemmas.
+\end{definition}
+
+\begin{definition}[Hypergraph Model]
+\label{def:hypergraph-model}
+\lean{HeytingLean.ProofWidgets.LoFViz.Render.Hypergraph}{HypergraphModel}
+\uses{def:kernel-data}
+
+Hypergraph models expose re-entry preorder as directed hyperedges connecting region subsets.
+\end{definition}
+
+\begin{definition}[Fiber Status]
+\label{def:fiber-status}
+\lean{HeytingLean.ProofWidgets.LoFViz.KernelData}{FiberStatus}
+\uses{def:kernel-data}
+
+Fiber status flags track lens-specific invariants:
+\begin{itemize}
+\item \texttt{logicStable}: Current set is a nucleus fixed point
+\item \texttt{tensorBounded}: Region count within linear capacity
+\item \texttt{graphActivated}: Re-entry observed in journal
+\item \texttt{cliffordEven}: Mark parity is even (dualised vs. torsion)
+\end{itemize}
+\end{definition}
+
+\subsection{RPC Interface}
+\label{sec:rpc}
+
+\begin{definition}[RPC Method]
+\label{def:rpc-apply}
+\lean{HeytingLean.ProofWidgets.LoFViz.Rpc}{apply}
+\uses{def:state, def:kernel-data}
+
+The \texttt{apply} RPC method:
+\begin{enumerate}
+\item Receives an event from the widget
+\item Updates scene state via stepper
+\item Rebuilds kernel data from journal
+\item Routes to appropriate renderer
+\item Returns \texttt{BridgeResult} with SVG + proof certificates
+\end{enumerate}
+\end{definition}
+
+\subsection{Breathing Angle}
+\label{sec:breathing-angle}
+
+\begin{definition}[Breathing Angle]
+\label{def:breathing-angle}
+\lean{HeytingLean.ProofWidgets.LoFViz.KernelData}{breathingAngle}
+\uses{def:aggregate}
+
+A synthetic breathing angle $\theta$ derived from interaction counts:
+\[
+\theta = (90 \cdot \text{reentries} + 30 \cdot \text{marks} - 20 \cdot \text{unmarks}) \bmod 360
+\]
+\end{definition}
+
+\section{Proof Layer}
+
+\subsection{Proof Ingestion}
+\label{sec:proof-ingestion}
+
+\begin{definition}[Proof Handle]
+\label{def:proof-handle}
+\lean{HeytingLean.ProofWidgets.LoFViz.Proof.Core}{Handle}
+\uses{}
+
+A proof handle caches statement and provenance for downstream display.
+\end{definition}
+
+\begin{definition}[Proof Normalization]
+\label{def:proof-normalize}
+\lean{HeytingLean.ProofWidgets.LoFViz.Proof.Core}{ofConstant}
+\uses{def:proof-handle, def:primitives}
+
+Proof normalization walks expression trees mapping:
+\begin{itemize}
+\item Lambda/forall/let $\mapsto$ Mark/Unmark
+\item Self-recursion $\mapsto$ Re-entry
+\item Default: \texttt{[Mark, Re-entry, Unmark]} if no structure detected
+\end{itemize}
+\end{definition}
+
+\subsection{Proof Graph}
+\label{sec:proof-graph}
+
+\begin{definition}[Proof Graph]
+\label{def:proof-graph}
+\lean{HeytingLean.ProofWidgets.LoFViz.Proof.Graph}{ProofGraph}
+\uses{def:proof-handle}
+
+A proof graph structure with nodes (propositions, tactics) and edges (dependencies, applications).
+\end{definition}
+
+\section{Testing and Compliance}
+
+\subsection{Compliance Suite}
+\label{sec:compliance}
+
+\begin{definition}[Compliance Tests]
+\label{def:compliance-tests}
+\lean{HeytingLean.Tests.Compliance}{complianceCheck}
+\uses{thm:tensor-rt, thm:graph-rt, thm:clifford-rt}
+
+The compliance suite validates:
+\begin{itemize}
+\item Round-trip contracts (RT-1, RT-2) for all bridges
+\item Triad contracts (TRI-1, TRI-2) for cross-lens coherence
+\item Stage transport preservation across dial operations
+\item Kernel invariants under journal replay
+\item Renderer model coupling lemmas
+\end{itemize}
+\end{definition}
+
+\subsection{Test Coverage}
+\label{sec:test-coverage}
+
+\begin{theorem}[Build Contract]
+\label{thm:build-contract}
+\uses{def:compliance-tests}
+
+All verification runs satisfy:
+\begin{verbatim}
+lake build -- -Dno_sorry -DwarningAsError=true
+\end{verbatim}
+No \texttt{sorry}, \texttt{admit}, or custom axioms permitted.
+\end{theorem}
+
+\section{Implementation Roadmap}
+
+\subsection{Current Status (Q2 2025)}
+
+\begin{itemize}
+\item[$\checkmark$] Primary algebra foundation (LoF/PrimaryAlgebra.lean)
+\item[$\checkmark$] Re-entry nucleus and Heyting core (LoF/Nucleus.lean, LoF/HeytingCore.lean)
+\item[$\checkmark$] Residuated ladder and modal breathing (Logic/ResiduatedLadder.lean, Logic/ModalDial.lean)
+\item[$\checkmark$] Epistemic laws (Epistemic/Occam.lean, Logic/PSR.lean, Logic/Dialectic.lean)
+\item[$\checkmark$] Bridge transports (Bridges/Tensor.lean, Bridges/Graph.lean, Bridges/Clifford.lean)
+\item[$\checkmark$] State machine and journal (ProofWidgets/LoFViz/State.lean)
+\item[$\checkmark$] Kernel interpretation (ProofWidgets/LoFViz/Kernel.lean)
+\item[$\checkmark$] All renderers (Render/Boundary.lean, Render/Hypergraph.lean, Render/Fiber.lean, Render/String.lean)
+\item[$\checkmark$] RPC interface and widget (LoFViz/Rpc.lean, widget/src/LoFVisualApp.tsx)
+\item[$\checkmark$] Proof layer (LoFViz/Proof/Core.lean, LoFViz/Proof/Graph.lean)
+\item[$\checkmark$] Compliance testing (Tests/Compliance.lean)
+\end{itemize}
+
+\subsection{Near-term Goals (Q3 2025)}
+
+\begin{itemize}
+\item Enhance graph layout algorithms (layered DAG, force-directed)
+\item Expand proof gallery with curated examples
+\item Document carrier enrichment rollout
+\item Publish dimensional narrative documentation
+\item Extend automation tactics for bridge rewrites
+\end{itemize}
+
+\section{File Map}
+
+\subsection{Core LoF Layer}
+\begin{itemize}
+\item \texttt{HeytingLean/LoF/PrimaryAlgebra.lean} - Primary algebra typeclass
+\item \texttt{HeytingLean/LoF/Nucleus.lean} - Re-entry nucleus structure
+\item \texttt{HeytingLean/LoF/HeytingCore.lean} - Heyting core API
+\end{itemize}
+
+\subsection{Logic Layer}
+\begin{itemize}
+\item \texttt{HeytingLean/Logic/ResiduatedLadder.lean} - Residuated lattice operations
+\item \texttt{HeytingLean/Logic/StageSemantics.lean} - Dial-dependent semantics
+\item \texttt{HeytingLean/Logic/ModalDial.lean} - Collapse/expand operators
+\item \texttt{HeytingLean/Logic/PSR.lean} - Principle of sufficient reason
+\item \texttt{HeytingLean/Logic/Dialectic.lean} - Dialectic operator
+\end{itemize}
+
+\subsection{Epistemic Layer}
+\begin{itemize}
+\item \texttt{HeytingLean/Epistemic/Occam.lean} - Occam reduction
+\end{itemize}
+
+\subsection{Bridge Layer}
+\begin{itemize}
+\item \texttt{HeytingLean/Bridges/Tensor.lean} - Tensor bridge
+\item \texttt{HeytingLean/Bridges/Tensor/Intensity.lean} - Tensor intensity fields
+\item \texttt{HeytingLean/Bridges/Graph.lean} - Graph bridge
+\item \texttt{HeytingLean/Bridges/Graph/Alexandroff.lean} - Alexandroff topology
+\item \texttt{HeytingLean/Bridges/Clifford.lean} - Clifford bridge
+\item \texttt{HeytingLean/Bridges/Clifford/Projector.lean} - Geometric projectors
+\item \texttt{HeytingLean/Bridges/RoundTrip.lean} - Round-trip abstractions
+\end{itemize}
+
+\subsection{Visualization Backend}
+\begin{itemize}
+\item \texttt{HeytingLean/ProofWidgets/LoFViz.lean} - Umbrella module
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/State.lean} - State machine
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Kernel.lean} - Kernel interpretation
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Render/Types.lean} - Render types
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Render/Models.lean} - Render models
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Render/Boundary.lean} - Boundary renderer
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Render/Hypergraph.lean} - Hypergraph renderer
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Render/Fiber.lean} - Fiber renderer
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Render/String.lean} - String renderer
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Render/Router.lean} - Render router
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Rpc.lean} - RPC interface
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Widget.lean} - Widget registration
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Proof/Core.lean} - Proof normalization
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Proof/Graph.lean} - Proof graph structure
+\item \texttt{HeytingLean/ProofWidgets/LoFViz/Tests.lean} - Kernel tests
+\end{itemize}
+
+\subsection{Testing}
+\begin{itemize}
+\item \texttt{HeytingLean/Tests/Compliance.lean} - Bridge compliance suite
+\item \texttt{HeytingLean/Contracts/Examples.lean} - Contract examples
+\item \texttt{HeytingLean/Contracts/RoundTrip.lean} - Round-trip contracts
+\end{itemize}
+
+\subsection{Documentation}
+\begin{itemize}
+\item \texttt{lean\_formalization\_plan.md} - Overall formalization roadmap
+\item \texttt{visualization\_system\_plan.md} - Visualization architecture plan
+\item \texttt{Docs/Visualization.md} - Visualization subsystem summary
+\item \texttt{Docs/LoFBlueprint/*.html} - Decision cards and blueprint
+\end{itemize}
+
+\section{References}
+
+\begin{itemize}
+\item Spencer-Brown, G. (1969). \emph{Laws of Form}. George Allen and Unwin Ltd.
+\item Lean 4 Documentation: \url{https://lean-lang.org/documentation/}
+\item Mathlib4: \url{https://github.com/leanprover-community/mathlib4}
+\item ProofWidgets: \url{https://github.com/EdAyers/ProofWidgets4}
+\end{itemize}
+
+\end{document}
