@@ -166,18 +166,19 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
 * `structure R1CS := (A B C : List (LinComb)) ...`
 * `def satisfies (assign : VarId → F) : Prop := ∀ i, (Aᵢ·a) * (Bᵢ·a) = (Cᵢ·a)`
 
-**ZK/CompileR1CS.lean**
+**ZK/R1CSBool.lean**
 
-* Compile `Prog BoolLens` to R1CS; carry a map from program temporaries to R1CS wires; assert all booleans.
+* Compile the canonical `BoolLens` trace to R1CS: allocate wires, enforce booleanity, and emit equality constraints for `push`, `and`, `or`, `imp`.
+* Returns the generated system, witness assignment, and output wire (proofs pending).
 
-**ZK/R1CSSoundness.lean**
+**ZK/R1CSSoundness.lean** *(planned)*
 
-* **Soundness:** if `assign` is built from a valid `Trace` of `run BoolLens`, then `satisfies assign` and the decoded out equals `evalΩ φ ρ`.
-* **Completeness:** given `ρ`, there exists an assignment from the canonical `Trace` that satisfies the R1CS.
+* **Soundness:** if `assign` comes from `compile`, then `system.satisfied assignment` and the decoded output equals `evalΩ φ ρ`.
+* **Completeness:** given `ρ`, the canonical witness satisfies the R1CS.
 
-**ZK/Export.lean**
+**ZK/Export.lean** *(planned)*
 
-* Serialize `R1CS` and canonical `assignment` to `r1cs.json`, `witness.json`. (Ready for SNARK backends; cryptographic soundness is delegated to the chosen system.)
+* Serialize the R1CS system/witness (`r1cs.json`, `witness.json`) for external SNARK tooling.
 
 ---
 

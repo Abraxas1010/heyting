@@ -17,14 +17,10 @@ structure Builder where
 namespace Builder
 
 /-- Allocate a fresh variable with the provided witness value. -/
-def fresh (st : Builder) (value : ℚ) : Builder × Var := by
-  classical
+def fresh (st : Builder) (value : ℚ) : Builder × Var :=
   let idx := st.nextVar
-  let assign' : Var → ℚ :=
-    fun j => if j = idx then value else st.assign j
-  let st' : Builder :=
-    { nextVar := idx + 1, assign := assign', constraints := st.constraints }
-  exact (st', idx)
+  let assign' : Var → ℚ := fun j => if j = idx then value else st.assign j
+  ({ nextVar := idx + 1, assign := assign', constraints := st.constraints }, idx)
 
 /-- Append a constraint to the builder. -/
 def addConstraint (st : Builder) (c : Constraint) : Builder :=
@@ -63,6 +59,83 @@ private def pushConst (builder : Builder) (value : ℚ) :
   let (builder', v) := Builder.fresh builder value
   let builder'' := Builder.addConstraint builder' (eqConstConstraint v value)
   exact (recordBoolean builder'' v, v)
+
+/-- Relation connecting a Boolean stack with its assigned R1CS variables. -/
+def Matches (builder : Builder) (stack : Stack) (vars : List Var) : Prop :=
+  List.Forall₂ (fun b v => boolToRat b = builder.assign v) stack vars
+
+/-- Every variable stored on the stack is strictly below the current `nextVar`. -/
+def Bounded (builder : Builder) (vars : List Var) : Prop :=
+  ∀ v, v ∈ vars → v < builder.nextVar
+
+namespace Builder
+
+@[simp] lemma addConstraint_assign (st : Builder) (c : Constraint) :
+    (addConstraint st c).assign = st.assign := rfl
+
+@[simp] lemma addConstraint_nextVar (st : Builder) (c : Constraint) :
+    (addConstraint st c).nextVar = st.nextVar := rfl
+
+@[simp] lemma recordBoolean_assign (st : Builder) (v : Var) :
+    (recordBoolean st v).assign = st.assign := by
+  unfold recordBoolean
+  simp
+
+@[simp] lemma recordBoolean_nextVar (st : Builder) (v : Var) :
+    (recordBoolean st v).nextVar = st.nextVar := by
+  unfold recordBoolean
+  simp
+
+@[simp] lemma fresh_nextVar (st : Builder) (value : ℚ) :
+    (fresh st value).1.nextVar = st.nextVar + 1 := by
+  simp [fresh]
+
+@[simp] lemma fresh_assign_self (st : Builder) (value : ℚ) :
+    (fresh st value).1.assign (fresh st value).2 = value := by
+  classical
+  dsimp [fresh]
+  simp
+
+@[simp] lemma fresh_assign_lt {st : Builder} {value : ℚ} {w : Var}
+    (hw : w < st.nextVar) :
+    (fresh st value).1.assign w = st.assign w := by
+  classical
+  dsimp [fresh]
+  have : w ≠ st.nextVar := Nat.ne_of_lt hw
+  simp [this]
+
+lemma fresh_preserve_bounded {st : Builder} {value : ℚ} {vars : List Var}
+    (h : Bounded st vars) :
+    Bounded (fresh st value).1 vars := by
+  classical
+  refine fun v hv => ?_
+  have hvlt := h v hv
+  have : v < st.nextVar + 1 := Nat.lt_succ_of_lt hvlt
+  simpa [fresh] using this
+
+end Builder
+
+lemma addConstraint_preserve_matches {builder : Builder} {stack vars}
+    (h : Matches builder stack vars) (c : Constraint) :
+    Matches (Builder.addConstraint builder c) stack vars := by
+  simpa [Matches] using h
+
+lemma addConstraint_preserve_bounded {builder : Builder} {vars : List Var}
+    (h : Bounded builder vars) (c : Constraint) :
+    Bounded (Builder.addConstraint builder c) vars := by
+  simpa [Bounded] using h
+
+lemma recordBoolean_preserve_matches {builder : Builder} {stack vars} (v : Var)
+    (h : Matches builder stack vars) :
+    Matches (recordBoolean builder v) stack vars := by
+  unfold recordBoolean
+  simpa [Matches] using h
+
+lemma recordBoolean_preserve_bounded {builder : Builder} {vars : List Var} (v : Var)
+    (h : Bounded builder vars) :
+    Bounded (recordBoolean builder v) vars := by
+  unfold recordBoolean
+  simpa [Bounded] using h
 
 private def compileStep {n : ℕ} (ρ : Env n)
     (instr : Instr n) (before after : Stack)
