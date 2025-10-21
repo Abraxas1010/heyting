@@ -12,8 +12,10 @@
 <meta name="generator" content="plasTeX" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Laws of Form Visualization System:<br />A Formalized Blueprint</title>
-<link rel="next" href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint" />
+<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Tensor Bridge</title>
+<link rel="next" href="sec-graph-bridge.html" title="Graph Bridge" />
+<link rel="prev" href="sect0007.html" title="Bridge Layer" />
+<link rel="up" href="sect0007.html" title="Bridge Layer" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
 </head>
@@ -21,15 +23,16 @@
 <body>
 <header>
 <svg  id="toc-toggle" class="icon icon-list-numbered "><use xlink:href="symbol-defs.svg#icon-list-numbered"></use></svg>
+<h1 id="doc_title"><a href="sect0001.html">Laws of Form Visualization System:<br />A Formalized Blueprint</a></h1>
 </header>
 
 <div class="wrapper">
 <nav class="toc">
 <ul class="sub-toc-0">
-<li class="">
+<li class=" active">
   <a href="sect0001.html"><span class="toc_ref"></span> <span class="toc_entry">Laws of Form Visualization System:<br />A Formalized Blueprint</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-1">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-1 active">
      <li class="">
   <a href="sect0002.html"><span class="toc_ref">1</span> <span class="toc_entry">Introduction</span></a>
  </li>
@@ -106,11 +109,11 @@
 
   </ul>
  </li>
-<li class="">
+<li class=" active">
   <a href="sect0007.html"><span class="toc_ref">6</span> <span class="toc_entry">Bridge Layer</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-2">
-     <li class="">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-2 active">
+     <li class=" active current">
   <a href="sec-tensor-bridge.html"><span class="toc_ref">6.1</span> <span class="toc_entry">Tensor Bridge</span></a>
  </li>
 <li class="">
@@ -254,18 +257,65 @@
 
 
 <div class="main-text">
+<h2 id="sec:tensor-bridge">6.1 Tensor Bridge</h2>
 
+<div class="definition_thmwrapper theorem-style-definition" id="def:tensor-carrier">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">6.1</span>
+    <span class="definition_thmtitle">Tensor Carrier</span>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  HeytingLean.Bridges.TensorTensorCarrier  </p>
+<p>The tensor bridge represents LoF states as tensor product structures with intensity fields. </p>
 
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-definition" id="thm:tensor-rt">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">6.2</span>
+    <span class="theorem_thmtitle">Tensor Round-Trip</span>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>  HeytingLean.Bridges.Tensorencode_decode def:tensor-carrier </p>
+<p>Encoding followed by decoding recovers the original state (up to canonical isomorphism). </p>
 
+  </div>
+</div>
+<div class="theorem_thmwrapper theorem-style-definition" id="thm:tensor-stage">
+  <div class="theorem_thmheading">
+    <span class="theorem_thmcaption">
+    Theorem
+    </span>
+    <span class="theorem_thmlabel">6.3</span>
+    <span class="theorem_thmtitle">Tensor Stage Transport</span>
+  </div>
+  <div class="theorem_thmcontent">
+  <p>  HeytingLean.Bridges.TensorstageMvAdd_encode def:tensor-carrier </p>
+<p>MV-algebra addition commutes with tensor encoding: </p>
+<div class="displaymath" id="a0000000033">
+  \[  \text{encode}(\text{mvAdd}(a, b)) = \text{mvAdd}(\text{encode}(a), \text{encode}(b))  \]
+</div>
 
-  
+  </div>
+</div>
+
 </div> <!--main-text -->
 </div> <!-- content-wrapper -->
 </div> <!-- content -->
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+  <a href="sect0007.html" title="Bridge Layer"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+</a>
+  <a href="sect0007.html" title="Bridge Layer"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
+</a>
+  <a href="sec-graph-bridge.html" title="Graph Bridge"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
 </a>
 </nav>
 

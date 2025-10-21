@@ -41,3 +41,6 @@ lean_system.zip
 
 # Claude
 .claude/
+
+# Blueprint build artifacts
+blueprint/build/

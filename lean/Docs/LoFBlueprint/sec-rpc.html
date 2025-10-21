@@ -12,8 +12,10 @@
 <meta name="generator" content="plasTeX" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Laws of Form Visualization System:<br />A Formalized Blueprint</title>
-<link rel="next" href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint" />
+<title>Laws of Form Visualization System:<br />A Formalized Blueprint: RPC Interface</title>
+<link rel="next" href="sec-breathing-angle.html" title="Breathing Angle" />
+<link rel="prev" href="sec-render-models.html" title="Render Models" />
+<link rel="up" href="sect0010.html" title="Visualization System" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
 </head>
@@ -21,15 +23,16 @@
 <body>
 <header>
 <svg  id="toc-toggle" class="icon icon-list-numbered "><use xlink:href="symbol-defs.svg#icon-list-numbered"></use></svg>
+<h1 id="doc_title"><a href="sect0001.html">Laws of Form Visualization System:<br />A Formalized Blueprint</a></h1>
 </header>
 
 <div class="wrapper">
 <nav class="toc">
 <ul class="sub-toc-0">
-<li class="">
+<li class=" active">
   <a href="sect0001.html"><span class="toc_ref"></span> <span class="toc_entry">Laws of Form Visualization System:<br />A Formalized Blueprint</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-1">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-1 active">
      <li class="">
   <a href="sect0002.html"><span class="toc_ref">1</span> <span class="toc_entry">Introduction</span></a>
  </li>
@@ -154,17 +157,17 @@
 
   </ul>
  </li>
-<li class="">
+<li class=" active">
   <a href="sect0010.html"><span class="toc_ref">9</span> <span class="toc_entry">Visualization System</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-2">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-2 active">
      <li class="">
   <a href="sec-visual-modes.html"><span class="toc_ref">9.1</span> <span class="toc_entry">Visual Modes</span></a>
  </li>
 <li class="">
   <a href="sec-render-models.html"><span class="toc_ref">9.2</span> <span class="toc_entry">Render Models</span></a>
  </li>
-<li class="">
+<li class=" active current">
   <a href="sec-rpc.html"><span class="toc_ref">9.3</span> <span class="toc_entry">RPC Interface</span></a>
  </li>
 <li class="">
@@ -254,18 +257,46 @@
 
 
 <div class="main-text">
+<h2 id="sec:rpc">9.3 RPC Interface</h2>
 
+<div class="definition_thmwrapper theorem-style-definition" id="def:rpc-apply">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">9.5</span>
+    <span class="definition_thmtitle">RPC Method</span>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  HeytingLean.ProofWidgets.LoFViz.Rpcapply def:state, def:kernel-data </p>
+<p>The <span class="ttfamily">apply</span> RPC method: </p>
+<ol class="enumerate">
+  <li><p>Receives an event from the widget </p>
+</li>
+  <li><p>Updates scene state via stepper </p>
+</li>
+  <li><p>Rebuilds kernel data from journal </p>
+</li>
+  <li><p>Routes to appropriate renderer </p>
+</li>
+  <li><p>Returns <span class="ttfamily">BridgeResult</span> with SVG + proof certificates </p>
+</li>
+</ol>
 
+  </div>
+</div>
 
-
-  
 </div> <!--main-text -->
 </div> <!-- content-wrapper -->
 </div> <!-- content -->
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+  <a href="sec-render-models.html" title="Render Models"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+</a>
+  <a href="sect0010.html" title="Visualization System"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
+</a>
+  <a href="sec-breathing-angle.html" title="Breathing Angle"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
 </a>
 </nav>
 

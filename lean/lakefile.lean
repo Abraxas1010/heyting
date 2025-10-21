@@ -11,3 +11,7 @@ lean_lib «HeytingLean» where
 
 lean_exe «heytinglean» where
   root := `Main
+
+lean_exe «generateDepGraph» where
+  root := `Tools.GenerateDepGraph
+  supportInterpreter := true

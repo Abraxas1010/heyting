@@ -12,8 +12,10 @@
 <meta name="generator" content="plasTeX" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Laws of Form Visualization System:<br />A Formalized Blueprint</title>
-<link rel="next" href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint" />
+<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Re-entry Nucleus</title>
+<link rel="next" href="sec-heyting-core.html" title="The Heyting Core ΩR" />
+<link rel="prev" href="sec-primary-algebra.html" title="Primary Algebra" />
+<link rel="up" href="sect0004.html" title="Primary Algebra and Re-entry Nucleus" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
 </head>
@@ -21,15 +23,16 @@
 <body>
 <header>
 <svg  id="toc-toggle" class="icon icon-list-numbered "><use xlink:href="symbol-defs.svg#icon-list-numbered"></use></svg>
+<h1 id="doc_title"><a href="sect0001.html">Laws of Form Visualization System:<br />A Formalized Blueprint</a></h1>
 </header>
 
 <div class="wrapper">
 <nav class="toc">
 <ul class="sub-toc-0">
-<li class="">
+<li class=" active">
   <a href="sect0001.html"><span class="toc_ref"></span> <span class="toc_entry">Laws of Form Visualization System:<br />A Formalized Blueprint</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-1">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-1 active">
      <li class="">
   <a href="sect0002.html"><span class="toc_ref">1</span> <span class="toc_entry">Introduction</span></a>
  </li>
@@ -49,14 +52,14 @@
 
   </ul>
  </li>
-<li class="">
+<li class=" active">
   <a href="sect0004.html"><span class="toc_ref">3</span> <span class="toc_entry">Primary Algebra and Re-entry Nucleus</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-2">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-2 active">
      <li class="">
   <a href="sec-primary-algebra.html"><span class="toc_ref">3.1</span> <span class="toc_entry">Primary Algebra</span></a>
  </li>
-<li class="">
+<li class=" active current">
   <a href="sec-nucleus.html"><span class="toc_ref">3.2</span> <span class="toc_entry">Re-entry Nucleus</span></a>
  </li>
 <li class="">
@@ -254,18 +257,70 @@
 
 
 <div class="main-text">
+<h2 id="sec:nucleus">3.2 Re-entry Nucleus</h2>
 
+<div class="definition_thmwrapper theorem-style-definition" id="def:reentry">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">3.2</span>
+    <span class="definition_thmtitle">Re-entry Structure</span>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  HeytingLean.LoF.ReentryReentry def:primary-algebra </p>
+<p>A re-entry operation on a primary algebra \(\alpha \) consists of: </p>
+<ul class="itemize">
+  <li><p>A nucleus \(R : \alpha \to \alpha \) (idempotent, inflationary, inf-preserving) </p>
+</li>
+  <li><p>A <em>primordial</em> fixed point: \(R(\text{primordial}) = \text{primordial}\) </p>
+</li>
+  <li><p>A <em>counter</em> fixed point: \(R(\text{counter}) = \text{counter}\) </p>
+</li>
+  <li><p>Orthogonality: \(\text{primordial} \sqcap \text{counter} = \bot \) </p>
+</li>
+  <li><p>Minimality: primordial is the least nontrivial fixed point </p>
+</li>
+</ul>
 
+  </div>
+</div>
+<div class="lemma_thmwrapper theorem-style-definition" id="lem:nucleus-props">
+  <div class="lemma_thmheading">
+    <span class="lemma_thmcaption">
+    Lemma
+    </span>
+    <span class="lemma_thmlabel">3.3</span>
+    <span class="lemma_thmtitle">Nucleus Properties</span>
+  </div>
+  <div class="lemma_thmcontent">
+  <p>  HeytingLean.LoF.Reentryidempotent def:reentry </p>
+<p>For any re-entry nucleus \(R\) and element \(a : \alpha \): </p>
+<ol class="enumerate">
+  <li><p>\(R(R(a)) = R(a)\) (idempotence) </p>
+</li>
+  <li><p>\(a \leq R(a)\) (inflation) </p>
+</li>
+  <li><p>\(R(a \sqcap b) = R(a) \sqcap R(b)\) (meets preserved) </p>
+</li>
+  <li><p>\(R(\bot ) = \bot \) (bottom preserved) </p>
+</li>
+</ol>
 
+  </div>
+</div>
 
-  
 </div> <!--main-text -->
 </div> <!-- content-wrapper -->
 </div> <!-- content -->
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+  <a href="sec-primary-algebra.html" title="Primary Algebra"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+</a>
+  <a href="sect0004.html" title="Primary Algebra and Re-entry Nucleus"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
+</a>
+  <a href="sec-heyting-core.html" title="The Heyting Core \(\Omega _R\)"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
 </a>
 </nav>
 

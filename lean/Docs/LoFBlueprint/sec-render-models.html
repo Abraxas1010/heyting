@@ -12,8 +12,10 @@
 <meta name="generator" content="plasTeX" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Laws of Form Visualization System:<br />A Formalized Blueprint</title>
-<link rel="next" href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint" />
+<title>Laws of Form Visualization System:<br />A Formalized Blueprint: Render Models</title>
+<link rel="next" href="sec-rpc.html" title="RPC Interface" />
+<link rel="prev" href="sec-visual-modes.html" title="Visual Modes" />
+<link rel="up" href="sect0010.html" title="Visualization System" />
 <link rel="stylesheet" href="styles/theme-white.css" />
 <link rel="stylesheet" href="styles/amsthm.css" />
 </head>
@@ -21,15 +23,16 @@
 <body>
 <header>
 <svg  id="toc-toggle" class="icon icon-list-numbered "><use xlink:href="symbol-defs.svg#icon-list-numbered"></use></svg>
+<h1 id="doc_title"><a href="sect0001.html">Laws of Form Visualization System:<br />A Formalized Blueprint</a></h1>
 </header>
 
 <div class="wrapper">
 <nav class="toc">
 <ul class="sub-toc-0">
-<li class="">
+<li class=" active">
   <a href="sect0001.html"><span class="toc_ref"></span> <span class="toc_entry">Laws of Form Visualization System:<br />A Formalized Blueprint</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-1">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-1 active">
      <li class="">
   <a href="sect0002.html"><span class="toc_ref">1</span> <span class="toc_entry">Introduction</span></a>
  </li>
@@ -154,14 +157,14 @@
 
   </ul>
  </li>
-<li class="">
+<li class=" active">
   <a href="sect0010.html"><span class="toc_ref">9</span> <span class="toc_entry">Visualization System</span></a>
-  <span class="expand-toc">▶</span>
-  <ul class="sub-toc-2">
+  <span class="expand-toc">▼</span>
+  <ul class="sub-toc-2 active">
      <li class="">
   <a href="sec-visual-modes.html"><span class="toc_ref">9.1</span> <span class="toc_entry">Visual Modes</span></a>
  </li>
-<li class="">
+<li class=" active current">
   <a href="sec-render-models.html"><span class="toc_ref">9.2</span> <span class="toc_entry">Render Models</span></a>
  </li>
 <li class="">
@@ -254,18 +257,72 @@
 
 
 <div class="main-text">
+<h2 id="sec:render-models">9.2 Render Models</h2>
 
+<div class="definition_thmwrapper theorem-style-definition" id="def:boundary-model">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">9.2</span>
+    <span class="definition_thmtitle">Boundary Model</span>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  HeytingLean.ProofWidgets.LoFViz.Render.ModelsBoundaryModel def:kernel-data </p>
+<p>Boundary models derive geometric parameters (radii, positions, nesting depth) from nucleus cardinals with certified coupling lemmas. </p>
 
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:hypergraph-model">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">9.3</span>
+    <span class="definition_thmtitle">Hypergraph Model</span>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  HeytingLean.ProofWidgets.LoFViz.Render.HypergraphHypergraphModel def:kernel-data </p>
+<p>Hypergraph models expose re-entry preorder as directed hyperedges connecting region subsets. </p>
 
+  </div>
+</div>
+<div class="definition_thmwrapper theorem-style-definition" id="def:fiber-status">
+  <div class="definition_thmheading">
+    <span class="definition_thmcaption">
+    Definition
+    </span>
+    <span class="definition_thmlabel">9.4</span>
+    <span class="definition_thmtitle">Fiber Status</span>
+  </div>
+  <div class="definition_thmcontent">
+  <p>  HeytingLean.ProofWidgets.LoFViz.KernelDataFiberStatus def:kernel-data </p>
+<p>Fiber status flags track lens-specific invariants: </p>
+<ul class="itemize">
+  <li><p><span class="ttfamily">logicStable</span>: Current set is a nucleus fixed point </p>
+</li>
+  <li><p><span class="ttfamily">tensorBounded</span>: Region count within linear capacity </p>
+</li>
+  <li><p><span class="ttfamily">graphActivated</span>: Re-entry observed in journal </p>
+</li>
+  <li><p><span class="ttfamily">cliffordEven</span>: Mark parity is even (dualised vs. torsion) </p>
+</li>
+</ul>
 
-  
+  </div>
+</div>
+
 </div> <!--main-text -->
 </div> <!-- content-wrapper -->
 </div> <!-- content -->
 </div> <!-- wrapper -->
 
 <nav class="prev_up_next">
-  <a href="sect0001.html" title="Laws of Form Visualization System:A Formalized Blueprint"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
+  <a href="sec-visual-modes.html" title="Visual Modes"><svg  class="icon icon-arrow-left "><use xlink:href="symbol-defs.svg#icon-arrow-left"></use></svg>
+</a>
+  <a href="sect0010.html" title="Visualization System"><svg  class="icon icon-arrow-up "><use xlink:href="symbol-defs.svg#icon-arrow-up"></use></svg>
+</a>
+  <a href="sec-rpc.html" title="RPC Interface"><svg  class="icon icon-arrow-right "><use xlink:href="symbol-defs.svg#icon-arrow-right"></use></svg>
 </a>
 </nav>
 
