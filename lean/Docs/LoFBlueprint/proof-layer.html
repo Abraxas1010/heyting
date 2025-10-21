@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LoF Visualization Blueprint — Proof Layer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b111b;
+      --ink: #e2eefc;
+      --muted: #9fb7d7;
+      --accent: #6ee7ff;
+      --done: #22c55e;
+      --todo: #f97316;
+      --card: #0f172a;
+      --stroke: #1f2c3d;
+      --nav-bg: rgba(15, 23, 42, 0.9);
+      --nav-pill: rgba(30, 41, 59, 0.8);
+      --nav-pill-active: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+      padding-bottom: 4rem;
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2.75rem 2.25rem 3.5rem;
+    }
+    .nav {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      background: var(--nav-bg);
+      border: 1px solid var(--stroke);
+      padding: 0.85rem 1.1rem;
+      border-radius: 14px;
+    }
+    .nav a {
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      background: var(--nav-pill);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .nav a:hover {
+      color: var(--ink);
+    }
+    .nav a.active {
+      background: var(--nav-pill-active);
+      color: #082f49;
+      font-weight: 600;
+    }
+    section {
+      margin-top: 2.5rem;
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 1.75rem 2rem;
+    }
+    section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.35rem;
+      font-weight: 600;
+    }
+    .legend {
+      display: flex;
+      gap: 1.75rem;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--muted);
+    }
+    .legend-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .legend-swatch.done {
+      background: var(--done);
+    }
+    .legend-swatch.todo {
+      background: var(--todo);
+    }
+    .blueprint-card {
+      padding: 0;
+      overflow: hidden;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: radial-gradient(circle at 20% 20%, rgba(110, 231, 183, 0.08), transparent 60%);
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .detail-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 1.2rem 1.3rem;
+    }
+    .detail-card h3 {
+      margin: 0 0 0.6rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .detail-card p {
+      margin: 0.65rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    code {
+      background: rgba(148, 163, 184, 0.12);
+      padding: 0 0.25rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .footnote {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>LoF Visualization Blueprint — Proof Layer</h1>
+      <p>
+        The proof subsystem packages LoFViz data into graph exports and theorem statements. This page captures the
+        starting point for the total proof fabric we will build next.
+      </p>
+    </header>
+    <nav class="nav">
+      <a href="index.html">Generative Spine</a>
+      <a href="global.html">Global Graph</a>
+      <a href="bridges.html">Bridges</a>
+      <a href="renderers.html">Renderers</a>
+      <a href="rpc-widget.html">RPC &amp; Widget</a>
+      <a href="proof-layer.html" class="active">Proof Layer</a>
+      <a href="tests.html">Tests &amp; Monitoring</a>
+    </nav>
+
+    <section>
+      <h2>How to Use It</h2>
+      <p>
+        Track how Lean turns renderer data into proof artifacts: graph exports, trace certificates, and (soon)
+        stage/bridge theorems. Orange nodes denote expansion points for global proofs.
+      </p>
+    </section>
+
+    <section class="legend">
+      <h2>Legend</h2>
+      <div class="legend-item">
+        <span class="legend-swatch done"></span>
+        <span>Lean proof scaffolding present</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch todo"></span>
+        <span>Theorem backlog</span>
+      </div>
+    </section>
+
+    <section class="blueprint-card">
+      <svg viewBox="0 0 940 520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="node-done" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(34,197,94,0.18)" />
+            <stop offset="100%" stop-color="rgba(34,197,94,0.05)" />
+          </linearGradient>
+          <linearGradient id="node-todo" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(249,115,22,0.2)" />
+            <stop offset="100%" stop-color="rgba(249,115,22,0.07)" />
+          </linearGradient>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M0,0 L12,6 L0,12 z" fill="rgba(148, 163, 184, 0.65)" />
+          </marker>
+        </defs>
+
+        <g stroke="rgba(148, 163, 184, 0.55)" stroke-width="2.1" fill="none" marker-end="url(#arrow)">
+          <path d="M160 120 L320 120" />
+          <path d="M320 120 L500 120" />
+          <path d="M500 120 L680 120" />
+          <path d="M500 120 L500 260" />
+          <path d="M680 120 L680 260" />
+        </g>
+
+        <g>
+          <rect x="40" y="70" width="220" height="100" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94,234,212,0.4)" stroke-width="2.2" />
+          <text x="150" y="115" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Proof Core
+          </text>
+          <text x="150" y="145" text-anchor="middle" font-size="14" fill="var(--muted)">
+            LoFViz/Proof/Core.lean
+          </text>
+        </g>
+
+        <g>
+          <rect x="280" y="70" width="220" height="100" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94,234,212,0.4)" stroke-width="2.2" />
+          <text x="390" y="115" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Proof Graph
+          </text>
+          <text x="390" y="145" text-anchor="middle" font-size="14" fill="var(--muted)">
+            LoFViz/Proof/Graph.lean
+          </text>
+        </g>
+
+        <g>
+          <rect x="460" y="60" width="220" height="120" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(148,163,184,0.55)" stroke-width="2.2" />
+          <text x="570" y="105" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Export Tools
+          </text>
+          <text x="570" y="135" text-anchor="middle" font-size="14" fill="var(--muted)">
+            ExportProofGraphs.lean
+          </text>
+        </g>
+
+        <g>
+          <rect x="640" y="70" width="220" height="100" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94,234,212,0.4)" stroke-width="2.2" />
+          <text x="750" y="115" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            HTML Exports
+          </text>
+          <text x="750" y="145" text-anchor="middle" font-size="14" fill="var(--muted)">
+            RenderNatMulCommHtml.lean
+          </text>
+        </g>
+
+        <g>
+          <rect x="460" y="240" width="220" height="110" rx="18" ry="18"
+                fill="url(#node-todo)" stroke="rgba(249,115,22,0.45)" stroke-width="2.2" />
+          <text x="570" y="285" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Stage &amp; Bridge Proofs
+          </text>
+          <text x="570" y="315" text-anchor="middle" font-size="14" fill="var(--muted)">
+            connect to Logic/Bridges
+          </text>
+        </g>
+
+        <g>
+          <rect x="640" y="240" width="220" height="110" rx="18" ry="18"
+                fill="url(#node-todo)" stroke="rgba(249,115,22,0.45)" stroke-width="2.2" />
+          <text x="750" y="285" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Global Certificates
+          </text>
+          <text x="750" y="315" text-anchor="middle" font-size="14" fill="var(--muted)">
+            attach to Tests &amp; Docs
+          </text>
+        </g>
+      </svg>
+    </section>
+
+    <section>
+      <h2>Lean Anchors &amp; Notes</h2>
+      <div class="details-grid">
+        <article class="detail-card">
+          <h3>Proof Core</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/Proof/Core.lean</code> packages certificate bundles for export.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Proof Graph</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/Proof/Graph.lean</code> gives graph visualisations and export helpers.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>ExportProofGraphs</h3>
+          <p>
+            <code>lean/ExportProofGraphs.lean</code> uses the proof graph to spit out DOT/SVG artefacts for documentation.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>HTML Export</h3>
+          <p>
+            <code>lean/RenderNatMulCommHtml.lean</code> and <code>Nat_mul_comm_lof.html</code> illustrate how to publish
+            proofs as static HTML—keep them green.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Stage &amp; Bridge Proofs</h3>
+          <p>
+            Orange: integrate with <code>HeytingLean/Logic</code> and <code>HeytingLean/Bridges</code> once those
+            theorems are ready. This is where the total proof will attach.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Global Certificates</h3>
+          <p>
+            Track additional certificate artefacts (e.g. JSON exports for dashboards). Once defined, add links back to
+            the Tests &amp; Monitoring page.
+          </p>
+        </article>
+      </div>
+      <p class="footnote">
+        When bridge proofs land, promote the orange nodes to green and update the Generative Spine index to link here.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

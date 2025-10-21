@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LoF Visualization Blueprint — Generative Spine</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b111b;
+      --ink: #e2eefc;
+      --muted: #9fb7d7;
+      --accent: #6ee7ff;
+      --done: #22c55e;
+      --todo: #f97316;
+      --card: #0f172a;
+      --stroke: #1f2c3d;
+      --nav-bg: rgba(15, 23, 42, 0.9);
+      --nav-pill: rgba(30, 41, 59, 0.8);
+      --nav-pill-active: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+      padding-bottom: 4rem;
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2.75rem 2.25rem 3.5rem;
+    }
+    .nav {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      background: var(--nav-bg);
+      border: 1px solid var(--stroke);
+      padding: 0.85rem 1.1rem;
+      border-radius: 14px;
+    }
+    .nav a {
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      background: var(--nav-pill);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .nav a:hover {
+      color: var(--ink);
+    }
+    .nav a.active {
+      background: var(--nav-pill-active);
+      color: #082f49;
+      font-weight: 600;
+    }
+    header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2.1rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    header p {
+      margin: 0;
+      max-width: 720px;
+      color: var(--muted);
+    }
+    section {
+      margin-top: 2.5rem;
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 1.75rem 2rem;
+    }
+    section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.35rem;
+      font-weight: 600;
+    }
+    .legend {
+      display: flex;
+      gap: 1.75rem;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--muted);
+    }
+    .legend-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .legend-swatch.done {
+      background: var(--done);
+    }
+    .legend-swatch.todo {
+      background: var(--todo);
+    }
+    .blueprint-card {
+      padding: 0;
+      overflow: hidden;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: radial-gradient(circle at 20% 20%, rgba(110, 231, 183, 0.08), transparent 60%);
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .detail-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 1.2rem 1.3rem;
+    }
+    .detail-card h3 {
+      margin: 0 0 0.6rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .detail-card p {
+      margin: 0.65rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    code {
+      background: rgba(148, 163, 184, 0.12);
+      padding: 0 0.25rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .footnote {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>LoF Visualization Blueprint — Generative Spine</h1>
+      <p>
+        Follow the constructive flow from the very first primitive interactions
+        (<code>mark</code>, <code>unmark</code>, <code>reentry</code>) through RPC events, journal replay,
+        nucleus construction, and finally the certificate bundle that anchors the visual renderers.
+        Every node shown in green already lives in Lean with proofs or executable code.
+      </p>
+    </header>
+    <nav class="nav">
+      <a href="index.html" class="active">Generative Spine</a>
+      <a href="global.html">Global Graph</a>
+      <a href="bridges.html">Bridges</a>
+      <a href="renderers.html">Renderers</a>
+      <a href="rpc-widget.html">RPC &amp; Widget</a>
+      <a href="proof-layer.html">Proof Layer</a>
+      <a href="tests.html">Tests &amp; Monitoring</a>
+    </nav>
+
+    <section>
+      <h2>How to Use It</h2>
+      <p>
+        Save this file locally (it ships inside <code>Docs/LoFBlueprint/index.html</code>) and open it in any modern
+        browser. Hover each node to read the summary, and rely on the detail cards below for Lean file anchors.
+        The layout is self-contained—no build or network steps required. Extend it left-to-right as you prove more
+        of the generative spine: new bridge lemmas can attach to the certificate bundle, while additional render
+        modes branch from the shared render models.
+      </p>
+    </section>
+
+    <section class="legend">
+      <h2>Legend</h2>
+      <div class="legend-item">
+        <span class="legend-swatch done"></span>
+        <span>Implemented &amp; tested in Lean</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch todo"></span>
+        <span>Planned next (scaffolding ready)</span>
+      </div>
+    </section>
+
+    <section class="blueprint-card">
+      <svg viewBox="0 0 1180 760" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="node-done" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(34,197,94,0.18)" />
+            <stop offset="100%" stop-color="rgba(34,197,94,0.05)" />
+          </linearGradient>
+          <linearGradient id="node-todo" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(249,115,22,0.2)" />
+            <stop offset="100%" stop-color="rgba(249,115,22,0.07)" />
+          </linearGradient>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M0,0 L12,6 L0,12 z" fill="rgba(148, 163, 184, 0.65)" />
+          </marker>
+        </defs>
+
+        <!-- Connectors -->
+        <g stroke="rgba(148, 163, 184, 0.55)" stroke-width="2.2" fill="none" marker-end="url(#arrow)">
+          <path d="M320 115 L380 115" />
+          <path d="M640 115 L700 115" />
+          <path d="M830 170 C830 210 250 210 250 220" />
+          <path d="M510 170 C510 210 250 210 250 220" />
+          <path d="M250 330 C250 360 490 340 490 360" />
+          <path d="M680 330 C680 360 490 340 490 360" />
+          <path d="M490 470 L490 500" />
+          <path d="M490 610 C490 650 330 650 330 640" />
+          <path d="M490 610 C490 650 670 650 670 640" />
+          <path d="M480 695 L860 695" />
+          <path d="M820 695 L860 695" />
+        </g>
+
+        <!-- Nodes -->
+        <g>
+          <rect x="60" y="60" width="260" height="110" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="190" y="105" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Primitive Controls
+          </text>
+          <text x="190" y="135" text-anchor="middle" font-size="14" fill="var(--muted)">
+            mark • unmark • re-entry
+          </text>
+        </g>
+
+        <g>
+          <rect x="380" y="60" width="260" height="110" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="510" y="105" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Event Payload
+          </text>
+          <text x="510" y="135" text-anchor="middle" font-size="14" fill="var(--muted)">
+            LoFEvent RPC envelope
+          </text>
+        </g>
+
+        <g>
+          <rect x="700" y="60" width="260" height="110" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="830" y="105" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            State Types
+          </text>
+          <text x="830" y="135" text-anchor="middle" font-size="14" fill="var(--muted)">
+            scene state • JSON codecs
+          </text>
+        </g>
+
+        <g>
+          <rect x="120" y="220" width="260" height="110" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="250" y="265" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Stepper.applyEvent
+          </text>
+          <text x="250" y="295" text-anchor="middle" font-size="14" fill="var(--muted)">
+            journal ticks &amp; mode updates
+          </text>
+        </g>
+
+        <g>
+          <rect x="520" y="220" width="320" height="110" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="680" y="265" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            RegionSet Algebra
+          </text>
+          <text x="680" y="295" text-anchor="middle" font-size="14" fill="var(--muted)">
+            insert • erase • nucleus closure
+          </text>
+        </g>
+
+        <g>
+          <rect x="330" y="360" width="320" height="110" rx="20" ry="20"
+                fill="url(#node-done)" stroke="rgba(148, 163, 184, 0.55)" stroke-width="2.2" />
+          <text x="490" y="405" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Aggregate.step / closure
+          </text>
+          <text x="490" y="435" text-anchor="middle" font-size="14" fill="var(--muted)">
+            stack • mark counts • breathing rule
+          </text>
+        </g>
+
+        <g>
+          <rect x="330" y="500" width="320" height="110" rx="20" ry="20"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="490" y="545" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            KernelData.fromState
+          </text>
+          <text x="490" y="575" text-anchor="middle" font-size="14" fill="var(--muted)">
+            summaries • HUD notes • closures
+          </text>
+        </g>
+
+        <g>
+          <rect x="180" y="640" width="300" height="110" rx="20" ry="20"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="330" y="685" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Certificate Bundle
+          </text>
+          <text x="330" y="715" text-anchor="middle" font-size="14" fill="var(--muted)">
+            adjunction • RT₁ • RT₂ • classicalised?
+          </text>
+        </g>
+
+        <g>
+          <rect x="520" y="640" width="300" height="110" rx="20" ry="20"
+                fill="url(#node-done)" stroke="rgba(94, 234, 212, 0.4)" stroke-width="2.2" />
+          <text x="670" y="685" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Render Models
+          </text>
+          <text x="670" y="715" text-anchor="middle" font-size="14" fill="var(--muted)">
+            BoundaryModel • HypergraphModel
+          </text>
+        </g>
+
+        <g>
+          <rect x="860" y="640" width="260" height="110" rx="20" ry="20"
+                fill="url(#node-todo)" stroke="rgba(249, 115, 22, 0.45)" stroke-width="2.2" />
+          <text x="990" y="685" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Bridge / Total Proof Hooks
+          </text>
+          <text x="990" y="715" text-anchor="middle" font-size="14" fill="var(--muted)">
+            attach stage &amp; bridge lemmas
+          </text>
+        </g>
+      </svg>
+    </section>
+
+    <section>
+      <h2>Lean Anchors &amp; Notes</h2>
+      <div class="details-grid">
+        <article class="detail-card">
+          <h3>Primitive Controls</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/State.lean</code> introduces the concrete primitives
+            (<code>mark</code>, <code>unmark</code>, <code>reentry</code>) that seed the journal. They are Lean
+            inductives with JSON codecs, so the RPC layer never guesses about intent.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Event Payload &amp; Scene State</h3>
+          <p>
+            The same module defines the <code>Event</code> structure and scene <code>State</code>, giving us the
+            RPC envelope, timestamps, and default dial/lens/mode selections that every render will replay.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Stepper.applyEvent</h3>
+          <p>
+            Pure transitions (still in <code>State.lean</code>) replay the primitive stream, update modes,
+            and never touch IO, keeping the system composable and testable.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>RegionSet Algebra</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/Kernel.lean</code> houses the nucleus set combinators—closure,
+            implication, meet—implemented with simple list operations so the toy LoF lattice stays explicit.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Aggregate.step</h3>
+          <p>
+            Journal replay collapses into stack-aware counts, breathing angles, and alternating re-entry closures,
+            ready to certify the constructive core.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>KernelData.fromState</h3>
+          <p>
+            Collates the aggregate, computes HUD notes, and exposes helper predicates like
+            <code>currentIsActive</code> that now feed both certificates and render models.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Render Models</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/Render/Models.lean</code> builds <code>BoundaryModel</code> and
+            <code>HypergraphModel</code> directly from <code>KernelData</code> and proves their coupling lemmas,
+            keeping the visuals honest about the nucleus.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Certificate Bundle</h3>
+          <p>
+            The certificate API (still in <code>Kernel.lean</code>) delivers adjunction, RT₁/RT₂, and classicalisation
+            flags—the natural bridge-head for larger proof subgraphs.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Bridge Hooks (next)</h3>
+          <p>
+            As we extend into global stage/bridge theorems, attach them to the certificate or render-model interface,
+            then document the linkage here. Tests in <code>HeytingLean/ProofWidgets/LoFViz/Tests.lean</code> already
+            assert the boundary/hypergraph coupling, so the spine is ready for the next proof layer.
+          </p>
+        </article>
+      </div>
+      <p class="footnote">
+        Use the orange “Bridge / Total Proof Hooks” node as the attachment point for future subgraphs—whether they
+        discharge stage semantics, bridge transports, or whole-proof certificates that extend beyond the visual layer.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

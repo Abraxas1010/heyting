@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LoF Visualization Blueprint — RPC &amp; Widget</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b111b;
+      --ink: #e2eefc;
+      --muted: #9fb7d7;
+      --accent: #6ee7ff;
+      --done: #22c55e;
+      --todo: #f97316;
+      --card: #0f172a;
+      --stroke: #1f2c3d;
+      --nav-bg: rgba(15, 23, 42, 0.9);
+      --nav-pill: rgba(30, 41, 59, 0.8);
+      --nav-pill-active: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+      padding-bottom: 4rem;
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2.75rem 2.25rem 3.5rem;
+    }
+    .nav {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      background: var(--nav-bg);
+      border: 1px solid var(--stroke);
+      padding: 0.85rem 1.1rem;
+      border-radius: 14px;
+    }
+    .nav a {
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      background: var(--nav-pill);
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .nav a:hover {
+      color: var(--ink);
+    }
+    .nav a.active {
+      background: var(--nav-pill-active);
+      color: #082f49;
+      font-weight: 600;
+    }
+    section {
+      margin-top: 2.5rem;
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 1.75rem 2rem;
+    }
+    section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.35rem;
+      font-weight: 600;
+    }
+    .legend {
+      display: flex;
+      gap: 1.75rem;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--muted);
+    }
+    .legend-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .legend-swatch.done {
+      background: var(--done);
+    }
+    .legend-swatch.todo {
+      background: var(--todo);
+    }
+    .blueprint-card {
+      padding: 0;
+      overflow: hidden;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: radial-gradient(circle at 20% 20%, rgba(110, 231, 183, 0.08), transparent 60%);
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .detail-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 1.2rem 1.3rem;
+    }
+    .detail-card h3 {
+      margin: 0 0 0.6rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .detail-card p {
+      margin: 0.65rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    code {
+      background: rgba(148, 163, 184, 0.12);
+      padding: 0 0.25rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    .footnote {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>LoF Visualization Blueprint — RPC &amp; Widget</h1>
+      <p>
+        Here we map the boundary between Lean and the widget frontend: the RPC dispatcher, widget shell, generated
+        JavaScript, and demo harnesses. These components are the next closest neighbours to the generative spine.
+      </p>
+    </header>
+    <nav class="nav">
+      <a href="index.html">Generative Spine</a>
+      <a href="global.html">Global Graph</a>
+      <a href="bridges.html">Bridges</a>
+      <a href="renderers.html">Renderers</a>
+      <a href="rpc-widget.html" class="active">RPC &amp; Widget</a>
+      <a href="proof-layer.html">Proof Layer</a>
+      <a href="tests.html">Tests &amp; Monitoring</a>
+    </nav>
+
+    <section>
+      <h2>How to Use It</h2>
+      <p>
+        Use this card to trace every call path that moves data off the Lean server. The placeholder diagram highlights
+        which pieces are Lean-verified already and where we still need integration or property tests (orange).
+      </p>
+    </section>
+
+    <section class="legend">
+      <h2>Legend</h2>
+      <div class="legend-item">
+        <span class="legend-swatch done"></span>
+        <span>Implemented &amp; used in demos</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch todo"></span>
+        <span>Testing / validation gap</span>
+      </div>
+    </section>
+
+    <section class="blueprint-card">
+      <svg viewBox="0 0 940 520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="node-done" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(34,197,94,0.18)" />
+            <stop offset="100%" stop-color="rgba(34,197,94,0.05)" />
+          </linearGradient>
+          <linearGradient id="node-todo" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(249,115,22,0.2)" />
+            <stop offset="100%" stop-color="rgba(249,115,22,0.07)" />
+          </linearGradient>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+            <path d="M0,0 L12,6 L0,12 z" fill="rgba(148, 163, 184, 0.65)" />
+          </marker>
+        </defs>
+
+        <g stroke="rgba(148, 163, 184, 0.55)" stroke-width="2.1" fill="none" marker-end="url(#arrow)">
+          <path d="M140 120 L320 120" />
+          <path d="M320 120 L520 120" />
+          <path d="M520 120 L720 120" />
+          <path d="M520 120 L520 260" />
+          <path d="M720 120 L720 260" />
+        </g>
+
+        <g>
+          <rect x="40" y="70" width="200" height="100" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94,234,212,0.4)" stroke-width="2.2" />
+          <text x="140" y="115" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            RPC apply
+          </text>
+          <text x="140" y="145" text-anchor="middle" font-size="14" fill="var(--muted)">
+            LoFViz/Rpc.lean
+          </text>
+        </g>
+
+        <g>
+          <rect x="260" y="70" width="220" height="100" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94,234,212,0.4)" stroke-width="2.2" />
+          <text x="370" y="115" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Widget Shell
+          </text>
+          <text x="370" y="145" text-anchor="middle" font-size="14" fill="var(--muted)">
+            LoFViz/Widget.lean
+          </text>
+        </g>
+
+        <g>
+          <rect x="500" y="60" width="220" height="120" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(148,163,184,0.55)" stroke-width="2.2" />
+          <text x="610" y="105" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Generated JS
+          </text>
+          <text x="610" y="135" text-anchor="middle" font-size="14" fill="var(--muted)">
+            LoFVisualApp.js / Samples
+          </text>
+        </g>
+
+        <g>
+          <rect x="700" y="70" width="200" height="100" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94,234,212,0.4)" stroke-width="2.2" />
+          <text x="800" y="115" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            TS Source
+          </text>
+          <text x="800" y="145" text-anchor="middle" font-size="14" fill="var(--muted)">
+            widget/src/LoFVisualApp.tsx
+          </text>
+        </g>
+
+        <g>
+          <rect x="500" y="240" width="220" height="110" rx="18" ry="18"
+                fill="url(#node-done)" stroke="rgba(94,234,212,0.4)" stroke-width="2.2" />
+          <text x="610" y="285" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Lean Demos
+          </text>
+          <text x="610" y="315" text-anchor="middle" font-size="14" fill="var(--muted)">
+            VisualizationDemo.lean
+          </text>
+        </g>
+
+        <g>
+          <rect x="700" y="240" width="200" height="110" rx="18" ry="18"
+                fill="url(#node-todo)" stroke="rgba(249,115,22,0.45)" stroke-width="2.2" />
+          <text x="800" y="285" text-anchor="middle" font-size="20" fill="var(--ink)" font-weight="600">
+            Integration Tests
+          </text>
+          <text x="800" y="315" text-anchor="middle" font-size="14" fill="var(--muted)">
+            JS ↔ Lean regression suite
+          </text>
+        </g>
+      </svg>
+    </section>
+
+    <section>
+      <h2>Lean Anchors &amp; Notes</h2>
+      <div class="details-grid">
+        <article class="detail-card">
+          <h3>RPC Dispatcher</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/Rpc.lean</code> lifts <code>KernelData</code> into render models and
+            returns <code>BridgeResult</code>. Future work: integrate persistent storage hooks.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Lean Widget Wrapper</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/Widget.lean</code> binds the widget component and forwards events.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Generated Assets</h3>
+          <p>
+            <code>HeytingLean/ProofWidgets/LoFViz/LoFVisualApp.js</code> and
+            <code>.../LoFVisualSamples.js</code> are emitted bundles. Keep the TypeScript source authoritative.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>TypeScript Source</h3>
+          <p>
+            <code>ProofWidgets/widget/src/LoFVisualApp.tsx</code> (plus <code>types.ts</code>, <code>proofBadges.tsx</code>)
+            contains the React implementation of the HUD and SVG host.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Lean Demo Entrypoints</h3>
+          <p>
+            <code>VisualizationDemo.lean</code> loads the widget in InfoView, while
+            <code>RenderNatMulCommHtml.lean</code> / <code>Nat_mul_comm_lof.html</code> export standalone HTML demos.
+          </p>
+        </article>
+        <article class="detail-card">
+          <h3>Integration Gap</h3>
+          <p>
+            The orange block tracks end-to-end tests (Lean ↔ JS). Once we automate them, update this page and link
+            into the tests blueprint.
+          </p>
+        </article>
+      </div>
+      <p class="footnote">
+        When the integration suite is in place, wire a navigation link back into the Tests &amp; Monitoring page.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

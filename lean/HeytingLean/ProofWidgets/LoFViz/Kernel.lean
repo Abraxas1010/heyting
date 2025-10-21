@@ -219,6 +219,10 @@ def fiberStatus (k : KernelData) : FiberStatus :=
     graphActivated := k.aggregate.reentries > 0
     cliffordEven := k.aggregate.marks % 2 = 0 }
 
+/-- Static note referencing the established Stage transport lemmas. -/
+@[inline] def stageTransportNote : String :=
+  "Stage transports (tensor/graph/clifford) proven via stageMvAdd_encode / stageEffectAdd_encode / stageOrthocomplement_encode."
+
 /-- Notes specific to the fiber-bundle visualization. -/
 def fiberNotes (k : KernelData) : Array String :=
   let status := k.fiberStatus
@@ -226,7 +230,8 @@ def fiberNotes (k : KernelData) : Array String :=
     s!"Logic lens: closure {if status.logicStable then "stable" else "pending"} (nucleus fixed point).",
     s!"Tensor lens: support {RegionSet.card k.aggregate.current} region(s) ({if status.tensorBounded then "within" else "beyond"} linear capacity).",
     s!"Graph lens: re-entry {if status.graphActivated then "observed" else "not yet witnessed"} in journal.",
-    s!"Clifford lens: mark parity {if status.cliffordEven then "even (dualised)" else "odd (torsion)"}."
+    s!"Clifford lens: mark parity {if status.cliffordEven then "even (dualised)" else "odd (torsion)"}.",
+    stageTransportNote
   ]
 
 private def previous (k : KernelData) : List String :=

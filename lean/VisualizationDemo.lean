@@ -2,8 +2,6 @@ import Lean
 import ProofWidgets
 import HeytingLean.ProofWidgets.LoFViz
 
--- Interactive LoF visualization widget backed by `HeytingLean.ProofWidgets.LoFViz.apply`.
+open HeytingLean.ProofWidgets.LoFViz
 
-#widget HeytingLean.ProofWidgets.LoFViz.LoFVisualAppWidget with
-  ({ sceneId := "demo", clientVersion := "0.1.0" }
-    : HeytingLean.ProofWidgets.LoFViz.WidgetProps)
+#html Proof.htmlOfConstant ``Nat.mul_comm

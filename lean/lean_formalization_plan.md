@@ -91,33 +91,36 @@ High-level docs pending: ladder/dimensional story, carrier rationale (`Docs/Proo
 
 Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary narrative.
 
-## Near-Term Sprint *(Q2 2025)*
+## Visualization Workbench *(status: 🚧 in progress)*
 
-1. **Document & Automate Ladder Dynamics** *(status: ✅ done)*
-   - Docs updated (`Docs/Ontology.md`, `Docs/Semantics.md`) with references to `Docs/ProofNotes.md`; existing `[simp]` collapse/expand lemmas cover automation.
-   - Write dimensional semantics doc.
-   - Add automation lemmas/tactics for ladder proofs.
+- **Proof Graph Core** *(status: ✅ complete)* — `LoFViz.Proof.Graph` defines the node/edge schema; `graphJsonOfConstant` exposes the JSON payload; the HTML renderer now embeds the graph under `<script type="application/json" id="lof-proof-graph">`.
+- **React Bridge** *(status: ✅ multi-view MVP)* — The LoF widget reads the embedded graph JSON, hydrates local state, exposes view switching (visual render, proof graph, hypergraph sketch, Euler/tensor dashboard, causal summary), and bundles a sample gallery plus upload/paste validation. Further work will wire richer layouts and proof imports backed by Lean.
+- **Rendering Strategies** *(status: 🧭 design)* — Select layout algorithms (layered DAG, force-directed, Venn/Euler overlays) and surface user controls (mode toggles, lens filters, style switches).
+- **Testing & Build** *(status: ✅ enforced)* — `lake build -- -Dno_sorry -DwarningAsError=true` is the canonical build command; widget front-end bundling must integrate with Lake without relaxing diagnostics.
 
-2. **Enhance Bridge Carriers** *(status: ✅ done)*
-   - Permutation lemmas keep the compliance harness aligned while projector automation continues.
-   - Specify projector invariants for the Clifford scaffold (Alexandroff opens ✅, projector suite wired into runtime CLI/`generative_ontology` ✅; remaining work is fine-grained projector automation).
-   - Monitor the feature-flag rollout now that the enriched carriers are the documented default.
-   - Keep compliance harnesses aligned as projector invariants expand (**done:** permutation lemmas now cover tensor/graph/clifford traces).
+## Near-Term Sprint *(Q3 2025)*
 
-3. **Lint & Automation Sweep** *(status: ✅ done)*
-   - `lake build -- -Dno_sorry -DwarningAsError=true` runs clean and new trace helpers expose automation via `[simp]` attributes.
-   - Resolve `simp` vs `simpa`, unused section variables.
-   - Introduce automation (`@[simp]`, `aesop`) for repetitive rewrites.
+1. **Graph Store & Preview** *(status: ✅ completed)*
+   - Parse `lof-proof-graph` in `LoFVisualApp.js` and hydrate state.
+   - Provide basic proof-graph statistics and preview listings alongside the existing SVG render.
 
-4. **Documentation** *(status: ✅ done)*
-   - Updated `Docs/Ontology.md`, `Docs/Semantics.md`, and authored `Docs/MathlibGaps.md` plus breathing-cycle notes.
-   - Integrate `Docs/ProofNotes.md` into developer docs.
-   - Update `Docs/Semantics.md`, `Docs/Ontology.md` with carrier rationale/dimensional story.
+2. **Design Multi-View Controls** *(status: 🔄 enhancements)*
+   - Main tabs (visual, proof graph, hypergraph, Euler/tensor, causal) deployed on top of a layered DAG layout computed client-side; next iteration adds force-directed refinements and algebraic/geometric summaries.
+   - Sample gallery now hydrates via RPC when possible and falls back to bundled graphs; extend coverage and present curated categories.
+
+3. **Graph Layout Prototypes** *(status: 🧪 exploration)*
+   - Prototype at least two layouts (layered DAG for proof flow, force-directed/metro map for dependency graph) driven by the proof graph JSON.
+   - Validate performance on medium proofs; collect requirements for caching or progressive rendering.
+
+4. **Documentation & Developer UX** *(status: 📌 pending)*
+   - Extend developer docs with the visualization data contract and integration guide.
+   - Document the build/run workflow for the React bundle and describe the proof import paths.
 
 ## Cleanup Backlog
 
 - Lint polish across bridges/compliance.
 - Extend shared helpers for additional stage dynamics as needed.
+- Front-end lint/build integration once visualization views land.
 
 ## Outstanding TODOs
 
@@ -128,6 +131,7 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
 5. ✅ Publish narrative docs/appendices.
 6. ✅ Track mathlib gaps (see `Docs/MathlibGaps.md`).
 7. ✅ Extend the enriched bridge packs beyond round-trip (permutation automation threaded through trace helpers).
+8. 🔄 Refine the widget multi-view experience (force-directed layouts, curated galleries, richer Lean-backed proof loading and caching).
 
 ## Milestones
 
@@ -137,8 +141,4 @@ Occam/PSR/Dialectic implemented with tests. **Next:** document Euler-boundary na
 - **M4:** ✅ Bridges aligned with shared transport helpers.
 - **M5:** 📌 Carrier upgrades documented, invariants & rollout pending.
 - **M6:** 📌 Publish docs/examples for dial-a-logic scenarios and breathing cycles.
-
-
-
-
 

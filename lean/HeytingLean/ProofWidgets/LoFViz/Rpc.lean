@@ -4,6 +4,8 @@ import HeytingLean.ProofWidgets.LoFViz.State
 import HeytingLean.ProofWidgets.LoFViz.Kernel
 import HeytingLean.ProofWidgets.LoFViz.Render.Router
 import HeytingLean.ProofWidgets.LoFViz.Render.Types
+import HeytingLean.ProofWidgets.LoFViz.Proof.Core
+import HeytingLean.ProofWidgets.LoFViz.Proof.Graph
 
 open Std
 open Lean
@@ -12,6 +14,18 @@ open Lean Server
 namespace HeytingLean
 namespace ProofWidgets
 namespace LoFViz
+
+/-- Request payload for fetching a proof graph. -/
+structure GraphRequest where
+  constant : String
+  fuel? : Option Nat := none
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
+
+/-- Response payload containing a proof graph encoded as JSON. -/
+structure GraphResponse where
+  constant : String
+  graph : Json
+  deriving Inhabited, Repr, ToJson, FromJson, Server.RpcEncodable
 
 /-- In-memory cache for scene state. This persists for the lifetime of the Lean server. -/
 initialize sceneCache : IO.Ref (Std.HashMap String State) ← IO.mkRef {}
@@ -45,6 +59,19 @@ def apply (evt : Event) : RequestM (RequestTask Render.ApplyResponse) :=
             svg := rendered.svg
             hud := rendered.hud }
         proof := rendered.certificates }
+
+@[server_rpc_method]
+def graphOfConstant (req : GraphRequest) : RequestM (RequestTask GraphResponse) := do
+  let doc ← RequestM.readDoc
+  let task := doc.cmdSnaps.waitAll
+  RequestM.mapTaskCostly task fun (snaps, _) => do
+    let some snap := snaps.reverse.head?
+      | throw <| RequestError.internalError "No elaboration snapshots available."
+    let some name := Proof.nameFromString? req.constant
+      | throw <| RequestError.invalidParams s!"Unknown constant name '{req.constant}'."
+    RequestM.runCoreM snap do
+      let bundle ← bundleOfConstantCore name (req.fuel?.getD defaultFuel)
+      return { constant := req.constant, graph := bundle.graph.toJson }
 
 end LoFViz
 end ProofWidgets

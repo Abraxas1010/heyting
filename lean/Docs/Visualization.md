@@ -10,5 +10,9 @@ The visualization subsystem (see `visualization_system_plan.md`) now has a funct
 - `ProofWidgets/LoFViz/Render/String.lean` renders process/counter-process strands over the primitive timeline.
 - `ProofWidgets/LoFViz/Rpc.lean` exposes the `LoFViz.apply` RPC and now persists scene state via the proof-widget persistent store.
 - `ProofWidgets/widget/src/LoFVisualApp.tsx` wires the UI shell to the RPC and renders proof badges.
+- Blueprint coverage now includes a generative spine, bridge cards, and a <code>global.html</code> plan for an Infinity Cosmos–style dependency graph (hover definitions, clickable nodes linking to detailed cards).
 
-All primary modes (Boundary, Euler, Hypergraph, Fiber, String) are backed by nucleus-derived renderers. The Split mode provides a comparative dashboard; future work can enrich it with live sub-mode selection.
+- Tensor, graph, and Clifford bridges (`HeytingLean/Bridges/{Tensor,Graph,Clifford}.lean`) already commute Stage semantics operations through their round-trip contracts (`stageMvAdd_encode`, `stageEffectAdd_encode`, `stageOrthocomplement_encode`, …); the fiber HUD surfaces these invariants in Lean.
+- `Docs/LoFBlueprint/{index,bridges,bridge-tensor,bridge-graph,bridge-clifford,renderers,rpc-widget,proof-layer,tests}.html` provides decision cards that track the generative spine, bridge integrations, renderer pipeline, RPC shell, proof layer, and testing roadmap.
+
+All primary modes (Boundary, Euler, Hypergraph, Fiber, String) are backed by nucleus-derived renderers. The Split mode provides a comparative dashboard; future work can enrich it with live sub-mode selection and additional bridge telemetry once more carriers are introduced.

@@ -35,6 +35,8 @@ def fiberSvg (kernel : KernelData) : String :=
     s!"<circle cx='210' cy='150' r='{40 + currentCard * 8}' fill='rgba(15,118,110,0.25)' stroke='{statusColour "#0f766e" "#fb7185" status.logicStable}' stroke-width='4'/>
        <text x='210' y='120' text-anchor='middle' font-family='monospace' font-size='13' fill='#ccfbf1'>LoF Core (Ω_R)</text>
        <text x='210' y='170' text-anchor='middle' font-family='monospace' font-size='11' fill='#94a3b8'>|regions| = {currentCard}</text>"
+  let stageNote :=
+    s!"<text x='210' y='188' text-anchor='middle' font-family='monospace' font-size='10' fill='#38bdf8'>{KernelData.stageTransportNote}</text>"
   let fiberBoxes :=
     s!"<rect x='40' y='42' width='110' height='70' rx='16' fill='rgba(2,132,199,0.18)' stroke='{logicColour}' stroke-width='3'/>
        <rect x='170' y='20' width='110' height='70' rx='16' fill='rgba(234,179,8,0.18)' stroke='{tensorColour}' stroke-width='3'/>
@@ -49,7 +51,7 @@ def fiberSvg (kernel : KernelData) : String :=
        <path d='M355 112 L245 140' stroke='{cliffordColour}' stroke-width='4' fill='none' marker-end='url(#arrowTip)' opacity='0.85'/>"
   let footer :=
     s!"<text x='210' y='228' text-anchor='middle' font-family='monospace' font-size='12' fill='#94a3b8'>{kernel.summary}</text>"
-  base ++ baseManifold ++ fiberBoxes ++ fiberLabels ++ arrows ++ footer ++ "</svg>"
+  base ++ baseManifold ++ stageNote ++ fiberBoxes ++ fiberLabels ++ arrows ++ footer ++ "</svg>"
 
 /-- Render the fiber bundle portal. -/
 def renderFiber (state : State) (kernel : KernelData) : BridgeResult :=
