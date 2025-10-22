@@ -42,11 +42,42 @@ def boolConstraint (v : Var) : Constraint :=
     B := ⟨-1, [(v, 1)]⟩
     C := LinComb.ofConst 0 }
 
+/-- Support of the booleanity constraint is the singleton `{v}`. -/
+@[simp] lemma boolConstraint_support (v : Var) :
+    Constraint.support (boolConstraint v) = ({v} : Finset Var) := by
+  classical
+  simp [Constraint.support, boolConstraint]
+
+/-- Booleanity constraint evaluates to `a v * (a v - 1) = 0`. -/
+@[simp] lemma boolConstraint_satisfied (assign : Var → ℚ) (v : Var) :
+    Constraint.satisfied assign (boolConstraint v) ↔
+      assign v * (assign v - 1) = 0 := by
+  classical
+  have hB :
+      (⟨-1, [(v, 1)]⟩ : LinComb).eval assign = assign v - 1 := by
+    simp [LinComb.eval, sub_eq_add_neg, add_comm]
+  simp [Constraint.satisfied, boolConstraint, LinComb.eval_single,
+    LinComb.eval_ofConst, hB, sub_eq_add_neg]
+
 /-- Constraint enforcing `v = constant`. -/
 def eqConstConstraint (v : Var) (value : ℚ) : Constraint :=
   { A := LinComb.single v 1
     B := LinComb.ofConst 1
     C := LinComb.ofConst value }
+
+/-- Support of the equality-to-constant constraint is `{v}`. -/
+@[simp] lemma eqConstConstraint_support (v : Var) (value : ℚ) :
+    Constraint.support (eqConstConstraint v value) = ({v} : Finset Var) := by
+  classical
+  simp [Constraint.support, eqConstConstraint]
+
+/-- Satisfying `eqConstConstraint` is definitionally the equality `assign v = value`. -/
+@[simp] lemma eqConstConstraint_satisfied (assign : Var → ℚ)
+    (v : Var) (value : ℚ) :
+    Constraint.satisfied assign (eqConstConstraint v value) ↔
+      assign v = value := by
+  classical
+  simp [Constraint.satisfied, eqConstConstraint]
 
 /-- Constraint enforcing `lhs = rhs` using a single multiplicative slot. -/
 def eqConstraint (lhs rhs : LinComb) : Constraint :=
@@ -119,6 +150,13 @@ private lemma range_subset_succ (n : ℕ) :
   intro v hv
   have hvlt : v < n := Finset.mem_range.mp hv
   exact Finset.mem_range.mpr (Nat.lt_succ_of_lt hvlt)
+
+private lemma singleton_subset_range {n v : ℕ} (hv : v < n) :
+    ({v} : Finset Var) ⊆ Finset.range n := by
+  intro w hw
+  have hw' : w = v := Finset.mem_singleton.mp hw
+  subst hw'
+  exact Finset.mem_range.mpr hv
 
 namespace Builder
 
@@ -221,6 +259,40 @@ lemma fresh_preserve_satisfied {st : Builder} {value : ℚ}
   have := hSatOld hcOld
   simpa using this
 
+lemma addConstraint_preserve_support {st : Builder} {c : Constraint}
+    (hSupport : SupportOK st)
+    (hc : Constraint.support c ⊆ Finset.range st.nextVar) :
+    SupportOK (addConstraint st c) := by
+  classical
+  intro v hv
+  have hvUnion :
+      v ∈ System.support (Builder.system st) ∪ Constraint.support c := by
+    simpa [Builder.system_addConstraint] using hv
+  have hCases := Finset.mem_union.mp hvUnion
+  cases hCases with
+  | inl hvOld =>
+      have := hSupport hvOld
+      simpa [Builder.addConstraint_nextVar] using this
+  | inr hvNew =>
+      have := hc hvNew
+      simpa [Builder.addConstraint_nextVar] using this
+
+lemma addConstraint_preserve_satisfied {st : Builder} {c : Constraint}
+    (hSat : System.satisfied st.assign (Builder.system st))
+    (hc : Constraint.satisfied st.assign c) :
+    System.satisfied (addConstraint st c).assign
+        (Builder.system (addConstraint st c)) := by
+  intro d hd
+  have hdCons : d = c ∨ d ∈ st.constraints := by
+    simpa [Builder.system_addConstraint] using hd
+  cases hdCons with
+  | inl hdc =>
+      subst hdc
+      simpa [Builder.addConstraint_assign] using hc
+  | inr hdOld =>
+      have := hSat hdOld
+      simpa [Builder.addConstraint_assign] using this
+
 end Builder
 
 lemma addConstraint_preserve_matches {builder : Builder} {stack vars}
@@ -244,6 +316,46 @@ lemma recordBoolean_preserve_bounded {builder : Builder} {vars : List Var} (v : 
     Bounded (recordBoolean builder v) vars := by
   unfold recordBoolean
   simpa [Bounded] using h
+
+lemma recordBoolean_preserve_support {builder : Builder} {v : Var}
+    (hSupport : SupportOK builder) (hv : v < builder.nextVar) :
+    SupportOK (recordBoolean builder v) := by
+  classical
+  have hSubset :
+      Constraint.support (boolConstraint v) ⊆ Finset.range builder.nextVar := by
+    intro w hw
+    have hw' : w = v := by
+      simpa [boolConstraint_support] using hw
+    subst hw'
+    exact Finset.mem_range.mpr hv
+  have :=
+    Builder.addConstraint_preserve_support
+      (st := builder) (c := boolConstraint v) hSupport hSubset
+  simpa [recordBoolean, Builder.system_recordBoolean]
+    using this
+
+lemma recordBoolean_preserve_satisfied {builder : Builder} {v : Var}
+    (hSat : System.satisfied builder.assign (Builder.system builder))
+    (hv : Constraint.satisfied builder.assign (boolConstraint v)) :
+    System.satisfied (recordBoolean builder v).assign
+        (Builder.system (recordBoolean builder v)) := by
+  classical
+  unfold System.satisfied at hSat ⊢
+  intro c hc
+  have hc' : c = boolConstraint v ∨ c ∈ builder.constraints := by
+    simpa [recordBoolean, Builder.system_recordBoolean] using hc
+  -- `recordBoolean` does not change the assignment except for adding the constraint.
+  have hAssign :
+      (recordBoolean builder v).assign = builder.assign := by
+    simp [recordBoolean]
+  cases hc' with
+  | inl hEq =>
+      subst hEq
+      -- Constraint satisfied by assumption `hv`.
+      simpa [hAssign] using hv
+  | inr hMem =>
+      have := hSat hMem
+      simpa [hAssign] using this
 
 @[simp] lemma matches_nil (builder : Builder) :
     Matches builder [] [] := List.Forall₂.nil
@@ -394,8 +506,7 @@ lemma pushConst_invariant {builder : Builder} {stack : Stack}
         rcases List.mem_cons.mp hw with hw | hw
         · subst hw
           have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
-          simpa [hv_idx, hNext₁, hNext₃]
-            using this
+          simpa [hv_idx, hNext₁, hNext₃] using this
         · exact hBounded₃ w hw
       have hMatches_new' : Matches builder₃ (b :: stack) (builder.nextVar :: vars) :=
         by simpa [hv_idx] using hMatches_new
@@ -443,9 +554,9 @@ lemma applyAnd_invariant {builder : Builder} {x y : Bool}
   have hLenRest : before.length = vars.length :=
     matches_length_eq hMatchesRest
   have hv_idx : vz = builder.nextVar := by
-    simpa [vz, fres] using Builder.fresh_snd (st := builder) (value := boolToRat z)
+    simp [vz, fres]
   have hNext₁ : builder1.nextVar = builder.nextVar + 1 := by
-    simpa [builder1, fres] using Builder.fresh_nextVar (st := builder) (value := boolToRat z)
+    simp [builder1, fres]
   have hMatches1 : Matches builder1 (x :: y :: before) (vx :: vy :: vars) := by
     have := matches_fresh_preserve (builder := builder) (value := boolToRat z)
       (stack := x :: y :: before) (vars := vx :: vy :: vars) hMatches hBounded
@@ -494,8 +605,7 @@ lemma applyAnd_invariant {builder : Builder} {x y : Bool}
     rcases List.mem_cons.mp hw with hw | hw
     · subst hw
       have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
-      simpa [hv_idx, hNext₁, hNext₃]
-        using this
+      simpa [hv_idx, hNext₁, hNext₃] using this
     · exact hBoundedRest3 w hw
   have hLen_new : (z :: before).length = (vz :: vars).length := by
     simp [List.length_cons, hLenRest]

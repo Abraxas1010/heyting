@@ -62,6 +62,15 @@ def support (lc : LinComb) : Finset Var :=
       insert term.1 (support ⟨c, terms⟩) := by
   simp [support, List.foldr_cons]
 
+@[simp] lemma support_ofConst (c : ℚ) :
+    support (LinComb.ofConst c) = (∅ : Finset Var) := by
+  simp [LinComb.ofConst, support]
+
+@[simp] lemma support_single (v : Var) (coeff : ℚ) :
+    support (LinComb.single v coeff) = ({v} : Finset Var) := by
+  classical
+  simp [LinComb.single, support_cons, support_nil]
+
 lemma support_terms_mem {const : ℚ} :
     ∀ (terms : List (Var × ℚ)) (v : Var),
       v ∈ support ⟨const, terms⟩ ↔ ∃ coeff, (v, coeff) ∈ terms
@@ -85,20 +94,13 @@ lemma support_terms_mem {const : ℚ} :
         | inl hHead =>
             have hvVar : v = term.1 := by
               simpa using congrArg Prod.fst hHead
-            have hvMem :
-                term.1 ∈ insert term.1 (support ⟨const, tail⟩) :=
-              Finset.mem_insert.mpr (Or.inl rfl)
-            have : v ∈ insert term.1 (support ⟨const, tail⟩) := by
-              simpa [hvVar]
-                using hvMem
-            simpa [support_cons]
+            subst hvVar
+            simp [support_cons]
         | inr hTail =>
             have hvTail :
                 v ∈ support ⟨const, tail⟩ :=
               (support_terms_mem tail v).2 ⟨coeff', hTail⟩
-            have : v ∈ insert term.1 (support ⟨const, tail⟩) :=
-              Finset.mem_insert.mpr (Or.inr hvTail)
-            simpa [support_cons]
+            simp [support_cons, hvTail]
 
 @[simp] lemma mem_support_iff {lc : LinComb} {v : Var} :
     v ∈ lc.support ↔ ∃ coeff, (v, coeff) ∈ lc.terms := by
@@ -123,6 +125,27 @@ lemma support_tail {term : Var × ℚ} {terms : List (Var × ℚ)} {c : ℚ} :
   have : v ∈ insert term.1 (support ⟨c, terms⟩) :=
     Finset.mem_insert.mpr (Or.inr hv)
   simpa [support_cons] using this
+
+@[simp] lemma eval_ofConst (a : Var → ℚ) (c : ℚ) :
+    (LinComb.ofConst c).eval a = c := by
+  simp [LinComb.ofConst, LinComb.eval]
+
+@[simp] lemma eval_single (a : Var → ℚ) (v : Var) (coeff : ℚ) :
+    (LinComb.single v coeff).eval a = coeff * a v := by
+  unfold LinComb.eval
+  change ([(v, coeff)]).foldl
+      (fun acc term => acc + term.2 * a term.1) 0 = coeff * a v
+  have h :
+      ([(v, coeff)]).foldl
+          (fun acc term => acc + term.2 * a term.1) 0 =
+        (fun acc term => acc + term.2 * a term.1) 0 (v, coeff) := by
+    simp [List.foldl_cons, List.foldl_nil]
+  have h' :
+      (fun acc term => acc + term.2 * a term.1) 0 (v, coeff) =
+        coeff * a v := by
+    change 0 + coeff * a v = coeff * a v
+    simpa using Rat.zero_add (coeff * a v)
+  exact h.trans h'
 
 private lemma eval_terms_ext
     {a a' : Var → ℚ}
@@ -150,7 +173,7 @@ private lemma eval_terms_ext
       have hconst :
           const + term.2 * a term.1 =
             const + term.2 * a' term.1 := by
-        simpa [hterm]
+        simp [hterm]
       simpa [List.foldl_cons, hterm, hconst]
         using ih
 
@@ -238,7 +261,8 @@ lemma constraint_support_subset {sys : System}
   | mk constraints =>
       induction constraints with
       | nil =>
-          intro c hc; simpa using hc
+          intro c hc
+          cases hc
       | cons head tail ih =>
           intro c hc
           have hc' := List.mem_cons.mp hc
