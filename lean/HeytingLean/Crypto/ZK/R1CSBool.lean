@@ -104,6 +104,9 @@ namespace Builder
   have : w ≠ st.nextVar := Nat.ne_of_lt hw
   simp [this]
 
+@[simp] lemma fresh_snd (st : Builder) (value : ℚ) :
+    (fresh st value).2 = st.nextVar := rfl
+
 lemma fresh_preserve_bounded {st : Builder} {value : ℚ} {vars : List Var}
     (h : Bounded st vars) :
     Bounded (fresh st value).1 vars := by
@@ -136,6 +139,262 @@ lemma recordBoolean_preserve_bounded {builder : Builder} {vars : List Var} (v : 
     Bounded (recordBoolean builder v) vars := by
   unfold recordBoolean
   simpa [Bounded] using h
+
+@[simp] lemma matches_nil (builder : Builder) :
+    Matches builder [] [] := List.Forall₂.nil
+
+lemma matches_cons_head {builder : Builder} {b : Bool} {stack : Stack}
+    {v : Var} {vars : List Var}
+    (h : Matches builder (b :: stack) (v :: vars)) :
+    boolToRat b = builder.assign v := by
+  cases h with
+  | cons hHead _ => simpa using hHead
+
+lemma matches_cons_tail {builder : Builder} {b : Bool} {stack : Stack}
+    {v : Var} {vars : List Var}
+    (h : Matches builder (b :: stack) (v :: vars)) :
+    Matches builder stack vars := by
+  cases h with
+  | cons _ hTail => simpa using hTail
+
+lemma matches_tail_tail {builder : Builder} {b₁ b₂ : Bool} {stack : Stack}
+    {v₁ v₂ : Var} {vars : List Var}
+    (h : Matches builder (b₁ :: b₂ :: stack) (v₁ :: v₂ :: vars)) :
+    Matches builder stack vars := by
+  have hTail₁ :=
+    matches_cons_tail (builder := builder) (b := b₁)
+      (stack := b₂ :: stack) (v := v₁) (vars := v₂ :: vars) h
+  exact matches_cons_tail (builder := builder) (b := b₂)
+      (stack := stack) (v := v₂) (vars := vars) hTail₁
+
+lemma matches_length_eq {builder : Builder} {stack : Stack} {vars : List Var}
+    (h : Matches builder stack vars) :
+    stack.length = vars.length := by
+  induction h with
+  | nil => simp
+  | cons _ _ ih => simp [ih]
+
+lemma matches_fresh_preserve {builder : Builder} {stack : Stack}
+    {vars : List Var} {value : ℚ}
+    (hM : Matches builder stack vars)
+    (hB : Bounded builder vars) :
+    Matches (Builder.fresh builder value).1 stack vars := by
+  classical
+  revert hB
+  induction hM with
+  | nil => intro; simp [Matches]
+  | @cons b v stack vars hHead hTail ih =>
+      intro hB
+      have hvlt : v < builder.nextVar := hB v (by simp)
+      have hBtail : Bounded builder vars := by
+        intro w hw; exact hB w (by simp [hw])
+      have hTail' := ih hBtail
+      have hAssign := Builder.fresh_assign_lt (st := builder)
+        (value := value) (w := v) (hw := hvlt)
+      refine List.Forall₂.cons ?_ hTail'
+      simpa [hAssign] using hHead
+
+lemma Bounded.tail {builder : Builder} {v : Var} {vars : List Var}
+    (h : Bounded builder (v :: vars)) :
+    Bounded builder vars := by
+  intro w hw
+  exact h w (by simp [hw])
+
+lemma Bounded.tail_tail {builder : Builder} {v₁ v₂ : Var} {vars : List Var}
+    (h : Bounded builder (v₁ :: v₂ :: vars)) :
+    Bounded builder vars :=
+  Bounded.tail
+    (builder := builder)
+    (v := v₂) (vars := vars)
+    (Bounded.tail (builder := builder)
+      (v := v₁) (vars := v₂ :: vars) h)
+
+/-- Convenience invariant bundling matches, bounds, and stack length. -/
+def Invariant (builder : Builder) (stack : Stack) (vars : List Var) : Prop :=
+  Matches builder stack vars ∧ Bounded builder vars ∧ stack.length = vars.length
+
+namespace Invariant
+
+lemma tail {builder : Builder} {stack : Stack} {vars : List Var}
+    {b : Bool} {v : Var}
+    (h : Invariant builder (b :: stack) (v :: vars)) :
+    Invariant builder stack vars :=
+  ⟨matches_cons_tail h.1, Bounded.tail h.2.1,
+    by
+      have := h.2.2
+      simp [List.length_cons] at this
+      exact this⟩
+
+lemma tail₂ {builder : Builder} {stack : Stack} {vars : List Var}
+    {b₁ b₂ : Bool} {v₁ v₂ : Var}
+    (h : Invariant builder (b₁ :: b₂ :: stack) (v₁ :: v₂ :: vars)) :
+    Invariant builder stack vars :=
+  tail (builder := builder)
+    (stack := stack) (vars := vars) (b := b₂) (v := v₂)
+    (tail (builder := builder)
+      (stack := b₂ :: stack) (vars := v₂ :: vars)
+      (b := b₁) (v := v₁) h)
+
+end Invariant
+
+lemma pushConst_invariant {builder : Builder} {stack : Stack}
+    {vars : List Var} {value : ℚ} {b : Bool}
+    (hInv : Invariant builder stack vars)
+    (hvalue : value = boolToRat b) :
+    let result := pushConst builder value
+    Invariant result.1 (b :: stack) (result.2 :: vars) := by
+  classical
+  obtain ⟨hMatches, hBounded, hLen⟩ := hInv
+  dsimp [pushConst]
+  cases hFresh : Builder.fresh builder value with
+  | mk builder₁ v =>
+      have hv_idx : v = builder.nextVar := by
+        simpa [hFresh] using Builder.fresh_snd (st := builder) (value := value)
+      have hNext₁ : builder₁.nextVar = builder.nextVar + 1 := by
+        simpa [hFresh] using Builder.fresh_nextVar (st := builder) (value := value)
+      have hMatches₁ : Matches builder₁ stack vars := by
+        have := matches_fresh_preserve (builder := builder) (value := value)
+          (stack := stack) (vars := vars) hMatches hBounded
+        simpa [hFresh] using this
+      have hBounded₁ : Bounded builder₁ vars := by
+        have := Builder.fresh_preserve_bounded (st := builder)
+          (value := value) (vars := vars) hBounded
+        simpa [hFresh] using this
+      have hAssign₁ : builder₁.assign v = value := by
+        have := Builder.fresh_assign_self (st := builder) (value := value)
+        simpa [hFresh] using this
+      let builder₂ := Builder.addConstraint builder₁ (eqConstConstraint v value)
+      have hMatches₂ : Matches builder₂ stack vars := by
+        simpa [builder₂] using addConstraint_preserve_matches hMatches₁ _
+      have hBounded₂ : Bounded builder₂ vars := by
+        simpa [builder₂] using addConstraint_preserve_bounded hBounded₁ _
+      let builder₃ := recordBoolean builder₂ v
+      have hMatches₃ : Matches builder₃ stack vars := by
+        simpa [builder₃] using
+          recordBoolean_preserve_matches (builder := builder₂)
+            (stack := stack) (vars := vars) (v := v) hMatches₂
+      have hBounded₃ : Bounded builder₃ vars := by
+        simpa [builder₃] using
+          recordBoolean_preserve_bounded (builder := builder₂)
+            (vars := vars) (v := v) hBounded₂
+      have hHead : boolToRat b = builder₃.assign v := by
+        subst builder₃
+        simp [builder₂, recordBoolean, hAssign₁, hvalue]
+      have hNext₃ : builder₃.nextVar = builder₁.nextVar := by
+        simp [builder₃, builder₂, Builder.recordBoolean_nextVar, Builder.addConstraint_nextVar]
+      have hMatches_new : Matches builder₃ (b :: stack) (v :: vars) :=
+        List.Forall₂.cons hHead hMatches₃
+      have hBounded_new : Bounded builder₃ (v :: vars) := by
+        intro w hw
+        rcases List.mem_cons.mp hw with hw | hw
+        · subst hw
+          have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
+          simpa [hv_idx, hNext₁, hNext₃]
+            using this
+        · exact hBounded₃ w hw
+      have hMatches_new' : Matches builder₃ (b :: stack) (builder.nextVar :: vars) :=
+        by simpa [hv_idx] using hMatches_new
+      have hBounded_new' : Bounded builder₃ (builder.nextVar :: vars) :=
+        by simpa [hv_idx] using hBounded_new
+      have hLen_new : (b :: stack).length = (builder.nextVar :: vars).length := by
+        simpa [hv_idx, hLen]
+      have hGoal : Invariant builder₃ (b :: stack) (builder.nextVar :: vars) :=
+        And.intro hMatches_new' (And.intro hBounded_new' hLen_new)
+      have hResult : pushConst builder value = (builder₃, v) := by
+        simp [pushConst, hFresh, builder₂, builder₃]
+      simpa [Invariant, hResult] using hGoal
+
+lemma applyAnd_invariant {builder : Builder} {x y : Bool}
+    {before : Stack} {vx vy : Var} {vars : List Var}
+    (hInv : Invariant builder (x :: y :: before) (vx :: vy :: vars)) :
+    Invariant
+      (recordBoolean
+        (Builder.addConstraint (Builder.fresh builder (boolToRat (y && x))).1
+          { A := LinComb.single vx 1
+            B := LinComb.single vy 1
+            C := LinComb.single (Builder.fresh builder (boolToRat (y && x))).2 1 })
+        (Builder.fresh builder (boolToRat (y && x))).2)
+      ((y && x) :: before)
+      ((Builder.fresh builder (boolToRat (y && x))).2 :: vars) := by
+  classical
+  let z : Bool := y && x
+  let fres := Builder.fresh builder (boolToRat z)
+  let builder1 := fres.1
+  let vz := fres.2
+  let builder2 := Builder.addConstraint builder1
+    { A := LinComb.single vx 1
+      B := LinComb.single vy 1
+      C := LinComb.single vz 1 }
+  let builder3 := recordBoolean builder2 vz
+  change Invariant builder3 (z :: before) (vz :: vars)
+  obtain ⟨hMatches, hBounded, hLen⟩ := hInv
+  have hMatchesTail := matches_cons_tail hMatches
+  have hMatchesRest : Matches builder before vars :=
+    matches_cons_tail hMatchesTail
+  have hBoundedTail : Bounded builder (vy :: vars) :=
+    Bounded.tail hBounded
+  have hBoundedRest : Bounded builder vars :=
+    Bounded.tail hBoundedTail
+  have hLenRest : before.length = vars.length :=
+    matches_length_eq hMatchesRest
+  have hv_idx : vz = builder.nextVar := by
+    simpa [vz, fres] using Builder.fresh_snd (st := builder) (value := boolToRat z)
+  have hNext₁ : builder1.nextVar = builder.nextVar + 1 := by
+    simpa [builder1, fres] using Builder.fresh_nextVar (st := builder) (value := boolToRat z)
+  have hMatches1 : Matches builder1 (x :: y :: before) (vx :: vy :: vars) := by
+    have := matches_fresh_preserve (builder := builder) (value := boolToRat z)
+      (stack := x :: y :: before) (vars := vx :: vy :: vars) hMatches hBounded
+    simpa [builder1, fres] using this
+  have hBounded1 : Bounded builder1 (vx :: vy :: vars) := by
+    have := Builder.fresh_preserve_bounded (st := builder)
+      (value := boolToRat z) (vars := vx :: vy :: vars) hBounded
+    simpa [builder1, fres] using this
+  have hAssign1 : builder1.assign vz = boolToRat z := by
+    have := Builder.fresh_assign_self (st := builder) (value := boolToRat z)
+    simpa [builder1, vz, fres] using this
+  set builder2 := Builder.addConstraint builder1
+    { A := LinComb.single vx 1
+      B := LinComb.single vy 1
+      C := LinComb.single vz 1 }
+  have hMatches2 : Matches builder2 (x :: y :: before) (vx :: vy :: vars) := by
+    simpa [builder2] using addConstraint_preserve_matches hMatches1 _
+  have hBounded2 : Bounded builder2 (vx :: vy :: vars) := by
+    simpa [builder2] using addConstraint_preserve_bounded hBounded1 _
+  set builder3 := recordBoolean builder2 vz
+  have hMatches3 : Matches builder3 (x :: y :: before) (vx :: vy :: vars) := by
+    simpa [builder3] using
+      recordBoolean_preserve_matches (builder := builder2)
+        (stack := x :: y :: before) (vars := vx :: vy :: vars) (v := vz) hMatches2
+  have hBounded3 : Bounded builder3 (vx :: vy :: vars) := by
+    simpa [builder3] using
+      recordBoolean_preserve_bounded (builder := builder2)
+        (vars := vx :: vy :: vars) (v := vz) hBounded2
+  have hMatchesRest3 : Matches builder3 before vars :=
+    matches_tail_tail hMatches3
+  have hBoundedRest3 : Bounded builder3 vars :=
+    Bounded.tail_tail hBounded3
+  have hAssign3 : builder3.assign vz = boolToRat z := by
+    subst builder3
+    simp [builder2, recordBoolean, hAssign1]
+  have hHead : boolToRat z = builder3.assign vz := by
+    simpa using hAssign3.symm
+  have hMatches_new : Matches builder3 (z :: before) (vz :: vars) :=
+    List.Forall₂.cons hHead hMatchesRest3
+  have hNext₂ : builder2.nextVar = builder1.nextVar := by
+    simp [builder2]
+  have hNext₃ : builder3.nextVar = builder1.nextVar := by
+    simp [builder3, builder2, Builder.recordBoolean_nextVar, Builder.addConstraint_nextVar]
+  have hBounded_new : Bounded builder3 (vz :: vars) := by
+    intro w hw
+    rcases List.mem_cons.mp hw with hw | hw
+    · subst hw
+      have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
+      simpa [hv_idx, hNext₁, hNext₃]
+        using this
+    · exact hBoundedRest3 w hw
+  have hLen_new : (z :: before).length = (vz :: vars).length := by
+    simp [List.length_cons, hLenRest]
+  exact And.intro hMatches_new (And.intro hBounded_new hLen_new)
 
 private def compileStep {n : ℕ} (ρ : Env n)
     (instr : Instr n) (before after : Stack)

@@ -22,6 +22,24 @@ def boolToRat : Bool → ℚ
     boolToRat b * (boolToRat b - 1) = 0 := by
   cases b <;> norm_num [boolToRat]
 
+@[simp] lemma boolToRat_and (x y : Bool) :
+    boolToRat (x && y) = boolToRat x * boolToRat y := by
+  cases x <;> cases y <;> norm_num [boolToRat]
+
+lemma boolToRat_or (x y : Bool) :
+    boolToRat (x || y) =
+      boolToRat x + boolToRat y - boolToRat x * boolToRat y := by
+  cases x <;> cases y <;> norm_num [boolToRat]
+
+lemma boolToRat_imp (x y : Bool) :
+    boolToRat ((! x) || y) =
+      1 - boolToRat x + boolToRat x * boolToRat y := by
+  cases x <;> cases y <;> norm_num [boolToRat]
+
+@[simp] lemma boolToRat_not (x : Bool) :
+    boolToRat (! x) = 1 - boolToRat x := by
+  cases x <;> norm_num [boolToRat]
+
 end ZK
 end Crypto
 end HeytingLean
