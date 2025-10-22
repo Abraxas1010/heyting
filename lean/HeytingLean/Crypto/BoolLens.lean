@@ -89,6 +89,15 @@ lemma exec_append {n : ℕ} (ρ : Env n)
     traceFrom ρ (instr :: prog) stk =
       stk :: traceFrom ρ prog (step ρ instr stk) := rfl
 
+lemma traceFrom_cons_head {n : ℕ} (ρ : Env n) (prog : Program n)
+    (stk : Stack) :
+    ∃ tail, traceFrom ρ prog stk = stk :: tail := by
+  cases prog with
+  | nil =>
+      exact ⟨[], by simp [traceFrom]⟩
+  | cons instr prog =>
+      exact ⟨traceFrom ρ prog (step ρ instr stk), by simp [traceFrom]⟩
+
 @[simp] lemma applyBinary_cons_cons (op : Bool → Bool → Bool)
     (x y : Bool) (stk : Stack) :
     applyBinary op (x :: y :: stk) = op y x :: stk := rfl

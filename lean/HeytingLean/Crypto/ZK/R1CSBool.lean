@@ -1,10 +1,17 @@
+import HeytingLean.Crypto.Prog
+import HeytingLean.Crypto.VM
+import HeytingLean.Crypto.Compile
 import HeytingLean.Crypto.BoolLens
 import HeytingLean.Crypto.ZK.BoolArith
 import HeytingLean.Crypto.ZK.R1CS
+import HeytingLean.Crypto.ZK.Support
+
+open scoped BigOperators
 
 namespace HeytingLean
 namespace Crypto
 namespace ZK
+namespace R1CSBool
 
 open BoolLens
 
@@ -494,6 +501,7 @@ def compile {n : ℕ} (φ : Form n) (ρ : Env n) : Compiled := by
       assignment := builder.assign
       output := outputVar }
 
+end R1CSBool
 end ZK
 end Crypto
 end HeytingLean
