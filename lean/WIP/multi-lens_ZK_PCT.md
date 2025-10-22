@@ -35,14 +35,17 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
 - 🟡 Phase E2 – Boolean arithmetisation & R1CS scaffolding (`Crypto/ZK/BoolArith`, `Crypto/ZK/R1CS`, `Crypto/ZK/R1CSBool`).  
   _Current status:_  
   • Canonical BoolLens trace/value available (`Crypto/BoolLens`).  
-  • Builder invariants defined (`Matches`, `Bounded`, `Invariant`) with helper lemmas; `pushConst_invariant` re-established using the new arithmetic rewrites.  
+  • Support-oriented utilities factored out (`Crypto/ZK/Support`) giving `AgreesOn`, `support`, and `System.satisfied_ext` lemmas (ready for use).  
+  • Boolean builder still uses the original lightweight invariant (`Matches`/`Bounded`); support/satisfaction strengthening staged to land next.  
   • R1CS compiler emits witness/constraints for all opcodes (no global proof yet).  
   _Next steps:_  
-  1. Prove invariant preservation for `applyAnd`, `applyOr`, `applyImp` (each uses fresh wire + constraints).  
-  2. Induct over `compileSteps` to show final builder/witness satisfies `Invariant`.  
-  3. Establish `soundness`: compiled `(system, assignment)` satisfies every constraint and output matches `BoolLens.eval`.  
-  4. Establish `completeness`: canonical trace provides a satisfying assignment.  
-  5. Expose the Boolean witness/output to the CLI layer once proofs land.
+  1. Introduce a strengthened `StrongInvariant` (tracks `SupportOK`/`Satisfied`) alongside the existing invariant and prove a dedicated `pushConst_strong`.  
+  2. Bridge `StrongInvariant` back to the old invariant (`Invariant_of_strong` helper) so existing lemmas continue to compile while we migrate.  
+  3. Reprove opcode preservation (`applyAnd`/`applyOr`/`applyImp`) under the strong invariant using the new support lemmas.  
+  4. Induct over `compileSteps` with the strong invariant to show the final builder satisfies support/satisfaction obligations.  
+  5. Establish `soundness`: compiled `(system, assignment)` satisfies every constraint and output matches `BoolLens.eval`.  
+  6. Establish `completeness`: canonical trace provides a satisfying assignment.  
+  7. Expose the Boolean witness/output to the CLI layer once proofs land.
 - ⏳ Phase E3 – CLI executables and regression tests (not started).
 
 Current focus: carry the Boolean stack invariant through `applyAnd`/`applyOr`/`applyImp`, then lift it to `compileSteps` to obtain full R1CS soundness/completeness before wiring the witness into the CLI.
@@ -192,22 +195,20 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
 ### E2 invariant → compiled R1CS pipeline (ordered worklist)
 
 1. **Finalize invariant primitives (in progress):**
-   - Keep `Matches`/`Bounded`/`Invariant` as the canonical bundle in `ZK/R1CSBool`.
-   - Ensure helper lemmas cover `Matches.cons_head/tail`, `Matches.length_eq`, `Bounded.tail/tail_tail`, and `Builder.fresh_snd` so the later proofs are purely algebraic.
-   - Confirm `pushConst_invariant` uses those helpers (already restored; recheck once the downstream lemmas exist).
+   - Landed `Builder.system`, `SupportOK`, and the bundled `StrongInvariant` (with projector lemmas and `StrongInvariant.toInvariant`) in `R1CSBool.lean`.
+   - Added the initial builder simp facts (`system_fresh`, `system_addConstraint`, `system_recordBoolean`) plus the fresh-variable helpers (`fresh_preserve_support`, `fresh_agreesOn_range`, `fresh_preserve_satisfied`).
+   - ✅ Next up: push the support/satisfaction plumbing through `addConstraint`/`recordBoolean`, extend the linear-combination support/satisfaction lemmas, and reprove `pushConst` under the strong invariant.
 2. **Binary opcode preservation lemmas:**
-   - `applyAnd_invariant` (new lemma) – show the invariant propagates across the AND branch using `boolToRat_and`.
-   - `applyOr_invariant` – similar proof, but introduce the intermediate multiply wire (`vmul`) and use `boolToRat_or` to match the linear constraint.
-   - `applyImp_invariant` – reuse the OR pattern with the linear form from `boolToRat_imp`.
+   - Reprove `applyAnd`/`applyOr`/`applyImp` preservation with the strengthened primitive lemmas; keep the original invariant lemmas as corollaries until all call sites switch over.
 3. **`compileStep` wrapper:**
-   - Define `compileStep_preserves_invariant` that pattern matches on instructions, dispatching to the opcode-specific lemmas above (including the already-proved `pushConst_invariant`).
-   - Provide a trivial “invalid trace” branch that returns the original invariant unchanged.
+   - Define `compileStep_preserves_strong` dispatching to the strong push/AND/OR/IMP lemmas; derive the existing lemma from it.
+   - Provide a trivial “invalid trace” branch that returns the invariant unchanged.
 4. **`compileSteps` induction:**
-   - Prove `compileSteps_preserves` by induction on the program list while threading Lean’s `traceFrom` shape to justify the non-empty branches.
-   - As part of the induction proof, accumulate the invariant for the final builder state and the list of stack variables.
+   - Prove `compileSteps_preserves_strong` by induction, threading `traceFrom` and the strong invariant.
+   - Specialise to the lightweight invariant for backwards compatibility.
 5. **Constraint satisfaction + witness extraction:**
-   - Using the invariant produced in step 4, show every constraint in `builder.constraints` is satisfied (`compiled_satisfies`), leveraging the opcode lemmas and the arithmetic rewrites.
-   - Prove a companion lemma that the top-of-stack variable corresponds to `BoolLens.eval` (`compiled_output_matches`), using `Matches.length_eq` and the VM correctness theorem (`BoolLens.exec_compile_aux`).
+   - Use the strong invariant to show `builder.constraints` are satisfied (`compiled_satisfies`) and that booleanity holds for every allocated wire.
+   - Ensure the output alignment lemma (`compiled_output_matches`) continues to use `Matches.length_eq` and VM correctness.
 6. **Soundness/completeness statements (`ZK/R1CSSoundness.lean`):**
    - Package the above into `compiled_sound` and `compiled_complete`, relating the builder witness to the canonical trace from `BoolLens`.
    - Bridge these results to the existing `Witness`/`PCT` layer so the CLI can reuse the Lean proofs.
@@ -303,9 +304,11 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
 - [x] Define `Witness`/`PCT` and prove sound/complete.
 - [x] Implement Boolean arithmetisation primitives and initial R1CS compiler (`Crypto/ZK/BoolArith`, `Crypto/ZK/R1CS`, `Crypto/ZK/R1CSBool`).
 - [ ] Extend the Boolean invariants:
-    1. Prove `applyAnd` preserves `Invariant`.
-    2. Prove `applyOr` preserves `Invariant` (handles intermediate `vmul` + linear constraint).
-    3. Prove `applyImp` preserves `Invariant`.
+    0. Introduce `StrongInvariant` (matches/bounds + support/satisfaction) and prove `pushConst_strong`.
+    1. Show the existing invariant is a projection of `StrongInvariant` (`toInvariant` lemma).
+    2. Prove `applyAnd` preserves `StrongInvariant`.
+    3. Prove `applyOr` preserves `StrongInvariant` (handles intermediate `vmul` + linear constraint).
+    4. Prove `applyImp` preserves `StrongInvariant`.
     4. Induct over `compileSteps` to obtain full soundness/completeness for the generated R1CS, exposing witness/output to the CLI layer.
 - [ ] Add executables (`pct_prove`, `pct_verify`, `pct_r1cs`) and regression demos.
 

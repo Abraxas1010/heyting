@@ -14,6 +14,7 @@ namespace ZK
 namespace R1CSBool
 
 open BoolLens
+open Finset
 
 /-- Builder state used while translating a boolean trace to R1CS. -/
 structure Builder where
@@ -75,7 +76,65 @@ def Matches (builder : Builder) (stack : Stack) (vars : List Var) : Prop :=
 def Bounded (builder : Builder) (vars : List Var) : Prop :=
   ∀ v, v ∈ vars → v < builder.nextVar
 
+def Builder.system (builder : Builder) : System :=
+  { constraints := builder.constraints }
+
+def SupportOK (builder : Builder) : Prop :=
+  System.support (Builder.system builder) ⊆ Finset.range builder.nextVar
+
+def StrongInvariant (builder : Builder) (stack : Stack) (vars : List Var) : Prop :=
+  Matches builder stack vars ∧
+    Bounded builder vars ∧
+    SupportOK builder ∧
+    System.satisfied builder.assign (Builder.system builder)
+
+namespace StrongInvariant
+
+lemma matches_ {builder : Builder} {stack : Stack} {vars : List Var}
+    (h : StrongInvariant builder stack vars) : Matches builder stack vars :=
+  h.1
+
+lemma bounded_ {builder : Builder} {stack : Stack} {vars : List Var}
+    (h : StrongInvariant builder stack vars) : Bounded builder vars :=
+  h.2.1
+
+lemma support_ {builder : Builder} {stack : Stack} {vars : List Var}
+    (h : StrongInvariant builder stack vars) : SupportOK builder :=
+  h.2.2.1
+
+lemma satisfied_ {builder : Builder} {stack : Stack} {vars : List Var}
+    (h : StrongInvariant builder stack vars) :
+    System.satisfied builder.assign (Builder.system builder) :=
+  h.2.2.2
+
+lemma toInvariant {builder : Builder} {stack : Stack} {vars : List Var}
+    (h : StrongInvariant builder stack vars) :
+    Matches builder stack vars ∧ Bounded builder vars :=
+  ⟨matches_ h, bounded_ h⟩
+
+end StrongInvariant
+
+private lemma range_subset_succ (n : ℕ) :
+    Finset.range n ⊆ Finset.range (n + 1) := by
+  intro v hv
+  have hvlt : v < n := Finset.mem_range.mp hv
+  exact Finset.mem_range.mpr (Nat.lt_succ_of_lt hvlt)
+
 namespace Builder
+
+@[simp] lemma system_constraints (st : Builder) :
+    (Builder.system st).constraints = st.constraints := rfl
+
+@[simp] lemma system_fresh (st : Builder) (value : ℚ) :
+    Builder.system (fresh st value).1 = Builder.system st := rfl
+
+@[simp] lemma system_addConstraint (st : Builder) (c : Constraint) :
+    Builder.system (addConstraint st c) =
+      { constraints := c :: st.constraints } := rfl
+
+@[simp] lemma system_recordBoolean (st : Builder) (v : Var) :
+    Builder.system (recordBoolean st v) =
+      { constraints := boolConstraint v :: st.constraints } := rfl
 
 @[simp] lemma addConstraint_assign (st : Builder) (c : Constraint) :
     (addConstraint st c).assign = st.assign := rfl
@@ -122,6 +181,45 @@ lemma fresh_preserve_bounded {st : Builder} {value : ℚ} {vars : List Var}
   have hvlt := h v hv
   have : v < st.nextVar + 1 := Nat.lt_succ_of_lt hvlt
   simpa [fresh] using this
+
+lemma fresh_preserve_support {st : Builder} {value : ℚ}
+    (h : SupportOK st) :
+    SupportOK (fresh st value).1 := by
+  intro v hv
+  have hvOld : v ∈ System.support (Builder.system st) := by
+    simpa using hv
+  have hvRange : v ∈ Finset.range st.nextVar := h hvOld
+  have hvRangeSucc : v ∈ Finset.range (st.nextVar + 1) :=
+    range_subset_succ st.nextVar hvRange
+  simpa [fresh] using hvRangeSucc
+
+lemma fresh_agreesOn_range (st : Builder) (value : ℚ) :
+    AgreesOn (Finset.range st.nextVar) st.assign (fresh st value).1.assign := by
+  intro v hv
+  have hvlt : v < st.nextVar := Finset.mem_range.mp hv
+  have := fresh_assign_lt (st := st) (value := value) (w := v) (hw := hvlt)
+  simpa using this.symm
+
+lemma fresh_preserve_satisfied {st : Builder} {value : ℚ}
+    (hSupport : SupportOK st)
+    (hSat : System.satisfied st.assign (Builder.system st)) :
+    System.satisfied (fresh st value).1.assign
+        (Builder.system (fresh st value).1) := by
+  classical
+  intro c hc
+  have hSatOld :
+      System.satisfied (fresh st value).1.assign (Builder.system st) :=
+    (System.satisfied_ext
+        (sys := Builder.system st)
+        (a := st.assign)
+        (a' := (fresh st value).1.assign)
+        (dom := Finset.range st.nextVar)
+        (hSupp := hSupport)
+        (hAgree := fresh_agreesOn_range st value)).1 hSat
+  have hcOld : c ∈ (Builder.system st).constraints := by
+    simpa using hc
+  have := hSatOld hcOld
+  simpa using this
 
 end Builder
 
