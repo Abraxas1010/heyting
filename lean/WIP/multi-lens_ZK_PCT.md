@@ -302,13 +302,12 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
 - [x] Implement `compile`, `VM.run`, and prove `compile_correct`.
 - [x] Prove transport soundness once; derive `compile_correct`.
 - [ ] Extend the Boolean invariants:
-    0. Strengthen `Crypto/ZK/Support.lean` with the helper lemmas we actually need: `LinComb.support_single`, `LinComb.support_ofConst`, `LinComb.eval_single`, `LinComb.eval_ofConst`, and the constraint-specific support/satisfaction facts for `boolConstraint`/`eqConstConstraint`.
-    1. Use those helpers to extend `Crypto/ZK/R1CSBool.lean`: add the `SupportOK`/`satisfied` preservation lemmas for `fresh`, `addConstraint`, and `recordBoolean` (relying on `Builder.system_addConstraint`/`Builder.system_recordBoolean` rather than raw list manipulations).
-    2. Package the subset facts (`range_subset_succ`, `singleton_subset_range`, `AgreesOn.mono`) so `StrongInvariant` proofs can just `simp`/`subset_trans`.
-    3. Reprove `pushConst` against `StrongInvariant`, keeping the booleanity proof isolated in the head lemmas.
-    4. Show the existing invariant is a projection of `StrongInvariant` (`toInvariant` lemma).
-    5. Prove `applyAnd`, `applyOr`, and `applyImp` preserve `StrongInvariant` without reintroducing duplication or `System.satisfied_ext`.
-    6. Induct over `compileSteps` with the strong invariant to obtain full soundness/completeness for the generated R1CS, exposing witness/output to the CLI layer.
+    0. ✅ Strengthen `Crypto/ZK/Support.lean` with the helper lemmas we actually need: `LinComb.support_single`, `LinComb.support_ofConst`, `LinComb.eval_single`, `LinComb.eval_ofConst`, and the constraint-specific support/satisfaction facts for `boolConstraint`/`eqConstConstraint`.
+    1. ✅ Use those helpers to extend `Crypto/ZK/R1CSBool.lean`: add the `SupportOK`/`satisfied` preservation lemmas for `fresh`, `addConstraint`, and `recordBoolean` (relying on `Builder.system_addConstraint`/`Builder.system_recordBoolean` rather than raw list manipulations) and package the subset facts (`range_subset_succ`, `singleton_subset_range`, `AgreesOn.mono`) so `StrongInvariant` proofs can `simp`.
+    2. ✅ Reprove `pushConst` against `StrongInvariant`, keeping the booleanity proof isolated in the head lemmas.
+    3. Show the existing invariant is a projection of `StrongInvariant` (`toInvariant` lemma).
+    4. Prove `applyAnd`, `applyOr`, and `applyImp` preserve `StrongInvariant` without reintroducing duplication or `System.satisfied_ext`.
+    5. Induct over `compileSteps` with the strong invariant to obtain full soundness/completeness for the generated R1CS, exposing witness/output to the CLI layer.
 - [ ] Add executables (`pct_prove`, `pct_verify`, `pct_r1cs`) and regression demos.
 
 When those 7 are green, you have **verified-by-construction Multi-Lens ZK + PCT** with a **cryptographically consumable** output format—and you can add more lenses or richer arithmetization with confidence later.
