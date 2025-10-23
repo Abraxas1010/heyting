@@ -2568,6 +2568,38 @@ def compile {n : ℕ} (φ : Form n) (ρ : Env n) : Compiled := by
       assignment := builder.assign
       output := outputVar }
 
+@[simp] lemma compile_system_constraints {n : ℕ} (φ : Form n) (ρ : Env n) :
+    (compile φ ρ).system.constraints =
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).1.constraints.reverse := by
+  simp [compile]
+
+@[simp] lemma compile_assignment {n : ℕ} (φ : Form n) (ρ : Env n) :
+    (compile φ ρ).assignment =
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).1.assign := by
+  simp [compile]
+
+lemma compile_support_subset {n : ℕ} (φ : Form n) (ρ : Env n) :
+    System.support (compile φ ρ).system ⊆
+      Finset.range
+        ((compileSteps (ρ := ρ) (Form.compile φ)
+          (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).1).nextVar := by
+  classical
+  let prog := Form.compile φ
+  let trace := BoolLens.traceFrom ρ prog []
+  let result := compileSteps (ρ := ρ) prog trace [] {}
+  let builder := result.1
+  have hSupport :=
+    StrongInvariant.support_reverse_subset
+      (compile_strong (φ := φ) (ρ := ρ))
+  have hSupport' :
+      System.support { constraints := builder.constraints.reverse } ⊆
+        Finset.range builder.nextVar := by
+    simpa [prog, trace, result, builder] using hSupport
+  simpa [compile, prog, trace, result, builder,
+    compile_system_constraints] using hSupport'
+
 end R1CSBool
 end ZK
 end Crypto

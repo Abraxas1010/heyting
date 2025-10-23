@@ -312,8 +312,8 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
        - ✅ replicate the pattern for `applyOr_strong` and `applyImp_strong`;
        - ✅ keep the helper lemmas adjacent to the opcode proofs so `compileStep_strong` can reuse them.
     5. ✅ Prove the stepwise and inductive preservation lemmas (`compileStep_strong`, `compileSteps_strong`) so every `compileSteps` call carries the strong invariant along the Boolean program.
-    6. 🔄 Thread the strengthened invariant into the top-level `compile` correctness proof so the canonical builder run produces a `StrongInvariant`.
-    7. ⏳ Clear the warning backlog (`linhead_imp_support` + lingering `simp`/`simpa`) to keep `-DwarningAsError` future-proof.
+    6. ⏳ Thread the strengthened invariant into the top-level `compile` correctness proof so the canonical builder run produces a `StrongInvariant` (first pass landed `compile_support_subset`; satisfaction lemmas still pending).
+    7. 🔄 Clear the warning backlog (`linhead_imp_support` + lingering `simp`/`simpa`) to keep `-DwarningAsError` future-proof.
     8. ⏳ Finish the Boolean R1CS soundness/completeness proofs and surface the results to the CLI and exporters.
     → Merge back into `main` once step 8 is complete, the global theorems surface the witness assignment, and `lake build -- -Dno-sorry -DwarningAsError=true` (CI) stays green.
 - [ ] Add executables (`pct_prove`, `pct_verify`, `pct_r1cs`) and regression demos.
@@ -331,6 +331,8 @@ Got it—here’s a concrete, low-risk **staged retry plan** that keeps the buil
 ## Stage 7 — Thread `compileSteps_strong` into the top-level compile proof
 
 **Goal:** derive a `StrongInvariant` guarantee for the canonical builder run so the global Boolean proofs can consume it.
+
+**Status:** 🔄 `compile_strong` now feeds `compile_support_subset`; the satisfaction side is queued behind the warning cleanup.
 
 1. Bridge the existing `compile` correctness proof to `compileSteps_strong`, reusing the canonical `traceFrom`/`exec` pair.
 2. Extend the main theorem to expose both the legacy invariant and the new strong invariant (use `StrongInvariant.toWeak` for back-compat).
@@ -622,7 +624,6 @@ attribute [simp] System.satisfied_iff_cons
 
 # What to do right now (TL;DR checklist)
 
-1. Thread `compileSteps_strong` into the top-level compile theorem and surface the strong invariant.
-2. Fix the outstanding `simp`/`simpa` warnings and the unused `linhead_imp_support` parameter; rerun the warning-as-error build.
-3. Finish Boolean R1CS soundness/completeness using the strengthened invariant and canonical trace.
-4. Expose the proofs through the CLI executables and R1CS exporter.
+1. Fix the outstanding `simp`/`simpa` warnings and the unused `linhead_imp_support` parameter; rerun the warning-as-error build.
+2. Finish Boolean R1CS soundness/completeness using the strengthened invariant and canonical trace.
+3. Expose the proofs through the CLI executables and R1CS exporter.
