@@ -332,7 +332,7 @@ Got it—here’s a concrete, low-risk **staged retry plan** that keeps the buil
 
 **Goal:** derive a `StrongInvariant` guarantee for the canonical builder run so the global Boolean proofs can consume it.
 
-**Status:** 🔄 `compile_strong` now feeds `compile_support_subset`; the satisfaction side is queued behind the warning cleanup.
+**Status:** 🔄 `compile_strong` now feeds `compile_support_subset` and a direct `compile_system_satisfied`; the `System.satisfied_cons` corollary and merge criteria remain queued behind the lint cleanup.
 
 1. Bridge the existing `compile` correctness proof to `compileSteps_strong`, reusing the canonical `traceFrom`/`exec` pair.
 2. Extend the main theorem to expose both the legacy invariant and the new strong invariant (use `StrongInvariant.toWeak` for back-compat).
