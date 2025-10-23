@@ -291,10 +291,9 @@ lemma support_perm {cs cs' : List Constraint} (h : List.Perm cs cs') :
   refine List.Perm.rec ?h₁ ?h₂ ?h₃ ?h₄ h
   · simp [support]
   · intro x l₁ l₂ hPerm ih
-    simpa [support_cons, ih]
+    simp [support_cons, ih]
   · intro x y l
-    simp [support_cons, Finset.union_left_comm, Finset.union_comm,
-      Finset.union_assoc]
+    simp [support_cons, Finset.union_left_comm, Finset.union_comm]
   · intro l₁ l₂ l₃ h₁ h₂ ih₁ ih₂
     exact ih₁.trans ih₂
 
@@ -359,7 +358,7 @@ lemma satisfied_cons_cons {a : Var → ℚ} {c : Constraint} {sys : System} :
     refine ⟨?_, ?_⟩
     · exact h (by simp [List.mem_cons])
     · intro d hd
-      exact h (by simpa [List.mem_cons, hd])
+      exact h (by simp [List.mem_cons, hd])
   · rintro ⟨hHead, hTail⟩ d hd
     have hd' : d = c ∨ d ∈ sys.constraints :=
       List.mem_cons.mp (by simpa using hd)

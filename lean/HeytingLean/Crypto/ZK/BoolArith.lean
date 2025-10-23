@@ -59,7 +59,7 @@ lemma lin_eval_or
           simp [Hz, sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
     _ = ρ vmul - ρ vx * ρ vy := by
           ring
-    _ = 0 := by simpa [Hx, sub_eq_add_neg, add_comm]
+    _ = 0 := by simp [Hx]
 
 lemma lin_eval_imp
   {ρ : Var → ℚ} {vx vy vmul vz : Var}
@@ -77,7 +77,7 @@ lemma lin_eval_imp
             simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
               congrArg (fun t => t + ρ vy - ρ vmul - 1) Hz
     _ = (1 - ρ vy + ρ vy * ρ vx) + ρ vy - ρ vx * ρ vy - 1 := by
-            simpa [Hx, mul_comm, mul_left_comm]
+            simp [Hx, mul_comm]
     _ = 0 := by
             ring
 
