@@ -168,11 +168,11 @@ namespace Builder
 
 @[simp] lemma system_addConstraint (st : Builder) (c : Constraint) :
     Builder.system (addConstraint st c) =
-      { constraints := c :: st.constraints } := rfl
+      { (Builder.system st) with constraints := c :: (Builder.system st).constraints } := rfl
 
 @[simp] lemma system_recordBoolean (st : Builder) (v : Var) :
     Builder.system (recordBoolean st v) =
-      { constraints := boolConstraint v :: st.constraints } := rfl
+      { (Builder.system st) with constraints := boolConstraint v :: (Builder.system st).constraints } := rfl
 
 @[simp] lemma addConstraint_assign (st : Builder) (c : Constraint) :
     (addConstraint st c).assign = st.assign := rfl
