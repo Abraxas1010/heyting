@@ -305,9 +305,14 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
     0. ✅ Strengthen `Crypto/ZK/Support.lean` with the helper lemmas we actually need: `LinComb.support_single`, `LinComb.support_ofConst`, `LinComb.eval_single`, `LinComb.eval_ofConst`, and the constraint-specific support/satisfaction facts for `boolConstraint`/`eqConstConstraint`.
     1. ✅ Use those helpers to extend `Crypto/ZK/R1CSBool.lean`: add the `SupportOK`/`satisfied` preservation lemmas for `fresh`, `addConstraint`, and `recordBoolean` (relying on `Builder.system_addConstraint`/`Builder.system_recordBoolean` rather than raw list manipulations) and package the subset facts (`range_subset_succ`, `singleton_subset_range`, `AgreesOn.mono`) so `StrongInvariant` proofs can `simp`.
     2. ✅ Reprove `pushConst` against `StrongInvariant`, keeping the booleanity proof isolated in the head lemmas.
-    3. Show the existing invariant is a projection of `StrongInvariant` (`toInvariant` lemma).
-    4. Prove `applyAnd`, `applyOr`, and `applyImp` preserve `StrongInvariant` without reintroducing duplication or `System.satisfied_ext`.
+    3. ✅ Show the existing invariant is a projection of `StrongInvariant` (`StrongInvariant.toInvariant` now lives in `R1CSBool.lean` alongside the field accessors).
+    4. Build out the strong opcode proofs using the current `mulConstraint`/`eqConstraint` API and the helper wrappers we just added: `BuilderPreserve.fresh_preserve_satisfied`, `BuilderPreserve.addConstraint_preserve_satisfied`, and `BuilderPreserve.recordBoolean_preserve_satisfied`.
+       - add the missing local lemmas that `applyAnd_strong` already relies on (`mulConstraint_support_subset`, boolean closure facts) so the proof compiles without placeholders;
+       - refactor `applyAnd_strong` to reuse those helpers and finish by lifting the existing weak lemma;
+       - replicate the pattern for `applyOr_strong` and `applyImp_strong`;
+       - keep the helper lemmas adjacent to the opcode proofs so `compileStep_strong` can reuse them.
     5. Induct over `compileSteps` with the strong invariant to obtain full soundness/completeness for the generated R1CS, exposing witness/output to the CLI layer.
+    → Merge back into `main` once (4) and (5) are complete and `lake build -- -Dno-sorry -DwarningAsError=true` (CI) passes.
 - [ ] Add executables (`pct_prove`, `pct_verify`, `pct_r1cs`) and regression demos.
 
 When those 7 are green, you have **verified-by-construction Multi-Lens ZK + PCT** with a **cryptographically consumable** output format—and you can add more lenses or richer arithmetization with confidence later.
