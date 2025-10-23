@@ -237,6 +237,14 @@ end Constraint
 
 namespace System
 
+/-- Canonical wrapper that keeps `System.satisfied` in a stable propositional form. -/
+def satisfied_cons (a : Var → ℚ) (sys : System) : Prop :=
+  System.satisfied a sys
+
+@[simp] lemma satisfied_iff_cons {a : Var → ℚ} {sys : System} :
+    System.satisfied a sys ↔ System.satisfied_cons a sys :=
+  Iff.rfl
+
 private def supportList : List Constraint → Finset Var
   | [] => ∅
   | c :: cs => supportList cs ∪ Constraint.support c
@@ -323,7 +331,7 @@ lemma satisfied_of_agreesOn_support {sys : System}
   satisfied_ext (sys := sys) (dom := support sys)
     (hSupp := by intro _ hv; simpa using hv) (hAgree := hAgree)
 
-lemma satisfied_cons {a : Var → ℚ} {c : Constraint} {sys : System} :
+lemma satisfied_cons_cons {a : Var → ℚ} {c : Constraint} {sys : System} :
     System.satisfied a { sys with constraints := c :: sys.constraints } ↔
       Constraint.satisfied a c ∧ System.satisfied a sys := by
   classical

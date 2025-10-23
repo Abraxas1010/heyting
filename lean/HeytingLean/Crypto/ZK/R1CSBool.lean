@@ -158,6 +158,83 @@ private lemma singleton_subset_range {n v : ℕ} (hv : v < n) :
   subst hw'
   exact Finset.mem_range.mpr hv
 
+lemma singleton_subset_range_of_lt {n v : ℕ} (hv : v < n) :
+    ({v} : Finset Var) ⊆ Finset.range n :=
+  singleton_subset_range (n := n) (v := v) hv
+
+lemma mulConstraint_support_subset
+    {n vx vy vz : Nat}
+    (hx : vx < n) (hy : vy < n) (hz : vz < n) :
+    Constraint.support
+        { A := LinComb.single vx 1
+          B := LinComb.single vy 1
+          C := LinComb.single vz 1 } ⊆ Finset.range n := by
+  classical
+  intro w hw
+  have hw' :
+      w = vx ∨ w = vy ∨ w = vz := by
+    simpa [Constraint.support, LinComb.support_single,
+      Finset.mem_union, Finset.mem_singleton,
+      or_left_comm, or_assoc, or_comm] using hw
+  rcases hw' with h | h | h
+  · subst h; exact Finset.mem_range.mpr hx
+  · subst h; exact Finset.mem_range.mpr hy
+  · subst h; exact Finset.mem_range.mpr hz
+
+lemma four_var_support_subset
+    {n vz vx vy vmul : Nat}
+    (hz : vz < n) (hx : vx < n) (hy : vy < n) (hm : vmul < n) :
+    ({vz} ∪ {vx} ∪ {vy} ∪ {vmul} : Finset Var) ⊆ Finset.range n := by
+  classical
+  intro w hw
+  have hw' :
+      w = vz ∨ w = vx ∨ w = vy ∨ w = vmul := by
+    simpa [Finset.mem_union, Finset.mem_singleton,
+      or_left_comm, or_comm, or_assoc] using hw
+  rcases hw' with h | h | h | h
+  · subst h; exact Finset.mem_range.mpr hz
+  · subst h; exact Finset.mem_range.mpr hx
+  · subst h; exact Finset.mem_range.mpr hy
+  · subst h; exact Finset.mem_range.mpr hm
+
+lemma boolean_mul_closed {F} [Semiring F]
+    {x y : F} :
+    (x = 0 ∨ x = 1) → (y = 0 ∨ y = 1) →
+      (x * y = 0 ∨ x * y = 1) := by
+  intro hx hy
+  rcases hx with rfl | rfl <;> rcases hy with rfl | rfl <;> simp
+
+lemma boolean_or_closed {F} [Ring F]
+    {x y : F} :
+    (x = 0 ∨ x = 1) → (y = 0 ∨ y = 1) →
+      (x + y - x * y = 0 ∨ x + y - x * y = 1) := by
+  intro hx hy
+  rcases hx with rfl | rfl <;> rcases hy with rfl | rfl <;> simp
+
+lemma boolean_imp_closed {F} [Ring F]
+    {x y : F} :
+    (x = 0 ∨ x = 1) → (y = 0 ∨ y = 1) →
+      (1 - x + x * y = 0 ∨ 1 - x + x * y = 1) := by
+  intro hx hy
+  rcases hx with rfl | rfl <;> rcases hy with rfl | rfl <;> simp
+
+lemma mul_head_satisfied_of_eq
+    (a : Var → ℚ) (vx vy vz : Var)
+    (h : a vx * a vy = a vz) :
+    Constraint.satisfied a
+      { A := LinComb.single vx 1
+        B := LinComb.single vy 1
+        C := LinComb.single vz 1 } := by
+  classical
+  simp [Constraint.satisfied, LinComb.eval_single, h]
+
+lemma eqConstraint_head_satisfied_of_eval
+    (a : Var → ℚ) (lhs rhs : LinComb)
+    (h : lhs.eval a = rhs.eval a) :
+    Constraint.satisfied a (eqConstraint lhs rhs) := by
+  classical
+  simp [Constraint.satisfied, eqConstraint, LinComb.eval_ofConst, h]
+
 namespace Builder
 
 @[simp] lemma system_constraints (st : Builder) :
@@ -816,6 +893,228 @@ lemma applyAnd_invariant {builder : Builder} {x y : Bool}
   have hLen_new : (z :: before).length = (vz :: vars).length := by
     simp [List.length_cons, hLenRest]
   exact And.intro hMatches_new (And.intro hBounded_new hLen_new)
+
+lemma applyAnd_strong {builder : Builder} {x y : Bool}
+    {before : Stack} {vx vy : Var} {vars : List Var}
+    (hStrong : StrongInvariant builder (x :: y :: before) (vx :: vy :: vars))
+    (hvxB : builder.assign vx = 0 ∨ builder.assign vx = 1)
+    (hvyB : builder.assign vy = 0 ∨ builder.assign vy = 1) :
+    let z : Bool := y && x
+    let fres := Builder.fresh builder (boolToRat z)
+    let builder1 := fres.1
+    let vz := fres.2
+    let mulConstraint :
+        Constraint :=
+      { A := LinComb.single vx 1
+        B := LinComb.single vy 1
+        C := LinComb.single vz 1 }
+    let builder2 := Builder.addConstraint builder1 mulConstraint
+    let builder3 := recordBoolean builder2 vz
+    StrongInvariant builder3 (z :: before) (vz :: vars) := by
+  classical
+  obtain ⟨hMatches, hBounded, hSupport, hSat⟩ := hStrong
+  let z : Bool := y && x
+  let fres := Builder.fresh builder (boolToRat z)
+  let builder1 := fres.1
+  let vz := fres.2
+  let mulConstraint :
+      Constraint :=
+    { A := LinComb.single vx 1
+      B := LinComb.single vy 1
+      C := LinComb.single vz 1 }
+  let builder2 := Builder.addConstraint builder1 mulConstraint
+  let builder3 := recordBoolean builder2 vz
+
+  have hvx_lt_base : vx < builder.nextVar :=
+    hBounded vx (by simp)
+  have hvy_lt_base : vy < builder.nextVar :=
+    hBounded vy (by simp)
+  have hvz_idx : vz = builder.nextVar := by
+    simp [vz, fres]
+  have hNext₁ : builder1.nextVar = builder.nextVar + 1 := by
+    simp [builder1, fres]
+  have hvx_lt : vx < builder1.nextVar := by
+    have hx := Nat.lt_succ_of_lt hvx_lt_base
+    simpa [builder1, fres, hNext₁] using hx
+  have hvy_lt : vy < builder1.nextVar := by
+    have hy := Nat.lt_succ_of_lt hvy_lt_base
+    simpa [builder1, fres, hNext₁] using hy
+  have hvz_lt : vz < builder1.nextVar := by
+    have := Nat.lt_succ_self builder.nextVar
+    simpa [builder1, vz, fres, hNext₁, hvz_idx] using this
+
+  have hOK1 : SupportOK builder1 := by
+    have := Builder.fresh_preserve_support
+      (st := builder) (value := boolToRat z) hSupport
+    simpa [builder1, fres] using this
+  have hSat1 :
+      System.satisfied builder1.assign (Builder.system builder1) := by
+    intro c hc
+    have hc' :
+        c ∈ (Builder.system (Builder.fresh builder (boolToRat z)).1).constraints := by
+      simpa [Builder.system, builder1, fres] using hc
+    have hSatFresh :
+        System.satisfied (Builder.fresh builder (boolToRat z)).1.assign
+          (Builder.system (Builder.fresh builder (boolToRat z)).1) :=
+      Builder.fresh_preserve_satisfied_mem
+        (st := builder) (value := boolToRat z) hSupport hSat
+    have := hSatFresh (c := c) hc'
+    simpa [Builder.system, builder1, fres] using this
+
+  have hxFreshEq :
+      builder1.assign vx = builder.assign vx := by
+    have := Builder.fresh_assign_lt
+      (st := builder) (value := boolToRat z) (w := vx) (hw := hvx_lt_base)
+    simpa [builder1, fres] using this
+  have hyFreshEq :
+      builder1.assign vy = builder.assign vy := by
+    have := Builder.fresh_assign_lt
+      (st := builder) (value := boolToRat z) (w := vy) (hw := hvy_lt_base)
+    simpa [builder1, fres] using this
+
+  have hvx_assign :
+      builder1.assign vx = boolToRat x := by
+    have hx := matches_cons_head (builder := builder)
+      (stack := y :: before) (vars := vy :: vars) hMatches
+    -- hx : boolToRat x = builder.assign vx
+    have hx' : builder.assign vx = boolToRat x := hx.symm
+    simpa [hxFreshEq] using hx'
+  have hMatches_tail :
+      Matches builder (y :: before) (vy :: vars) :=
+    matches_cons_tail hMatches
+  have hvy_assign :
+      builder1.assign vy = boolToRat y := by
+    have hy := matches_cons_head
+      (builder := builder) (stack := before) (vars := vars) hMatches_tail
+    have hy' : builder.assign vy = boolToRat y := hy.symm
+    simpa [hyFreshEq] using hy'
+  have hvz_assign :
+      builder1.assign vz = boolToRat z := by
+    have := Builder.fresh_assign_self (st := builder)
+      (value := boolToRat z)
+    simpa [builder1, vz, fres] using this
+
+  have hMulSupport :
+      Constraint.support mulConstraint ⊆ Finset.range builder1.nextVar :=
+    mulConstraint_support_subset hvx_lt hvy_lt hvz_lt
+  have hOK2 : SupportOK builder2 := by
+    have := Builder.addConstraint_preserve_support
+      (st := builder1) (c := mulConstraint) hOK1 hMulSupport
+    simpa [builder2] using this
+
+  have hEq :
+      builder1.assign vx * builder1.assign vy =
+        builder1.assign vz := by
+    calc
+      builder1.assign vx * builder1.assign vy
+          = boolToRat x * boolToRat y := by
+            simp [hvx_assign, hvy_assign]
+      _ = boolToRat (x && y) := by
+            simpa using (ZK.boolToRat_and x y).symm
+      _ = boolToRat (y && x) := by
+            simpa [Bool.and_comm]
+      _ = builder1.assign vz := by simpa [hvz_assign, z]
+
+  have hHeadMul :
+      Constraint.satisfied builder1.assign mulConstraint :=
+    mul_head_satisfied_of_eq (a := builder1.assign) vx vy vz hEq
+
+  have hSat2 :
+      System.satisfied builder2.assign (Builder.system builder2) := by
+    intro c hc
+    have hc' :
+        c ∈ (Builder.system
+          (Builder.addConstraint builder1 mulConstraint)).constraints := by
+      simpa [Builder.system, builder2] using hc
+    have hSatAdd :
+        System.satisfied
+          (Builder.addConstraint builder1 mulConstraint).assign
+          (Builder.system (Builder.addConstraint builder1 mulConstraint)) :=
+      Builder.addConstraint_preserve_satisfied_mem
+        (st := builder1) (c := mulConstraint) hSat1 hHeadMul
+    have := hSatAdd (c := c) hc'
+    simpa [Builder.system, builder2] using this
+
+  have hvxB1 :
+      builder1.assign vx = 0 ∨ builder1.assign vx = 1 := by
+    cases hvxB with
+    | inl h0 =>
+        exact Or.inl (by simpa [hxFreshEq.symm] using h0)
+    | inr h1 =>
+        exact Or.inr (by simpa [hxFreshEq.symm] using h1)
+  have hvyB1 :
+      builder1.assign vy = 0 ∨ builder1.assign vy = 1 := by
+    cases hvyB with
+    | inl h0 =>
+        exact Or.inl (by simpa [hyFreshEq.symm] using h0)
+    | inr h1 =>
+        exact Or.inr (by simpa [hyFreshEq.symm] using h1)
+
+  have hvzBoolProd :
+      builder1.assign vx * builder1.assign vy = 0 ∨
+        builder1.assign vx * builder1.assign vy = 1 :=
+    boolean_mul_closed hvxB1 hvyB1
+  have hvzBool1 :
+      builder1.assign vz = 0 ∨ builder1.assign vz = 1 := by
+    cases hvzBoolProd with
+    | inl h0 =>
+        exact Or.inl (by simpa [hEq] using h0)
+    | inr h1 =>
+        exact Or.inr (by simpa [hEq] using h1)
+  have hvzBool2 :
+      builder2.assign vz = 0 ∨ builder2.assign vz = 1 := by
+    cases hvzBool1 with
+    | inl h0 =>
+        exact Or.inl (by simpa [builder2, Builder.addConstraint_assign] using h0)
+    | inr h1 =>
+        exact Or.inr (by simpa [builder2, Builder.addConstraint_assign] using h1)
+
+  have hvzBoolEq :
+      builder2.assign vz * (builder2.assign vz - 1) = 0 := by
+    cases hvzBool2 with
+    | inl h0 => simp [h0]
+    | inr h1 => simp [h1]
+
+  have hvzConstraint :
+      Constraint.satisfied builder2.assign (boolConstraint vz) :=
+    (boolConstraint_satisfied (assign := builder2.assign) (v := vz)).2 hvzBoolEq
+
+  have hvz_lt_next2 : vz < builder2.nextVar := by
+    simpa [builder2, Builder.addConstraint_nextVar] using hvz_lt
+
+  have hOK3 : SupportOK builder3 :=
+    recordBoolean_preserve_support
+      (builder := builder2) (v := vz) hOK2 hvz_lt_next2
+  have hSat3 :
+      System.satisfied builder3.assign (Builder.system builder3) := by
+    intro c hc
+    have hc' :
+        c = boolConstraint vz ∨ c ∈ builder2.constraints := by
+      simpa [builder3, Builder.system_recordBoolean] using hc
+    have hAssign :
+        (recordBoolean builder2 vz).assign = builder2.assign := by
+      simp [builder3]
+    cases hc' with
+    | inl hEq =>
+        subst hEq
+        simpa [builder3] using hvzConstraint
+    | inr hMem =>
+        have := hSat2 hMem
+        simpa [builder3, hAssign] using this
+
+  have hInvariantInput :
+      Invariant builder (x :: y :: before) (vx :: vy :: vars) :=
+    ⟨hMatches, hBounded, matches_length_eq hMatches⟩
+
+  have hInvariant :
+      Invariant builder3 (z :: before) (vz :: vars) := by
+    have := applyAnd_invariant
+      (builder := builder) (x := x) (y := y) (before := before)
+      (vx := vx) (vy := vy) (vars := vars) (hInv := hInvariantInput)
+    simpa [Invariant, z, fres, builder1, builder2, builder3, mulConstraint]
+      using this
+
+  exact ⟨hInvariant.1, hInvariant.2.1, hOK3, hSat3⟩
 
 private def compileStep {n : ℕ} (ρ : Env n)
     (instr : Instr n) (before after : Stack)
