@@ -292,7 +292,7 @@ def linhead_imp (vz vx vy vmul : Var) : LinComb :=
   ⟨-1, [(vz, 1), (vy, 1), (vmul, -1)]⟩
 
 lemma linhead_imp_support
-    (vz vx vy vmul : Var) :
+    (vz _vx vy vmul : Var) :
     (linhead_imp vz vx vy vmul).support ⊆
       ({vz} ∪ {vx} ∪ {vy} ∪ {vmul} : Finset Var) := by
   classical
@@ -2142,6 +2142,288 @@ private def compileStep {n : ℕ} (ρ : Env n)
       | _, _, _ =>
           exact (builder, stackVars)
 
+lemma compileStep_strong {n : ℕ} (ρ : Env n)
+    {instr : Instr n} {before after : Stack}
+    {stackVars : List Var} {builder : Builder}
+    (hStrong : StrongInvariant builder before stackVars)
+    (hStep : after = BoolLens.step ρ instr before) :
+    StrongInvariant
+      (compileStep ρ instr before after stackVars builder).1
+      after
+      (compileStep ρ instr before after stackVars builder).2 := by
+  classical
+  cases instr with
+  | pushTop =>
+      have hAfter : after = true :: before := by
+        simpa [BoolLens.step] using hStep
+      subst hAfter
+      simpa [compileStep] using
+        pushConst_strong
+          (builder := builder) (stack := before) (vars := stackVars)
+          (hStrong := hStrong) (value := 1) (b := true)
+          (hvalue := by simp)
+  | pushBot =>
+      have hAfter : after = false :: before := by
+        simpa [BoolLens.step] using hStep
+      subst hAfter
+      simpa [compileStep] using
+        pushConst_strong
+          (builder := builder) (stack := before) (vars := stackVars)
+          (hStrong := hStrong) (value := 0) (b := false)
+          (hvalue := by simp)
+  | pushVar idx =>
+      have hAfter : after = ρ idx :: before := by
+        simpa [BoolLens.step] using hStep
+      subst hAfter
+      simpa [compileStep] using
+        pushConst_strong
+          (builder := builder) (stack := before) (vars := stackVars)
+          (hStrong := hStrong) (value := boolToRat (ρ idx)) (b := ρ idx)
+          (hvalue := by rfl)
+  | applyAnd =>
+      cases before with
+      | nil =>
+          have hAfter : after = [] := by
+            simpa [BoolLens.step] using hStep
+          subst hAfter
+          simpa [compileStep] using hStrong
+      | cons x before₁ =>
+          cases before₁ with
+          | nil =>
+              have hAfter : after = [x] := by
+                simpa [BoolLens.step] using hStep
+              subst hAfter
+              simpa [compileStep] using hStrong
+          | cons y beforeTail =>
+              cases stackVars with
+              | nil =>
+                  have hlen :=
+                    matches_length_eq (StrongInvariant.matches_ hStrong)
+                  have : False := by
+                    have hEq :
+                        Nat.succ (Nat.succ beforeTail.length) = 0 := by
+                      simpa using hlen
+                    exact Nat.succ_ne_zero _ hEq
+                  exact this.elim
+              | cons vx stackVars₁ =>
+                  cases stackVars₁ with
+                  | nil =>
+                      have hlen :=
+                        matches_length_eq (StrongInvariant.matches_ hStrong)
+                      have : False := by
+                        have hEq :
+                            Nat.succ (Nat.succ beforeTail.length) = Nat.succ 0 := by
+                          simpa using hlen
+                        have hEq' := Nat.succ.inj hEq
+                        exact Nat.succ_ne_zero _ hEq'
+                      exact this.elim
+                  | cons vy vars =>
+                      have hStrongXY :
+                          StrongInvariant builder (x :: y :: beforeTail)
+                            (vx :: vy :: vars) := by
+                        simpa using hStrong
+                      have hMatchesXY :=
+                        StrongInvariant.matches_ hStrongXY
+                      have hxEq :
+                          boolToRat x = builder.assign vx :=
+                        matches_cons_head
+                          (builder := builder)
+                          (stack := y :: beforeTail)
+                          (v := vx) (vars := vy :: vars) hMatchesXY
+                      have hTailMatches :
+                          Matches builder (y :: beforeTail) (vy :: vars) :=
+                        matches_cons_tail
+                          (builder := builder)
+                          (b := x) (stack := y :: beforeTail)
+                          (v := vx) (vars := vy :: vars) hMatchesXY
+                      have hyEq :
+                          boolToRat y = builder.assign vy :=
+                        matches_cons_head
+                          (builder := builder)
+                          (stack := beforeTail)
+                          (v := vy) (vars := vars) hTailMatches
+                      have hvxB :
+                          builder.assign vx = 0 ∨ builder.assign vx = 1 := by
+                        cases x <;> simp [boolToRat, hxEq.symm]
+                      have hvyB :
+                          builder.assign vy = 0 ∨ builder.assign vy = 1 := by
+                        cases y <;> simp [boolToRat, hyEq.symm]
+                      have hAfterVal :
+                          after = (y && x) :: beforeTail := by
+                        simpa [BoolLens.step, BoolLens.applyBinary_cons_cons] using hStep
+                      subst hAfterVal
+                      have hRes :=
+                        applyAnd_strong
+                          (builder := builder)
+                          (x := x) (y := y)
+                          (before := beforeTail)
+                          (vx := vx) (vy := vy) (vars := vars)
+                          (hStrong := hStrongXY)
+                          (hvxB := hvxB) (hvyB := hvyB)
+                      simpa [compileStep] using hRes
+  | applyOr =>
+      cases before with
+      | nil =>
+          have hAfter : after = [] := by
+            simpa [BoolLens.step] using hStep
+          subst hAfter
+          simpa [compileStep] using hStrong
+      | cons x before₁ =>
+          cases before₁ with
+          | nil =>
+              have hAfter : after = [x] := by
+                simpa [BoolLens.step] using hStep
+              subst hAfter
+              simpa [compileStep] using hStrong
+          | cons y beforeTail =>
+              cases stackVars with
+              | nil =>
+                  have hlen :=
+                    matches_length_eq (StrongInvariant.matches_ hStrong)
+                  have : False := by
+                    have hEq :
+                        Nat.succ (Nat.succ beforeTail.length) = 0 := by
+                      simpa using hlen
+                    exact Nat.succ_ne_zero _ hEq
+                  exact this.elim
+              | cons vx stackVars₁ =>
+                  cases stackVars₁ with
+                  | nil =>
+                      have hlen :=
+                        matches_length_eq (StrongInvariant.matches_ hStrong)
+                      have : False := by
+                        have hEq :
+                            Nat.succ (Nat.succ beforeTail.length) = Nat.succ 0 := by
+                          simpa using hlen
+                        have hEq' := Nat.succ.inj hEq
+                        exact Nat.succ_ne_zero _ hEq'
+                      exact this.elim
+                  | cons vy vars =>
+                      have hStrongXY :
+                          StrongInvariant builder (x :: y :: beforeTail)
+                            (vx :: vy :: vars) := by
+                        simpa using hStrong
+                      have hMatchesXY :=
+                        StrongInvariant.matches_ hStrongXY
+                      have hxEq :
+                          boolToRat x = builder.assign vx :=
+                        matches_cons_head
+                          (builder := builder)
+                          (stack := y :: beforeTail)
+                          (v := vx) (vars := vy :: vars) hMatchesXY
+                      have hTailMatches :
+                          Matches builder (y :: beforeTail) (vy :: vars) :=
+                        matches_cons_tail
+                          (builder := builder)
+                          (b := x) (stack := y :: beforeTail)
+                          (v := vx) (vars := vy :: vars) hMatchesXY
+                      have hyEq :
+                          boolToRat y = builder.assign vy :=
+                        matches_cons_head
+                          (builder := builder)
+                          (stack := beforeTail)
+                          (v := vy) (vars := vars) hTailMatches
+                      have hvxB :
+                          builder.assign vx = 0 ∨ builder.assign vx = 1 := by
+                        cases x <;> simp [boolToRat, hxEq.symm]
+                      have hvyB :
+                          builder.assign vy = 0 ∨ builder.assign vy = 1 := by
+                        cases y <;> simp [boolToRat, hyEq.symm]
+                      have hAfterVal :
+                          after = (y || x) :: beforeTail := by
+                        simpa [BoolLens.step, BoolLens.applyBinary_cons_cons] using hStep
+                      subst hAfterVal
+                      have hRes :=
+                        applyOr_strong
+                          (builder := builder)
+                          (x := x) (y := y)
+                          (before := beforeTail)
+                          (vx := vx) (vy := vy) (vars := vars)
+                          (hStrong := hStrongXY)
+                          (_hvxB := hvxB) (_hvyB := hvyB)
+                      simpa [compileStep] using hRes
+  | applyImp =>
+      cases before with
+      | nil =>
+          have hAfter : after = [] := by
+            simpa [BoolLens.step] using hStep
+          subst hAfter
+          simpa [compileStep] using hStrong
+      | cons x before₁ =>
+          cases before₁ with
+          | nil =>
+              have hAfter : after = [x] := by
+                simpa [BoolLens.step] using hStep
+              subst hAfter
+              simpa [compileStep] using hStrong
+          | cons y beforeTail =>
+              cases stackVars with
+              | nil =>
+                  have hlen :=
+                    matches_length_eq (StrongInvariant.matches_ hStrong)
+                  have : False := by
+                    have hEq :
+                        Nat.succ (Nat.succ beforeTail.length) = 0 := by
+                      simpa using hlen
+                    exact Nat.succ_ne_zero _ hEq
+                  exact this.elim
+              | cons vx stackVars₁ =>
+                  cases stackVars₁ with
+                  | nil =>
+                      have hlen :=
+                        matches_length_eq (StrongInvariant.matches_ hStrong)
+                      have : False := by
+                        have hEq :
+                            Nat.succ (Nat.succ beforeTail.length) = Nat.succ 0 := by
+                          simpa using hlen
+                        have hEq' := Nat.succ.inj hEq
+                        exact Nat.succ_ne_zero _ hEq'
+                      exact this.elim
+                  | cons vy vars =>
+                      have hStrongXY :
+                          StrongInvariant builder (x :: y :: beforeTail)
+                            (vx :: vy :: vars) := by
+                        simpa using hStrong
+                      have hMatchesXY :=
+                        StrongInvariant.matches_ hStrongXY
+                      have hxEq :
+                          boolToRat x = builder.assign vx :=
+                        matches_cons_head
+                          (builder := builder)
+                          (stack := y :: beforeTail)
+                          (v := vx) (vars := vy :: vars) hMatchesXY
+                      have hTailMatches :
+                          Matches builder (y :: beforeTail) (vy :: vars) :=
+                        matches_cons_tail
+                          (builder := builder)
+                          (b := x) (stack := y :: beforeTail)
+                          (v := vx) (vars := vy :: vars) hMatchesXY
+                      have hyEq :
+                          boolToRat y = builder.assign vy :=
+                        matches_cons_head
+                          (builder := builder)
+                          (stack := beforeTail)
+                          (v := vy) (vars := vars) hTailMatches
+                      have hvxB :
+                          builder.assign vx = 0 ∨ builder.assign vx = 1 := by
+                        cases x <;> simp [boolToRat, hxEq.symm]
+                      have hvyB :
+                          builder.assign vy = 0 ∨ builder.assign vy = 1 := by
+                        cases y <;> simp [boolToRat, hyEq.symm]
+                      have hAfterVal :
+                          after = ((! y) || x) :: beforeTail := by
+                        simpa [BoolLens.step, BoolLens.applyBinary_cons_cons] using hStep
+                      subst hAfterVal
+                      have hRes :=
+                        applyImp_strong
+                          (builder := builder)
+                          (x := x) (y := y)
+                          (before := beforeTail)
+                          (vx := vx) (vy := vy) (vars := vars)
+                          (hStrong := hStrongXY)
+                          (_hvxB := hvxB) (_hvyB := hvyB)
+                      simpa [compileStep] using hRes
+
 private def compileSteps {n : ℕ} (ρ : Env n)
     (prog : Program n) (trace : List Stack)
     (stackVars : List Var) (builder : Builder) :
@@ -2156,6 +2438,42 @@ private def compileSteps {n : ℕ} (ρ : Env n)
           let (builder', stackVars') :=
             compileStep ρ instr before after stackVars builder
           compileSteps ρ prog' (after :: traceTail) stackVars' builder'
+
+lemma compileSteps_strong {n : ℕ} (ρ : Env n)
+    {prog : Program n} {stack : Stack}
+    {stackVars : List Var} {builder : Builder}
+    (hStrong : StrongInvariant builder stack stackVars) :
+    StrongInvariant
+      (compileSteps ρ prog (BoolLens.traceFrom ρ prog stack) stackVars builder).1
+      (BoolLens.exec ρ prog stack)
+      (compileSteps ρ prog (BoolLens.traceFrom ρ prog stack) stackVars builder).2 := by
+  classical
+  induction prog generalizing stack stackVars builder with
+  | nil =>
+      simpa [compileSteps, BoolLens.traceFrom_nil, BoolLens.exec] using hStrong
+  | cons instr prog ih =>
+      have hStepStrong :=
+        compileStep_strong (ρ := ρ) (instr := instr)
+          (before := stack)
+          (after := BoolLens.step ρ instr stack)
+          (stackVars := stackVars) (builder := builder)
+          hStrong (by rfl)
+      cases hStepResult :
+          compileStep ρ instr stack (BoolLens.step ρ instr stack) stackVars builder with
+      | mk builder' stackVars' =>
+          have hStrong' :
+              StrongInvariant builder'
+                (BoolLens.step ρ instr stack) stackVars' := by
+            simpa [hStepResult] using hStepStrong
+          have hRec :=
+            ih (builder := builder') (stack := BoolLens.step ρ instr stack)
+              (stackVars := stackVars') hStrong'
+          obtain ⟨traceTail, hTraceTail⟩ :=
+            BoolLens.traceFrom_cons_head (ρ := ρ)
+              (prog := prog) (stk := BoolLens.step ρ instr stack)
+          simpa [BoolLens.exec_cons, BoolLens.traceFrom_cons, compileSteps,
+            hStepResult, hTraceTail]
+            using hRec
 
 /-- Compile a Boolean form/environment pair into R1CS constraints and witness. -/
 def compile {n : ℕ} (φ : Form n) (ρ : Env n) : Compiled := by
