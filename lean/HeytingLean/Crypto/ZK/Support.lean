@@ -316,6 +316,34 @@ lemma satisfied_ext {sys : System}
     have := (Constraint.satisfied_ext (c := c) hA hB hC).1 (h hc)
     simpa using this
 
+lemma satisfied_of_agreesOn_support {sys : System}
+    {a a' : Var → ℚ}
+    (hAgree : AgreesOn (support sys) a a') :
+    System.satisfied a sys ↔ System.satisfied a' sys :=
+  satisfied_ext (sys := sys) (dom := support sys)
+    (hSupp := by intro _ hv; simpa using hv) (hAgree := hAgree)
+
+lemma satisfied_cons {a : Var → ℚ} {c : Constraint} {sys : System} :
+    System.satisfied a { sys with constraints := c :: sys.constraints } ↔
+      Constraint.satisfied a c ∧ System.satisfied a sys := by
+  classical
+  unfold System.satisfied
+  constructor
+  · intro h
+    refine ⟨?_, ?_⟩
+    · exact h (by simp [List.mem_cons])
+    · intro d hd
+      exact h (by simpa [List.mem_cons, hd])
+  · rintro ⟨hHead, hTail⟩ d hd
+    have hd' : d = c ∨ d ∈ sys.constraints :=
+      List.mem_cons.mp (by simpa using hd)
+    cases hd' with
+    | inl hdc =>
+        subst hdc
+        simpa using hHead
+    | inr hdTail =>
+        simpa using hTail hdTail
+
 end System
 
 end ZK

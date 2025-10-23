@@ -238,7 +238,7 @@ lemma fresh_agreesOn_range (st : Builder) (value : ℚ) :
   have := fresh_assign_lt (st := st) (value := value) (w := v) (hw := hvlt)
   simpa using this.symm
 
-lemma fresh_preserve_satisfied {st : Builder} {value : ℚ}
+lemma fresh_preserve_satisfied_mem {st : Builder} {value : ℚ}
     (hSupport : SupportOK st)
     (hSat : System.satisfied st.assign (Builder.system st)) :
     System.satisfied (fresh st value).1.assign
@@ -277,7 +277,7 @@ lemma addConstraint_preserve_support {st : Builder} {c : Constraint}
       have := hc hvNew
       simpa [Builder.addConstraint_nextVar] using this
 
-lemma addConstraint_preserve_satisfied {st : Builder} {c : Constraint}
+lemma addConstraint_preserve_satisfied_mem {st : Builder} {c : Constraint}
     (hSat : System.satisfied st.assign (Builder.system st))
     (hc : Constraint.satisfied st.assign c) :
     System.satisfied (addConstraint st c).assign
@@ -334,7 +334,7 @@ lemma recordBoolean_preserve_support {builder : Builder} {v : Var}
   simpa [recordBoolean, Builder.system_recordBoolean]
     using this
 
-lemma recordBoolean_preserve_satisfied {builder : Builder} {v : Var}
+lemma recordBoolean_preserve_satisfied_mem {builder : Builder} {v : Var}
     (hSat : System.satisfied builder.assign (Builder.system builder))
     (hv : Constraint.satisfied builder.assign (boolConstraint v)) :
     System.satisfied (recordBoolean builder v).assign
@@ -356,6 +356,43 @@ lemma recordBoolean_preserve_satisfied {builder : Builder} {v : Var}
   | inr hMem =>
       have := hSat hMem
       simpa [hAssign] using this
+
+namespace BuilderPreserve
+
+lemma fresh_agreesOn_support {b : Builder} {val : ℚ}
+    (hOK : SupportOK b) :
+    ∀ v ∈ System.support (Builder.system b),
+      b.assign v = (Builder.fresh b val).1.assign v := by
+  intro v hv
+  have hvRange : v ∈ Finset.range b.nextVar := hOK hv
+  have hvlt : v < b.nextVar := Finset.mem_range.mp hvRange
+  have hEq := Builder.fresh_assign_lt (st := b) (value := val) (w := v) (hw := hvlt)
+  simpa using hEq.symm
+
+lemma fresh_preserve_satisfied {b : Builder} {val : ℚ}
+    (hOK : SupportOK b)
+    (hSat : System.satisfied b.assign (Builder.system b)) :
+    System.satisfied (Builder.fresh b val).1.assign
+        (Builder.system (Builder.fresh b val).1) :=
+  Builder.fresh_preserve_satisfied_mem (st := b) (value := val) hOK hSat
+
+lemma addConstraint_preserve_satisfied {b : Builder} {c : Constraint}
+    (hTail : System.satisfied b.assign (Builder.system b))
+    (hHead : Constraint.satisfied b.assign c) :
+    System.satisfied (Builder.addConstraint b c).assign
+        (Builder.system (Builder.addConstraint b c)) :=
+  Builder.addConstraint_preserve_satisfied_mem
+    (st := b) (c := c) hTail hHead
+
+lemma recordBoolean_preserve_satisfied {b : Builder} {v : Var}
+    (hSat : System.satisfied b.assign (Builder.system b))
+    (hv : Constraint.satisfied b.assign (boolConstraint v)) :
+    System.satisfied (recordBoolean b v).assign
+        (Builder.system (recordBoolean b v)) :=
+  _root_.HeytingLean.Crypto.ZK.R1CSBool.recordBoolean_preserve_satisfied_mem
+    (builder := b) (v := v) hSat hv
+
+end BuilderPreserve
 
 @[simp] lemma matches_nil (builder : Builder) :
     Matches builder [] [] := List.Forall₂.nil
@@ -563,7 +600,7 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
         have hSatFresh :
             System.satisfied (Builder.fresh builder value).1.assign
               (Builder.system (Builder.fresh builder value).1) :=
-          Builder.fresh_preserve_satisfied
+          Builder.fresh_preserve_satisfied_mem
             (st := builder) (value := value) hSupport hSat
         have := hSatFresh (c := c) hc'
         simpa [Builder.system, hFresh] using this
@@ -607,7 +644,7 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
             System.satisfied
               (Builder.addConstraint builder₁ (eqConstConstraint v value)).assign
               (Builder.system (Builder.addConstraint builder₁ (eqConstConstraint v value))) :=
-          Builder.addConstraint_preserve_satisfied
+          Builder.addConstraint_preserve_satisfied_mem
             (st := builder₁)
             (c := eqConstConstraint v value)
             hSat₁ hEqConstraint
@@ -640,7 +677,7 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           hBoolEq
       have hSat₃ :
           System.satisfied builder₃.assign (Builder.system builder₃) :=
-        recordBoolean_preserve_satisfied
+        recordBoolean_preserve_satisfied_mem
           (builder := builder₂) (v := v) hSat₂ hBoolConstraint
       have hAssign₂_bool : builder₂.assign v = boolToRat b := by
         simpa [hvalue] using hAssign₂
