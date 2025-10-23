@@ -36,22 +36,19 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
   _Current status:_  
   • Canonical BoolLens trace/value available (`Crypto/BoolLens`).  
   • Support-oriented utilities factored out (`Crypto/ZK/Support`) giving `AgreesOn`, `support`, and `System.satisfied_ext` lemmas (ready for use).  
-  • Boolean builder still uses the original lightweight invariant (`Matches`/`Bounded`); support/satisfaction strengthening staged to land next.  
   • R1CS compiler emits witness/constraints for all opcodes (no global proof yet).  
-  • Added a stable `System.satisfied_cons` shim and fresh local helper lemmas (support subsets, boolean closures, head satisfaction bridges) preparing the strong opcode proofs.  
-  • `applyAnd_strong` now refactored to the new 3-step structure; remaining opcodes still pending.  
-  • Initial attempt to add the Prop-shaped support/boolean-closure helpers and refactor `applyAnd_strong` caused compile issues; changes were reverted—next retry should stage helpers incrementally with dedicated tests.  
+  • `linhead_imp` helpers now mirror the OR-head path so the backend treats implication uniformly (`Crypto/ZK/R1CSBool.lean`:291).  
+  • `applyImp_strong` threads the strengthened invariant through the implication opcode (`Crypto/ZK/R1CSBool.lean`:1653).  
+  • `compileStep_strong` and `compileSteps_strong` propagate the strong invariant across the builder pipeline using the canonical `traceFrom`/`exec` pair (`Crypto/ZK/R1CSBool.lean`:2145, 2442).  
+  • `lake build -- -Dno_sorry -DwarningAsError=true` passes (warning set unchanged).  
   _Next steps:_  
-  1. Introduce a strengthened `StrongInvariant` (tracks `SupportOK`/`Satisfied`) alongside the existing invariant and prove a dedicated `pushConst_strong`.  
-  2. Bridge `StrongInvariant` back to the old invariant (`Invariant_of_strong` helper) so existing lemmas continue to compile while we migrate.  
-  3. Reprove opcode preservation (`applyAnd`/`applyOr`/`applyImp`) under the strong invariant using the new support lemmas.  
-  4. Induct over `compileSteps` with the strong invariant to show the final builder satisfies support/satisfaction obligations.  
-  5. Establish `soundness`: compiled `(system, assignment)` satisfies every constraint and output matches `BoolLens.eval`.  
-  6. Establish `completeness`: canonical trace provides a satisfying assignment.  
-  7. Expose the Boolean witness/output to the CLI layer once proofs land.
+  1. Hook `compileSteps_strong` into the top-level compile proof so the canonical system inherits the strong invariant.  
+  2. Sweep the lingering `simp`/`simpa` linter warnings (and drop the unused `linhead_imp_support` variable) to future-proof `-DwarningAsError`.  
+  3. Leverage the strengthened invariant to finish the Boolean R1CS soundness/completeness proofs.  
+  4. Expose the completed proofs through the CLI and R1CS exporters.
 - ⏳ Phase E3 – CLI executables and regression tests (not started).
 
-Current focus: carry the Boolean stack invariant through `applyAnd`/`applyOr`/`applyImp`, then lift it to `compileSteps` to obtain full R1CS soundness/completeness before wiring the witness into the CLI.
+Current focus: integrate the strong compile pipeline into the top-level proof, clear the warning backlog, and finish the Boolean R1CS soundness/completeness chain before wiring the CLI.
 
 ---
 
@@ -309,13 +306,16 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
     1. ✅ Use those helpers to extend `Crypto/ZK/R1CSBool.lean`: add the `SupportOK`/`satisfied` preservation lemmas for `fresh`, `addConstraint`, and `recordBoolean` (relying on `Builder.system_addConstraint`/`Builder.system_recordBoolean` rather than raw list manipulations) and package the subset facts (`range_subset_succ`, `singleton_subset_range`, `AgreesOn.mono`) so `StrongInvariant` proofs can `simp`.
     2. ✅ Reprove `pushConst` against `StrongInvariant`, keeping the booleanity proof isolated in the head lemmas.
     3. ✅ Show the existing invariant is a projection of `StrongInvariant` (`StrongInvariant.toInvariant` now lives in `R1CSBool.lean` alongside the field accessors).
-    4. Build out the strong opcode proofs using the current `mulConstraint`/`eqConstraint` API and the helper wrappers we just added: `BuilderPreserve.fresh_preserve_satisfied`, `BuilderPreserve.addConstraint_preserve_satisfied`, and `BuilderPreserve.recordBoolean_preserve_satisfied`.
-       - add the missing local lemmas that `applyAnd_strong` already relies on (`mulConstraint_support_subset`, boolean closure facts) so the proof compiles without placeholders;
-       - refactor `applyAnd_strong` to reuse those helpers and finish by lifting the existing weak lemma;
-       - replicate the pattern for `applyOr_strong` and `applyImp_strong`;
-       - keep the helper lemmas adjacent to the opcode proofs so `compileStep_strong` can reuse them.
-    5. Induct over `compileSteps` with the strong invariant to obtain full soundness/completeness for the generated R1CS, exposing witness/output to the CLI layer.
-    → Merge back into `main` once (4) and (5) are complete and `lake build -- -Dno-sorry -DwarningAsError=true` (CI) passes.
+    4. ✅ Build out the strong opcode proofs using the current `mulConstraint`/`eqConstraint` API and the helper wrappers we just added (`BuilderPreserve.fresh_preserve_satisfied`, `BuilderPreserve.addConstraint_preserve_satisfied`, `BuilderPreserve.recordBoolean_preserve_satisfied`).
+       - ✅ add the missing local lemmas that `applyAnd_strong` relies on (`mulConstraint_support_subset`, boolean closure facts) so the proof compiles without placeholders;
+       - ✅ refactor `applyAnd_strong` to reuse those helpers and finish by lifting the existing weak lemma;
+       - ✅ replicate the pattern for `applyOr_strong` and `applyImp_strong`;
+       - ✅ keep the helper lemmas adjacent to the opcode proofs so `compileStep_strong` can reuse them.
+    5. ✅ Prove the stepwise and inductive preservation lemmas (`compileStep_strong`, `compileSteps_strong`) so every `compileSteps` call carries the strong invariant along the Boolean program.
+    6. 🔄 Thread the strengthened invariant into the top-level `compile` correctness proof so the canonical builder run produces a `StrongInvariant`.
+    7. ⏳ Clear the warning backlog (`linhead_imp_support` + lingering `simp`/`simpa`) to keep `-DwarningAsError` future-proof.
+    8. ⏳ Finish the Boolean R1CS soundness/completeness proofs and surface the results to the CLI and exporters.
+    → Merge back into `main` once step 8 is complete, the global theorems surface the witness assignment, and `lake build -- -Dno-sorry -DwarningAsError=true` (CI) stays green.
 - [ ] Add executables (`pct_prove`, `pct_verify`, `pct_r1cs`) and regression demos.
 
 When those 7 are green, you have **verified-by-construction Multi-Lens ZK + PCT** with a **cryptographically consumable** output format—and you can add more lenses or richer arithmetization with confidence later.
@@ -327,6 +327,43 @@ Got it—here’s a concrete, low-risk **staged retry plan** that keeps the buil
 ---
 
 # Plan: Refactor in bite-size commits (each compiles)
+
+## Stage 7 — Thread `compileSteps_strong` into the top-level compile proof
+
+**Goal:** derive a `StrongInvariant` guarantee for the canonical builder run so the global Boolean proofs can consume it.
+
+1. Bridge the existing `compile` correctness proof to `compileSteps_strong`, reusing the canonical `traceFrom`/`exec` pair.
+2. Extend the main theorem to expose both the legacy invariant and the new strong invariant (use `StrongInvariant.toWeak` for back-compat).
+3. Keep the upgrade localized to `Crypto/ZK/R1CSBool.lean`, then restate the downstream lemmas (`compile_strong`, `compile_agrees`, …) in terms of the strong result.
+4. Leave TODO markers where soundness/completeness will plug in so the next stage has clear insertion points.
+
+## Stage 8 — Clear the warning backlog
+
+**Goal:** make `-DwarningAsError=true` green by fixing the lingering `simp`/`simpa` issues and the unused helper parameter.
+
+- Drop the unused variable in `linhead_imp_support` (or replace it with `_`) and ensure `simp` reduces cleanly.
+- Rephrase the remaining `simp`/`simpa` calls flagged by the linter so they no longer require manual rewrites.
+- Re-run `lake build -- -Dno_sorry -DwarningAsError=true`; the compile should be clean with zero warnings.
+
+## Stage 9 — Finish Boolean R1CS soundness/completeness under the strong invariant
+
+**Goal:** use the new compile theorem to close the Boolean R1CS soundness/completeness statements.
+
+1. Strengthen the soundness lemma so the compiled `(system, assignment)` inherits the `StrongInvariant` facts (support + satisfaction).
+2. Instantiate the canonical trace/assignment to prove completeness, relying on `compileSteps_strong` instead of ad-hoc stack arguments.
+3. Package the results so downstream consumers get both the Boolean evaluation equality and the corresponding satisfying assignment.
+
+## Stage 10 — Surface CLI + exporters with the new proofs
+
+**Goal:** expose the verified pipeline to users and automate artifact generation.
+
+- Wire `lake exe pct_prove`, `pct_verify`, and `pct_r1cs` to the strengthened theorems.
+- Ensure the R1CS exporter uses the final witness assignment and emits JSON consumable by external provers.
+- Add regression tests or demos that call the executables and assert the strong results.
+
+---
+
+### Archive — Stage 0 – 6 (completed; kept for reference)
 
 ## Stage 0 — Freeze the shape of `System.satisfied` (no logic changes)
 
@@ -585,10 +622,7 @@ attribute [simp] System.satisfied_iff_cons
 
 # What to do right now (TL;DR checklist)
 
-1. **Add Stage 0 shim** (`satisfied_cons` + `satisfied_iff_cons`). Build.
-2. **Add Stage 1 support lemmas** (append/perm/union/mono + `Fresh`). Build.
-3. **Add Stage 2 preservation wrappers** (`recordBoolean/addConstraint/fresh`). Build.
-4. **Drop in Stage 3 invariant shim** (`WeakInvariant`, `.toWeak`). Build.
-5. **Refactor only `applyAnd_strong`** using Stage 2 + shim. Build.
-6. **Add Stage 5 scratch tests**. Build fast path.
-7. **Proceed to `Or`, then `Imp`** if #5 is stable.
+1. Thread `compileSteps_strong` into the top-level compile theorem and surface the strong invariant.
+2. Fix the outstanding `simp`/`simpa` warnings and the unused `linhead_imp_support` parameter; rerun the warning-as-error build.
+3. Finish Boolean R1CS soundness/completeness using the strengthened invariant and canonical trace.
+4. Expose the proofs through the CLI executables and R1CS exporter.

@@ -285,6 +285,24 @@ lemma constraint_support_subset {sys : System}
                 (ih hMem) hv
               exact Finset.mem_union.mpr (Or.inl hvTail)
 
+lemma support_perm {cs cs' : List Constraint} (h : List.Perm cs cs') :
+    support ⟨cs⟩ = support ⟨cs'⟩ := by
+  classical
+  refine List.Perm.rec ?h₁ ?h₂ ?h₃ ?h₄ h
+  · simp [support]
+  · intro x l₁ l₂ hPerm ih
+    simpa [support_cons, ih]
+  · intro x y l
+    simp [support_cons, Finset.union_left_comm, Finset.union_comm,
+      Finset.union_assoc]
+  · intro l₁ l₂ l₃ h₁ h₂ ih₁ ih₂
+    exact ih₁.trans ih₂
+
+lemma support_reverse (cs : List Constraint) :
+    support ⟨cs.reverse⟩ = support ⟨cs⟩ :=
+  support_perm <|
+    (List.perm_reverse).1 (List.Perm.refl cs.reverse)
+
 lemma satisfied_ext {sys : System}
     {a a' : Var → ℚ} {dom : Finset Var}
     (hSupp : support sys ⊆ dom)
@@ -351,6 +369,23 @@ lemma satisfied_cons_cons {a : Var → ℚ} {c : Constraint} {sys : System} :
         simpa using hHead
     | inr hdTail =>
         simpa using hTail hdTail
+
+lemma satisfied_of_perm {assign : Var → ℚ}
+    {cs cs' : List Constraint} (h : List.Perm cs cs') :
+    System.satisfied assign { constraints := cs } ↔
+      System.satisfied assign { constraints := cs' } := by
+  classical
+  constructor <;> intro hSat c hc
+  · have hc' : c ∈ cs := (List.Perm.mem_iff h).mpr hc
+    exact hSat hc'
+  · have hc' : c ∈ cs' := (List.Perm.mem_iff h.symm).mpr hc
+    exact hSat hc'
+
+lemma satisfied_reverse {assign : Var → ℚ} {cs : List Constraint} :
+    System.satisfied assign { constraints := cs.reverse } ↔
+      System.satisfied assign { constraints := cs } :=
+  satisfied_of_perm <|
+    (List.perm_reverse).1 (List.Perm.refl cs.reverse)
 
 end System
 

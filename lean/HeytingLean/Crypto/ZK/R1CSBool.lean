@@ -145,6 +145,42 @@ lemma toInvariant {builder : Builder} {stack : Stack} {vars : List Var}
 
 end StrongInvariant
 
+@[simp] lemma strongInvariant_empty :
+    StrongInvariant ({} : Builder) [] [] := by
+  classical
+  refine ⟨?_, ⟨?_, ⟨?_, ?_⟩⟩⟩
+  · simp [Matches]
+  · intro v hv; cases hv
+  · intro v hv
+    have hvEmpty :
+        v ∈ (∅ : Finset Var) := by
+      simpa [Builder.system, System.support_nil] using hv
+    have : False := by simpa using hvEmpty
+    exact this.elim
+  · intro c hc
+    cases hc
+
+namespace StrongInvariant
+
+lemma support_reverse_subset {builder : Builder} {stack : Stack}
+    {vars : List Var} (h : StrongInvariant builder stack vars) :
+    System.support { constraints := builder.constraints.reverse } ⊆
+      Finset.range builder.nextVar := by
+  intro v hv
+  let hEq :
+      System.support { constraints := builder.constraints.reverse } =
+        System.support { constraints := builder.constraints } :=
+    System.support_reverse (cs := builder.constraints)
+  have hv' :
+      v ∈ System.support { constraints := builder.constraints } := by
+    simpa [hEq] using hv
+  have hvOrig :
+      v ∈ System.support (Builder.system builder) := by
+    simpa [Builder.system] using hv'
+  exact (support_ h) hvOrig
+
+end StrongInvariant
+
 private lemma range_subset_succ (n : ℕ) :
     Finset.range n ⊆ Finset.range (n + 1) := by
   intro v hv
@@ -2474,6 +2510,50 @@ lemma compileSteps_strong {n : ℕ} (ρ : Env n)
           simpa [BoolLens.exec_cons, BoolLens.traceFrom_cons, compileSteps,
             hStepResult, hTraceTail]
             using hRec
+
+lemma compileSteps_strong_empty {n : ℕ} (ρ : Env n)
+    (prog : Program n) :
+    StrongInvariant
+      (compileSteps ρ prog (BoolLens.traceFrom ρ prog []) [] {}).1
+      (BoolLens.exec ρ prog [])
+      (compileSteps ρ prog (BoolLens.traceFrom ρ prog []) [] {}).2 := by
+  simpa using
+    (compileSteps_strong (ρ := ρ)
+      (prog := prog) (stack := []) (stackVars := []) (builder := {})
+      strongInvariant_empty)
+
+lemma compile_strong {n : ℕ} (φ : Form n) (ρ : Env n) :
+    StrongInvariant
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).1
+      (BoolLens.exec ρ (Form.compile φ) [])
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).2 := by
+  simpa using
+    (compileSteps_strong_empty (ρ := ρ) (prog := Form.compile φ))
+
+lemma compile_invariant {n : ℕ} (φ : Form n) (ρ : Env n) :
+    Invariant
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).1
+      (BoolLens.exec ρ (Form.compile φ) [])
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).2 := by
+  classical
+  have hStrong :=
+    compile_strong (φ := φ) (ρ := ρ)
+  obtain ⟨hMatches, hBounded, -, -⟩ := hStrong
+  exact
+    ⟨hMatches, hBounded, matches_length_eq hMatches⟩
+
+lemma compile_matches {n : ℕ} (φ : Form n) (ρ : Env n) :
+    Matches
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).1
+      (BoolLens.exec ρ (Form.compile φ) [])
+      (compileSteps (ρ := ρ) (Form.compile φ)
+        (BoolLens.traceFrom ρ (Form.compile φ) []) [] {}).2 :=
+  (compile_strong (φ := φ) (ρ := ρ)).1
 
 /-- Compile a Boolean form/environment pair into R1CS constraints and witness. -/
 def compile {n : ℕ} (φ : Form n) (ρ : Env n) : Compiled := by
