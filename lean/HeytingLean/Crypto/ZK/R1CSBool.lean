@@ -801,66 +801,90 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
   dsimp [pushConst]
   cases hFresh : Builder.fresh builder value with
   | mk builder₁ v =>
+      have hvFresh_eq : (Builder.fresh builder value).2 = v :=
+        congrArg Prod.snd hFresh
       have hv_idx : v = builder.nextVar := by
-        simpa [hFresh] using
+        have hvBase : (Builder.fresh builder value).2 = builder.nextVar :=
           Builder.fresh_snd (st := builder) (value := value)
+        exact hvFresh_eq.symm.trans hvBase
+      have hBuilder_eq : (Builder.fresh builder value).1 = builder₁ :=
+        congrArg Prod.fst hFresh
       have hNext₁ : builder₁.nextVar = builder.nextVar + 1 := by
-        simpa [hFresh] using
+        have hNext :=
           Builder.fresh_nextVar (st := builder) (value := value)
+        exact hBuilder_eq ▸ hNext
       have hv_lt_next : v < builder₁.nextVar := by
-        have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
-        simpa [hv_idx, hNext₁] using this
+        have hlt : builder.nextVar < builder₁.nextVar := by
+          exact hNext₁.symm ▸ Nat.lt_succ_self _
+        exact hv_idx ▸ hlt
       have hMatches₁ : Matches builder₁ stack vars := by
-        have := matches_fresh_preserve
+        have hFreshMatches :=
+          matches_fresh_preserve
           (builder := builder) (value := value)
           (stack := stack) (vars := vars) hMatches hBounded
-        simpa [hFresh] using this
+        exact hBuilder_eq ▸ hFreshMatches
       have hBounded₁ : Bounded builder₁ vars := by
-        have := Builder.fresh_preserve_bounded
+        have hFreshBounded :=
+          Builder.fresh_preserve_bounded
           (st := builder) (value := value) (vars := vars) hBounded
-        simpa [hFresh] using this
+        exact hBuilder_eq ▸ hFreshBounded
       have hSupport₁ :
           SupportOK builder₁ := by
-        have := Builder.fresh_preserve_support
-          (st := builder) (value := value) hSupport
-        simpa [hFresh] using this
+        have hFreshSupport :=
+          Builder.fresh_preserve_support
+            (st := builder) (value := value) hSupport
+        exact hBuilder_eq ▸ hFreshSupport
       have hSat₁ :
           System.satisfied builder₁.assign (Builder.system builder₁) := by
         intro c hc
         have hc' :
-            c ∈ (Builder.system (Builder.fresh builder value).1).constraints := by
-          simpa [Builder.system, hFresh] using hc
+            c ∈ (Builder.system (Builder.fresh builder value).1).constraints :=
+          hBuilder_eq.symm ▸ hc
         have hSatFresh :
             System.satisfied (Builder.fresh builder value).1.assign
               (Builder.system (Builder.fresh builder value).1) :=
           Builder.fresh_preserve_satisfied_mem
             (st := builder) (value := value) hSupport hSat
-        have := hSatFresh (c := c) hc'
-        simpa [Builder.system, hFresh] using this
+        have hSat' := hSatFresh (c := c) hc'
+        exact hBuilder_eq ▸ hSat'
       have hAssign₁ : builder₁.assign v = value := by
-        have := Builder.fresh_assign_self
+        have hAssign :=
+          Builder.fresh_assign_self
           (st := builder) (value := value)
-        simpa [hFresh] using this
+        have hAssign' := hBuilder_eq ▸ hAssign
+        exact hvFresh_eq ▸ hAssign'
       let builder₂ := Builder.addConstraint builder₁ (eqConstConstraint v value)
       have hMatches₂ : Matches builder₂ stack vars := by
-        simpa [builder₂] using
-          addConstraint_preserve_matches hMatches₁ _
+        change
+          Matches
+            (Builder.addConstraint builder₁ (eqConstConstraint v value))
+            stack vars
+        exact addConstraint_preserve_matches hMatches₁ _
       have hBounded₂ : Bounded builder₂ vars := by
-        simpa [builder₂] using
-          addConstraint_preserve_bounded hBounded₁ _
+        change
+          Bounded
+            (Builder.addConstraint builder₁ (eqConstConstraint v value))
+            vars
+        exact addConstraint_preserve_bounded hBounded₁ _
       have hSupport₂ :
           SupportOK builder₂ := by
         have hSubset :
             Constraint.support (eqConstConstraint v value) ⊆
               Finset.range builder₁.nextVar := by
-          simpa [eqConstConstraint_support] using
-            (singleton_subset_range
-              (n := builder₁.nextVar) (v := v) hv_lt_next)
-        have := Builder.addConstraint_preserve_support
+          intro w hw
+          have hw' := hw
+          simp [eqConstConstraint_support] at hw'
+          subst hw'
+          exact Finset.mem_range.mpr hv_lt_next
+        have hSupport' :=
+          Builder.addConstraint_preserve_support
           (st := builder₁)
           (c := eqConstConstraint v value)
           hSupport₁ hSubset
-        simpa [builder₂] using this
+        change
+          SupportOK
+            (Builder.addConstraint builder₁ (eqConstConstraint v value))
+        exact hSupport'
       have hSat₂ :
           System.satisfied builder₂.assign (Builder.system builder₂) := by
         have hEqConstraint :
@@ -868,10 +892,6 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           eqConstConstraint_head_satisfied
             (assign := builder₁.assign) (v := v) (value := value) hAssign₁
         intro c hc
-        have hc' :
-            c ∈ (Builder.system
-              (Builder.addConstraint builder₁ (eqConstConstraint v value))).constraints := by
-          simpa [Builder.system, builder₂] using hc
         have hSatAdd :
             System.satisfied
               (Builder.addConstraint builder₁ (eqConstConstraint v value)).assign
@@ -880,8 +900,15 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
             (st := builder₁)
             (c := eqConstConstraint v value)
             hSat₁ hEqConstraint
-        have := hSatAdd (c := c) hc'
-        simpa [Builder.system, builder₂] using this
+        change
+          Constraint.satisfied
+            (Builder.addConstraint builder₁ (eqConstConstraint v value)).assign
+            c
+        have hc' :
+            c ∈ (Builder.system
+              (Builder.addConstraint builder₁ (eqConstConstraint v value))).constraints :=
+          hc
+        exact hSatAdd (c := c) hc'
       let builder₃ := recordBoolean builder₂ v
       have hMatches₃ : Matches builder₃ stack vars := by
         simpa [builder₃] using
@@ -899,12 +926,18 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
         recordBoolean_preserve_support
           (builder := builder₂) (v := v) hSupport₂ hv_lt_next₂
       have hAssign₂ : builder₂.assign v = value := by
-        simpa [builder₂, Builder.addConstraint_assign] using hAssign₁
+        have assign_eq :
+            builder₂.assign = builder₁.assign := by
+          change
+            (Builder.addConstraint builder₁ (eqConstConstraint v value)).assign =
+              builder₁.assign
+          simp [builder₂]
+        exact assign_eq.symm ▸ hAssign₁
       have hAssign₂_bool : builder₂.assign v = boolToRat b := by
-        simpa [hvalue] using hAssign₂
+        exact hvalue ▸ hAssign₂
       have hBoolEq :
           builder₂.assign v * (builder₂.assign v - 1) = 0 := by
-        simpa [hAssign₂_bool] using boolToRat_mul_self_sub_one b
+        exact hAssign₂_bool.symm ▸ boolToRat_mul_self_sub_one b
       have hBoolConstraint :
           Constraint.satisfied builder₂.assign (boolConstraint v) :=
         (boolConstraint_satisfied (assign := builder₂.assign) (v := v)).2
