@@ -79,6 +79,19 @@ def eqConstConstraint (v : Var) (value : ℚ) : Constraint :=
   classical
   simp [Constraint.satisfied, eqConstConstraint]
 
+lemma eqConstConstraint_head_satisfied
+    (assign : Var → ℚ) (v : Var) (value : ℚ) :
+    assign v = value →
+      Constraint.satisfied assign (eqConstConstraint v value) := by
+  intro h
+  simpa using
+    ((eqConstConstraint_satisfied
+          (assign := assign) (v := v) (value := value)).2 h)
+
+@[simp] lemma boolToRat_mul_self_sub_one (b : Bool) :
+    boolToRat b * (boolToRat b - 1) = 0 := by
+  simpa using ZK.boolToRat_sq_sub b
+
 /-- Constraint enforcing `lhs = rhs` using a single multiplicative slot. -/
 def eqConstraint (lhs rhs : LinComb) : Constraint :=
   { A := lhs, B := LinComb.ofConst 1, C := rhs }
@@ -848,9 +861,8 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           System.satisfied builder₂.assign (Builder.system builder₂) := by
         have hEqConstraint :
             Constraint.satisfied builder₁.assign (eqConstConstraint v value) :=
-          (eqConstConstraint_satisfied
-              (assign := builder₁.assign) (v := v) (value := value)).2
-            hAssign₁
+          eqConstConstraint_head_satisfied
+            (assign := builder₁.assign) (v := v) (value := value) hAssign₁
         intro c hc
         have hc' :
             c ∈ (Builder.system
@@ -884,9 +896,11 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           (builder := builder₂) (v := v) hSupport₂ hv_lt_next₂
       have hAssign₂ : builder₂.assign v = value := by
         simpa [builder₂, Builder.addConstraint_assign] using hAssign₁
+      have hAssign₂_bool : builder₂.assign v = boolToRat b := by
+        simpa [hvalue] using hAssign₂
       have hBoolEq :
           builder₂.assign v * (builder₂.assign v - 1) = 0 := by
-        simpa [hAssign₂, hvalue] using ZK.boolToRat_sq_sub b
+        simpa [hAssign₂_bool] using boolToRat_mul_self_sub_one b
       have hBoolConstraint :
           Constraint.satisfied builder₂.assign (boolConstraint v) :=
         (boolConstraint_satisfied (assign := builder₂.assign) (v := v)).2
@@ -895,8 +909,6 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           System.satisfied builder₃.assign (Builder.system builder₃) :=
         recordBoolean_preserve_satisfied_mem
           (builder := builder₂) (v := v) hSat₂ hBoolConstraint
-      have hAssign₂_bool : builder₂.assign v = boolToRat b := by
-        simpa [hvalue] using hAssign₂
       have hAssign₃ : builder₃.assign v = boolToRat b := by
         have : builder₃.assign v = builder₂.assign v := by
           simp [builder₃, builder₂, recordBoolean]
