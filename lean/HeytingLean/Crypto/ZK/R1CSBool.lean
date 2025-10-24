@@ -1532,22 +1532,25 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
 
   have hMatches1 :
       Matches builder1 (x :: y :: before) (vx :: vy :: vars) := by
-    have := matches_fresh_preserve
-      (builder := builder)
-      (stack := x :: y :: before)
-      (vars := vx :: vy :: vars)
-      (value := mulVal) hMatches hBounded
-    simpa [builder1, fresMul] using this
+    have hFreshMatches :=
+      matches_fresh_preserve
+        (builder := builder)
+        (stack := x :: y :: before)
+        (vars := vx :: vy :: vars)
+        (value := mulVal) hMatches hBounded
+    simpa [builder1, fresMul] using hFreshMatches
   have hBounded1 :
       Bounded builder1 (vx :: vy :: vars) := by
-    have := Builder.fresh_preserve_bounded
-      (st := builder) (value := mulVal) (vars := vx :: vy :: vars) hBounded
-    simpa [builder1, fresMul] using this
+    have hFreshBounded :=
+      Builder.fresh_preserve_bounded
+        (st := builder) (value := mulVal) (vars := vx :: vy :: vars) hBounded
+    simpa [builder1, fresMul] using hFreshBounded
   have hSupport1 :
       SupportOK builder1 := by
-    have := Builder.fresh_preserve_support
-      (st := builder) (value := mulVal) hSupport
-    simpa [builder1, fresMul] using this
+    have hFreshSupport :=
+      Builder.fresh_preserve_support
+        (st := builder) (value := mulVal) hSupport
+    simpa [builder1, fresMul] using hFreshSupport
   have hSat1 :
       System.satisfied builder1.assign (Builder.system builder1) :=
     Builder.fresh_preserve_satisfied_mem
@@ -1934,6 +1937,11 @@ lemma applyImp_strong {builder : Builder} {x y : Bool}
   let builder5 := Builder.addConstraint builder4 eqImp
   let builder6 := recordBoolean builder5 vz
 
+  have hFreshMul_builder : (Builder.fresh builder mulVal).1 = builder1 := by
+    simp [builder1, fresMul]
+  have hFreshMul_v : (Builder.fresh builder mulVal).2 = vmul := by
+    simp [vmul, fresMul]
+
   have hvx_lt_base : vx < builder.nextVar :=
     hBounded vx (by simp)
   have hvy_lt_base : vy < builder.nextVar :=
@@ -1961,22 +1969,25 @@ lemma applyImp_strong {builder : Builder} {x y : Bool}
 
   have hMatches1 :
       Matches builder1 (x :: y :: before) (vx :: vy :: vars) := by
-    have := matches_fresh_preserve
-      (builder := builder)
-      (stack := x :: y :: before)
-      (vars := vx :: vy :: vars)
-      (value := mulVal) hMatches hBounded
-    simpa [builder1, fresMul] using this
+    have hFreshMatches :=
+      matches_fresh_preserve
+        (builder := builder)
+        (stack := x :: y :: before)
+        (vars := vx :: vy :: vars)
+        (value := mulVal) hMatches hBounded
+    simpa [builder1, fresMul] using hFreshMul_builder ▸ hFreshMatches
   have hBounded1 :
       Bounded builder1 (vx :: vy :: vars) := by
-    have := Builder.fresh_preserve_bounded
-      (st := builder) (value := mulVal) (vars := vx :: vy :: vars) hBounded
-    simpa [builder1, fresMul] using this
+    have hFreshBounded :=
+      Builder.fresh_preserve_bounded
+        (st := builder) (value := mulVal) (vars := vx :: vy :: vars) hBounded
+    simpa [builder1, fresMul] using hFreshMul_builder ▸ hFreshBounded
   have hSupport1 :
       SupportOK builder1 := by
-    have := Builder.fresh_preserve_support
-      (st := builder) (value := mulVal) hSupport
-    simpa [builder1, fresMul] using this
+    have hFreshSupport :=
+      Builder.fresh_preserve_support
+        (st := builder) (value := mulVal) hSupport
+    simpa [builder1, fresMul] using hFreshMul_builder ▸ hFreshSupport
   have hSat1 :
       System.satisfied builder1.assign (Builder.system builder1) :=
     Builder.fresh_preserve_satisfied_mem
