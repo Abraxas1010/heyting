@@ -774,12 +774,16 @@ lemma pushConst_invariant {builder : Builder} {stack : Stack}
           have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
           simpa [hv_idx, hNext₁, hNext₃] using this
         · exact hBounded₃ w hw
-      have hMatches_new' : Matches builder₃ (b :: stack) (builder.nextVar :: vars) :=
-        by simpa [hv_idx] using hMatches_new
-      have hBounded_new' : Bounded builder₃ (builder.nextVar :: vars) :=
-        by simpa [hv_idx] using hBounded_new
+      have hMatches_new' : Matches builder₃ (b :: stack) (builder.nextVar :: vars) := by
+        have h := hMatches_new
+        simp [hv_idx] at h
+        exact h
+      have hBounded_new' : Bounded builder₃ (builder.nextVar :: vars) := by
+        have h := hBounded_new
+        simp [hv_idx] at h
+        exact h
       have hLen_new : (b :: stack).length = (builder.nextVar :: vars).length := by
-        simpa [hv_idx, hLen]
+        simp [List.length_cons, hv_idx, hLen]
       have hGoal : Invariant builder₃ (b :: stack) (builder.nextVar :: vars) :=
         And.intro hMatches_new' (And.intro hBounded_new' hLen_new)
       have hResult : pushConst builder value = (builder₃, v) := by
