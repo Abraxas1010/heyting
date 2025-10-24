@@ -731,64 +731,108 @@ lemma pushConst_invariant {builder : Builder} {stack : Stack}
   dsimp [pushConst]
   cases hFresh : Builder.fresh builder value with
   | mk builder₁ v =>
+      have hvFresh_eq : (Builder.fresh builder value).2 = v :=
+        congrArg Prod.snd hFresh
       have hv_idx : v = builder.nextVar := by
-        simpa [hFresh] using Builder.fresh_snd (st := builder) (value := value)
+        have hvBase : (Builder.fresh builder value).2 = builder.nextVar :=
+          Builder.fresh_snd (st := builder) (value := value)
+        exact hvFresh_eq.symm.trans hvBase
+      have hBuilder_eq : (Builder.fresh builder value).1 = builder₁ :=
+        congrArg Prod.fst hFresh
       have hNext₁ : builder₁.nextVar = builder.nextVar + 1 := by
-        simpa [hFresh] using Builder.fresh_nextVar (st := builder) (value := value)
+        have hNext :=
+          Builder.fresh_nextVar (st := builder) (value := value)
+        exact hBuilder_eq ▸ hNext
       have hMatches₁ : Matches builder₁ stack vars := by
-        have := matches_fresh_preserve (builder := builder) (value := value)
-          (stack := stack) (vars := vars) hMatches hBounded
-        simpa [hFresh] using this
+        have hFreshMatches :=
+          matches_fresh_preserve
+            (builder := builder) (value := value)
+            (stack := stack) (vars := vars) hMatches hBounded
+        exact hBuilder_eq ▸ hFreshMatches
       have hBounded₁ : Bounded builder₁ vars := by
-        have := Builder.fresh_preserve_bounded (st := builder)
-          (value := value) (vars := vars) hBounded
-        simpa [hFresh] using this
+        have hFreshBounded :=
+          Builder.fresh_preserve_bounded
+            (st := builder) (value := value) (vars := vars) hBounded
+        exact hBuilder_eq ▸ hFreshBounded
       have hAssign₁ : builder₁.assign v = value := by
-        have := Builder.fresh_assign_self (st := builder) (value := value)
-        simpa [hFresh] using this
+        have hAssign :=
+          Builder.fresh_assign_self (st := builder) (value := value)
+        have hAssign' := hBuilder_eq ▸ hAssign
+        exact hvFresh_eq ▸ hAssign'
       let builder₂ := Builder.addConstraint builder₁ (eqConstConstraint v value)
       have hMatches₂ : Matches builder₂ stack vars := by
-        simpa [builder₂] using addConstraint_preserve_matches hMatches₁ _
+        change
+          Matches
+            (Builder.addConstraint builder₁ (eqConstConstraint v value))
+            stack vars
+        exact addConstraint_preserve_matches hMatches₁ _
       have hBounded₂ : Bounded builder₂ vars := by
-        simpa [builder₂] using addConstraint_preserve_bounded hBounded₁ _
+        change
+          Bounded
+            (Builder.addConstraint builder₁ (eqConstConstraint v value))
+            vars
+        exact addConstraint_preserve_bounded hBounded₁ _
+      have hAssign₂ : builder₂.assign v = value := by
+        have assign_eq :=
+          Builder.addConstraint_assign (st := builder₁)
+            (c := eqConstConstraint v value)
+        exact assign_eq.symm ▸ hAssign₁
       let builder₃ := recordBoolean builder₂ v
       have hMatches₃ : Matches builder₃ stack vars := by
-        simpa [builder₃] using
-          recordBoolean_preserve_matches (builder := builder₂)
+        change Matches (recordBoolean builder₂ v) stack vars
+        exact
+          recordBoolean_preserve_matches
+            (builder := builder₂)
             (stack := stack) (vars := vars) (v := v) hMatches₂
       have hBounded₃ : Bounded builder₃ vars := by
-        simpa [builder₃] using
-          recordBoolean_preserve_bounded (builder := builder₂)
-            (vars := vars) (v := v) hBounded₂
-      have hHead : boolToRat b = builder₃.assign v := by
-        subst builder₃
-        simp [builder₂, recordBoolean, hAssign₁, hvalue]
-      have hNext₃ : builder₃.nextVar = builder₁.nextVar := by
-        simp [builder₃, builder₂, Builder.recordBoolean_nextVar, Builder.addConstraint_nextVar]
-      have hMatches_new : Matches builder₃ (b :: stack) (v :: vars) :=
+        change Bounded (recordBoolean builder₂ v) vars
+        exact
+          recordBoolean_preserve_bounded
+            (builder := builder₂) (vars := vars) (v := v) hBounded₂
+      have hAssign₂_bool : builder₂.assign v = boolToRat b := by
+        exact hvalue ▸ hAssign₂
+      have hAssign₃ : builder₃.assign v = boolToRat b := by
+        have : builder₃.assign v = builder₂.assign v := by
+          simp [builder₃, builder₂, recordBoolean]
+        exact this.trans hAssign₂_bool
+      have hHead : boolToRat b = builder₃.assign v :=
+        hAssign₃.symm
+      have hNext₂ :
+          builder₂.nextVar = builder₁.nextVar :=
+        Builder.addConstraint_nextVar _ _
+      have hNext₃ :
+          builder₃.nextVar = builder₁.nextVar := by
+        simp [builder₃, builder₂, Builder.recordBoolean_nextVar,
+          Builder.addConstraint_nextVar]
+      have hMatches_new :
+          Matches builder₃ (b :: stack) (v :: vars) :=
         List.Forall₂.cons hHead hMatches₃
-      have hBounded_new : Bounded builder₃ (v :: vars) := by
+      have hBounded_new :
+          Bounded builder₃ (v :: vars) := by
         intro w hw
         rcases List.mem_cons.mp hw with hw | hw
         · subst hw
-          have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
-          simpa [hv_idx, hNext₁, hNext₃] using this
+          have hv_lt_builder₂ :
+              builder.nextVar < builder₁.nextVar :=
+            hNext₁ ▸ Nat.lt_succ_self _
+          have hv_lt_builder₃ :
+              builder.nextVar < builder₃.nextVar :=
+            hNext₃ ▸ hv_lt_builder₂
+          exact hv_idx.symm ▸ hv_lt_builder₃
         · exact hBounded₃ w hw
-      have hMatches_new' : Matches builder₃ (b :: stack) (builder.nextVar :: vars) := by
-        have h := hMatches_new
-        simp [hv_idx] at h
-        exact h
-      have hBounded_new' : Bounded builder₃ (builder.nextVar :: vars) := by
-        have h := hBounded_new
-        simp [hv_idx] at h
-        exact h
-      have hLen_new : (b :: stack).length = (builder.nextVar :: vars).length := by
+      have hMatches_new' :
+          Matches builder₃ (b :: stack) (builder.nextVar :: vars) :=
+        hv_idx ▸ hMatches_new
+      have hBounded_new' :
+          Bounded builder₃ (builder.nextVar :: vars) :=
+        hv_idx ▸ hBounded_new
+      have hLen_new :
+          (b :: stack).length = (builder.nextVar :: vars).length := by
         simp [List.length_cons, hLen]
-      have hGoal : Invariant builder₃ (b :: stack) (builder.nextVar :: vars) :=
+      have hGoal :
+          Invariant builder₃ (b :: stack) (builder.nextVar :: vars) :=
         And.intro hMatches_new' (And.intro hBounded_new' hLen_new)
-      have hResult : pushConst builder value = (builder₃, v) := by
-        simp [pushConst, hFresh, builder₂, builder₃]
-      simpa [Invariant, hResult] using hGoal
+      exact hGoal
 
 lemma pushConst_strong {builder : Builder} {stack : Stack}
     {vars : List Var} {value : ℚ} {b : Bool}
