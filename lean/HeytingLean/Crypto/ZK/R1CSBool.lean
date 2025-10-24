@@ -783,7 +783,7 @@ lemma pushConst_invariant {builder : Builder} {stack : Stack}
         simp [hv_idx] at h
         exact h
       have hLen_new : (b :: stack).length = (builder.nextVar :: vars).length := by
-        simp [List.length_cons, hv_idx, hLen]
+        simp [List.length_cons, hLen]
       have hGoal : Invariant builder₃ (b :: stack) (builder.nextVar :: vars) :=
         And.intro hMatches_new' (And.intro hBounded_new' hLen_new)
       have hResult : pushConst builder value = (builder₃, v) := by
