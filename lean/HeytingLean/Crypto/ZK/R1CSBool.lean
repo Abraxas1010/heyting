@@ -1084,36 +1084,65 @@ lemma applyAnd_invariant {builder : Builder} {x y : Bool}
     Bounded.tail hBoundedTail
   have hLenRest : before.length = vars.length :=
     matches_length_eq hMatchesRest
+  have hFresh_builder :
+      (Builder.fresh builder (boolToRat z)).1 = builder1 := by
+    simp [builder1, fres]
+  have hFresh_v :
+      (Builder.fresh builder (boolToRat z)).2 = vz := by
+    simp [vz, fres]
   have hv_idx : vz = builder.nextVar := by
     simp [vz, fres]
   have hNext₁ : builder1.nextVar = builder.nextVar + 1 := by
     simp [builder1, fres]
   have hMatches1 : Matches builder1 (x :: y :: before) (vx :: vy :: vars) := by
-    have := matches_fresh_preserve (builder := builder) (value := boolToRat z)
-      (stack := x :: y :: before) (vars := vx :: vy :: vars) hMatches hBounded
-    simpa [builder1, fres] using this
+    have hFreshMatches :=
+      matches_fresh_preserve (builder := builder) (value := boolToRat z)
+        (stack := x :: y :: before) (vars := vx :: vy :: vars) hMatches hBounded
+    exact hFresh_builder ▸ hFreshMatches
   have hBounded1 : Bounded builder1 (vx :: vy :: vars) := by
-    have := Builder.fresh_preserve_bounded (st := builder)
-      (value := boolToRat z) (vars := vx :: vy :: vars) hBounded
-    simpa [builder1, fres] using this
+    have hFreshBounded :=
+      Builder.fresh_preserve_bounded (st := builder)
+        (value := boolToRat z) (vars := vx :: vy :: vars) hBounded
+    exact hFresh_builder ▸ hFreshBounded
   have hAssign1 : builder1.assign vz = boolToRat z := by
-    have := Builder.fresh_assign_self (st := builder) (value := boolToRat z)
-    simpa [builder1, vz, fres] using this
+    have hFreshAssign :=
+      Builder.fresh_assign_self (st := builder) (value := boolToRat z)
+    have hAssignBuilder :
+        builder1.assign ((Builder.fresh builder (boolToRat z)).2) = boolToRat z :=
+      hFresh_builder ▸ hFreshAssign
+    exact hFresh_v ▸ hAssignBuilder
   set builder2 := Builder.addConstraint builder1
     { A := LinComb.single vx 1
       B := LinComb.single vy 1
       C := LinComb.single vz 1 }
   have hMatches2 : Matches builder2 (x :: y :: before) (vx :: vy :: vars) := by
-    simpa [builder2] using addConstraint_preserve_matches hMatches1 _
+    change
+      Matches
+        (Builder.addConstraint builder1
+          { A := LinComb.single vx 1
+            B := LinComb.single vy 1
+            C := LinComb.single vz 1 })
+        (x :: y :: before) (vx :: vy :: vars)
+    exact addConstraint_preserve_matches hMatches1 _
   have hBounded2 : Bounded builder2 (vx :: vy :: vars) := by
-    simpa [builder2] using addConstraint_preserve_bounded hBounded1 _
+    change
+      Bounded
+        (Builder.addConstraint builder1
+          { A := LinComb.single vx 1
+            B := LinComb.single vy 1
+            C := LinComb.single vz 1 })
+        (vx :: vy :: vars)
+    exact addConstraint_preserve_bounded hBounded1 _
   set builder3 := recordBoolean builder2 vz
   have hMatches3 : Matches builder3 (x :: y :: before) (vx :: vy :: vars) := by
-    simpa [builder3] using
+    change
+      Matches (recordBoolean builder2 vz) (x :: y :: before) (vx :: vy :: vars)
+    exact
       recordBoolean_preserve_matches (builder := builder2)
         (stack := x :: y :: before) (vars := vx :: vy :: vars) (v := vz) hMatches2
   have hBounded3 : Bounded builder3 (vx :: vy :: vars) := by
-    simpa [builder3] using
+    change Bounded (recordBoolean builder2 vz) (vx :: vy :: vars)
+    exact
       recordBoolean_preserve_bounded (builder := builder2)
         (vars := vx :: vy :: vars) (v := vz) hBounded2
   have hMatchesRest3 : Matches builder3 before vars :=
@@ -1123,8 +1152,8 @@ lemma applyAnd_invariant {builder : Builder} {x y : Bool}
   have hAssign3 : builder3.assign vz = boolToRat z := by
     subst builder3
     simp [builder2, recordBoolean, hAssign1]
-  have hHead : boolToRat z = builder3.assign vz := by
-    simpa using hAssign3.symm
+  have hHead : boolToRat z = builder3.assign vz :=
+    hAssign3.symm
   have hMatches_new : Matches builder3 (z :: before) (vz :: vars) :=
     List.Forall₂.cons hHead hMatchesRest3
   have hNext₂ : builder2.nextVar = builder1.nextVar := by
@@ -1135,8 +1164,13 @@ lemma applyAnd_invariant {builder : Builder} {x y : Bool}
     intro w hw
     rcases List.mem_cons.mp hw with hw | hw
     · subst hw
-      have : builder.nextVar < builder.nextVar + 1 := Nat.lt_succ_self _
-      simpa [hv_idx, hNext₁, hNext₃] using this
+      have hv_lt_builder1 :
+          builder.nextVar < builder1.nextVar :=
+        hNext₁ ▸ Nat.lt_succ_self _
+      have hv_lt_builder3 :
+          builder.nextVar < builder3.nextVar :=
+        hNext₃ ▸ hv_lt_builder1
+      exact hv_idx.symm ▸ hv_lt_builder3
     · exact hBoundedRest3 w hw
   have hLen_new : (z :: before).length = (vz :: vars).length := by
     simp [List.length_cons, hLenRest]
