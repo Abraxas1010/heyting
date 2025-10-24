@@ -1217,42 +1217,64 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
     simp [builder1, fres]
   have hvx_lt : vx < builder1.nextVar := by
     have hx := Nat.lt_succ_of_lt hvx_lt_base
-    simpa [builder1, fres, hNext₁] using hx
+    exact hNext₁ ▸ hx
   have hvy_lt : vy < builder1.nextVar := by
     have hy := Nat.lt_succ_of_lt hvy_lt_base
-    simpa [builder1, fres, hNext₁] using hy
+    exact hNext₁ ▸ hy
   have hvz_lt : vz < builder1.nextVar := by
     have := Nat.lt_succ_self builder.nextVar
-    simpa [builder1, vz, fres, hNext₁, hvz_idx] using this
+    have hz := this
+    have hz' : builder.nextVar < builder1.nextVar := hNext₁ ▸ hz
+    exact hvz_idx ▸ hz'
+  have hFresh_builder :
+      (Builder.fresh builder (boolToRat z)).1 = builder1 := by
+    simp [builder1, fres]
+  have hFresh_v :
+      (Builder.fresh builder (boolToRat z)).2 = vz := by
+    simp [vz, fres]
 
   have hOK1 : SupportOK builder1 := by
-    have := Builder.fresh_preserve_support
-      (st := builder) (value := boolToRat z) hSupport
-    simpa [builder1, fres] using this
+    have hSupportFresh :=
+      Builder.fresh_preserve_support
+        (st := builder) (value := boolToRat z) hSupport
+    exact hFresh_builder ▸ hSupportFresh
   have hSat1 :
       System.satisfied builder1.assign (Builder.system builder1) := by
     intro c hc
-    have hc' :
-        c ∈ (Builder.system (Builder.fresh builder (boolToRat z)).1).constraints := by
-      simpa [Builder.system, builder1, fres] using hc
+    have hSystem_eq :
+        Builder.system builder1 =
+          Builder.system (Builder.fresh builder (boolToRat z)).1 := by
+      simp [builder1, fres]
+    have hcFresh :
+        c ∈ (Builder.system (Builder.fresh builder (boolToRat z)).1).constraints :=
+      hSystem_eq ▸ hc
     have hSatFresh :
         System.satisfied (Builder.fresh builder (boolToRat z)).1.assign
           (Builder.system (Builder.fresh builder (boolToRat z)).1) :=
       Builder.fresh_preserve_satisfied_mem
         (st := builder) (value := boolToRat z) hSupport hSat
-    have := hSatFresh (c := c) hc'
-    simpa [Builder.system, builder1, fres] using this
+    have hSatFresh_c := hSatFresh (c := c) hcFresh
+    have hAssign_eq :
+        builder1.assign =
+          (Builder.fresh builder (boolToRat z)).1.assign := by
+      simp [builder1, fres]
+    have hSatFresh_c' :
+        Constraint.satisfied builder1.assign c :=
+      hAssign_eq ▸ hSatFresh_c
+    exact hSatFresh_c'
 
   have hxFreshEq :
       builder1.assign vx = builder.assign vx := by
-    have := Builder.fresh_assign_lt
-      (st := builder) (value := boolToRat z) (w := vx) (hw := hvx_lt_base)
-    simpa [builder1, fres] using this
+    have hFreshAssign :=
+      Builder.fresh_assign_lt
+        (st := builder) (value := boolToRat z) (w := vx) (hw := hvx_lt_base)
+    exact hFresh_builder ▸ hFreshAssign
   have hyFreshEq :
       builder1.assign vy = builder.assign vy := by
-    have := Builder.fresh_assign_lt
-      (st := builder) (value := boolToRat z) (w := vy) (hw := hvy_lt_base)
-    simpa [builder1, fres] using this
+    have hFreshAssign :=
+      Builder.fresh_assign_lt
+        (st := builder) (value := boolToRat z) (w := vy) (hw := hvy_lt_base)
+    exact hFresh_builder ▸ hFreshAssign
 
   have hvx_assign :
       builder1.assign vx = boolToRat x := by
@@ -1260,7 +1282,7 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
       (stack := y :: before) (vars := vy :: vars) hMatches
     -- hx : boolToRat x = builder.assign vx
     have hx' : builder.assign vx = boolToRat x := hx.symm
-    simpa [hxFreshEq] using hx'
+    exact hxFreshEq ▸ hx'
   have hMatches_tail :
       Matches builder (y :: before) (vy :: vars) :=
     matches_cons_tail hMatches
@@ -1269,20 +1291,26 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
     have hy := matches_cons_head
       (builder := builder) (stack := before) (vars := vars) hMatches_tail
     have hy' : builder.assign vy = boolToRat y := hy.symm
-    simpa [hyFreshEq] using hy'
+    exact hyFreshEq ▸ hy'
   have hvz_assign :
       builder1.assign vz = boolToRat z := by
-    have := Builder.fresh_assign_self (st := builder)
-      (value := boolToRat z)
-    simpa [builder1, vz, fres] using this
+    have hFreshAssign :=
+      Builder.fresh_assign_self (st := builder) (value := boolToRat z)
+    have hAssignBuilder :
+        builder1.assign ((Builder.fresh builder (boolToRat z)).2) = boolToRat z :=
+      hFresh_builder ▸ hFreshAssign
+    exact hFresh_v ▸ hAssignBuilder
 
   have hMulSupport :
       Constraint.support mulConstraint ⊆ Finset.range builder1.nextVar :=
     mulConstraint_support_subset hvx_lt hvy_lt hvz_lt
   have hOK2 : SupportOK builder2 := by
-    have := Builder.addConstraint_preserve_support
+    have hSupport2 :=
+      Builder.addConstraint_preserve_support
       (st := builder1) (c := mulConstraint) hOK1 hMulSupport
-    simpa [builder2] using this
+    have builder2_eq :
+        builder2 = Builder.addConstraint builder1 mulConstraint := rfl
+    exact builder2_eq.symm ▸ hSupport2
 
   have hEq :
       builder1.assign vx * builder1.assign vy =
@@ -1291,11 +1319,11 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
       builder1.assign vx * builder1.assign vy
           = boolToRat x * boolToRat y := by
             simp [hvx_assign, hvy_assign]
-      _ = boolToRat (x && y) := by
-            simpa using (ZK.boolToRat_and x y).symm
+      _ = boolToRat (x && y) := (ZK.boolToRat_and x y).symm
       _ = boolToRat (y && x) := by
-            simpa [Bool.and_comm]
-      _ = builder1.assign vz := by simpa [hvz_assign, z]
+            cases x <;> cases y <;> simp
+      _ = boolToRat z := rfl
+      _ = builder1.assign vz := hvz_assign.symm
 
   have hHeadMul :
       Constraint.satisfied builder1.assign mulConstraint :=
@@ -1304,33 +1332,44 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
   have hSat2 :
       System.satisfied builder2.assign (Builder.system builder2) := by
     intro c hc
+    have builder2_system_eq :
+        Builder.system builder2 =
+          Builder.system (Builder.addConstraint builder1 mulConstraint) := by
+      rfl
     have hc' :
         c ∈ (Builder.system
           (Builder.addConstraint builder1 mulConstraint)).constraints := by
-      simpa [Builder.system, builder2] using hc
+      exact builder2_system_eq ▸ hc
     have hSatAdd :
         System.satisfied
           (Builder.addConstraint builder1 mulConstraint).assign
           (Builder.system (Builder.addConstraint builder1 mulConstraint)) :=
       Builder.addConstraint_preserve_satisfied_mem
         (st := builder1) (c := mulConstraint) hSat1 hHeadMul
-    have := hSatAdd (c := c) hc'
-    simpa [Builder.system, builder2] using this
+    have hSatAdd_c := hSatAdd (c := c) hc'
+    have hAssign_eq :
+        builder2.assign =
+          (Builder.addConstraint builder1 mulConstraint).assign := by
+      rfl
+    have hSatAdd_c' :
+        Constraint.satisfied builder2.assign c :=
+      hAssign_eq ▸ hSatAdd_c
+    exact hSatAdd_c'
 
   have hvxB1 :
       builder1.assign vx = 0 ∨ builder1.assign vx = 1 := by
     cases hvxB with
     | inl h0 =>
-        exact Or.inl (by simpa [hxFreshEq.symm] using h0)
+        exact Or.inl (hxFreshEq ▸ h0)
     | inr h1 =>
-        exact Or.inr (by simpa [hxFreshEq.symm] using h1)
+        exact Or.inr (hxFreshEq ▸ h1)
   have hvyB1 :
       builder1.assign vy = 0 ∨ builder1.assign vy = 1 := by
     cases hvyB with
     | inl h0 =>
-        exact Or.inl (by simpa [hyFreshEq.symm] using h0)
+        exact Or.inl (hyFreshEq ▸ h0)
     | inr h1 =>
-        exact Or.inr (by simpa [hyFreshEq.symm] using h1)
+        exact Or.inr (hyFreshEq ▸ h1)
 
   have hvzBoolProd :
       builder1.assign vx * builder1.assign vy = 0 ∨
@@ -1340,16 +1379,26 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
       builder1.assign vz = 0 ∨ builder1.assign vz = 1 := by
     cases hvzBoolProd with
     | inl h0 =>
-        exact Or.inl (by simpa [hEq] using h0)
+        exact Or.inl (hEq ▸ h0)
     | inr h1 =>
-        exact Or.inr (by simpa [hEq] using h1)
+        exact Or.inr (hEq ▸ h1)
   have hvzBool2 :
       builder2.assign vz = 0 ∨ builder2.assign vz = 1 := by
     cases hvzBool1 with
     | inl h0 =>
-        exact Or.inl (by simpa [builder2, Builder.addConstraint_assign] using h0)
+        have assign_eq :=
+          congrArg (fun f => f vz)
+            (Builder.addConstraint_assign (st := builder1) (c := mulConstraint)).symm
+        have assign_eq' : builder1.assign vz = builder2.assign vz := by
+          simpa [builder2] using assign_eq
+        exact Or.inl (assign_eq' ▸ h0)
     | inr h1 =>
-        exact Or.inr (by simpa [builder2, Builder.addConstraint_assign] using h1)
+        have assign_eq :=
+          congrArg (fun f => f vz)
+            (Builder.addConstraint_assign (st := builder1) (c := mulConstraint)).symm
+        have assign_eq' : builder1.assign vz = builder2.assign vz := by
+          simpa [builder2] using assign_eq
+        exact Or.inr (assign_eq' ▸ h1)
 
   have hvzBoolEq :
       builder2.assign vz * (builder2.assign vz - 1) = 0 := by
@@ -1362,7 +1411,11 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
     (boolConstraint_satisfied (assign := builder2.assign) (v := vz)).2 hvzBoolEq
 
   have hvz_lt_next2 : vz < builder2.nextVar := by
-    simpa [builder2, Builder.addConstraint_nextVar] using hvz_lt
+    have next_eq :=
+      (Builder.addConstraint_nextVar (st := builder1) (c := mulConstraint)).symm
+    have next_eq' : builder1.nextVar = builder2.nextVar := by
+      simpa [builder2] using next_eq
+    exact next_eq' ▸ hvz_lt
 
   have hOK3 : SupportOK builder3 :=
     recordBoolean_preserve_support
@@ -1372,17 +1425,19 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
     intro c hc
     have hc' :
         c = boolConstraint vz ∨ c ∈ builder2.constraints := by
-      simpa [builder3, Builder.system_recordBoolean] using hc
+      have hc'' := hc
+      simp [builder3, Builder.system_recordBoolean] at hc''
+      exact hc''
     have hAssign :
-        (recordBoolean builder2 vz).assign = builder2.assign := by
+        builder3.assign = builder2.assign := by
       simp [builder3]
     cases hc' with
     | inl hEq =>
         subst hEq
-        simpa [builder3] using hvzConstraint
+        exact hAssign ▸ hvzConstraint
     | inr hMem =>
-        have := hSat2 hMem
-        simpa [builder3, hAssign] using this
+        have hSat := hSat2 hMem
+        exact hAssign ▸ hSat
 
   have hInvariantInput :
       Invariant builder (x :: y :: before) (vx :: vy :: vars) :=
@@ -1390,11 +1445,20 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
 
   have hInvariant :
       Invariant builder3 (z :: before) (vz :: vars) := by
-    have := applyAnd_invariant
-      (builder := builder) (x := x) (y := y) (before := before)
-      (vx := vx) (vy := vy) (vars := vars) (hInv := hInvariantInput)
-    simpa [Invariant, z, fres, builder1, builder2, builder3, mulConstraint]
-      using this
+    change
+      Invariant
+        (recordBoolean
+          (Builder.addConstraint (Builder.fresh builder (boolToRat (y && x))).1
+            { A := LinComb.single vx 1
+              B := LinComb.single vy 1
+              C := LinComb.single (Builder.fresh builder (boolToRat (y && x))).2 1 })
+          (Builder.fresh builder (boolToRat (y && x))).2)
+        ((y && x) :: before)
+        ((Builder.fresh builder (boolToRat (y && x))).2 :: vars)
+    exact
+      (applyAnd_invariant
+        (builder := builder) (x := x) (y := y) (before := before)
+        (vx := vx) (vy := vy) (vars := vars) (hInv := hInvariantInput))
 
   exact ⟨hInvariant.1, hInvariant.2.1, hOK3, hSat3⟩
 
