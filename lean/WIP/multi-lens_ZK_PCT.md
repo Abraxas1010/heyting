@@ -41,14 +41,20 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
   • `applyImp_strong` threads the strengthened invariant through the implication opcode (`Crypto/ZK/R1CSBool.lean`:1653).  
   • `compileStep_strong` and `compileSteps_strong` propagate the strong invariant across the builder pipeline using the canonical `traceFrom`/`exec` pair (`Crypto/ZK/R1CSBool.lean`:2145, 2442).  
   • `lake build -- -Dno_sorry -DwarningAsError=true` passes (warning set unchanged).  
-  _Next steps:_  
-  1. Hook `compileSteps_strong` into the top-level compile proof so the canonical system inherits the strong invariant.  
-  2. Sweep the lingering `simp`/`simpa` linter warnings (and drop the unused `linhead_imp_support` variable) to future-proof `-DwarningAsError`.  
-  3. Leverage the strengthened invariant to finish the Boolean R1CS soundness/completeness proofs.  
+  _Next steps (active work queue):_  
+  1. Refactor the `applyAnd_strong` and `applyOr_strong` proofs to eliminate the remaining `simp`/`simpa` calls (replace them with explicit `rw`/`simp … at` steps while reusing the cached equalities).  
+  2. Update `compileStep_strong`’s base cases (`pushTop`, `pushBot`, `pushVar`) to follow the `simp at …; subst` pattern recommended by the linter, then re-run the build to confirm the warning set shrinks.  
+  3. Once the linter is clean, leverage the strengthened invariant to finish the Boolean R1CS soundness/completeness proofs.  
   4. Expose the completed proofs through the CLI and R1CS exporters.
 - ⏳ Phase E3 – CLI executables and regression tests (not started).
 
-Current focus: integrate the strong compile pipeline into the top-level proof, clear the warning backlog, and finish the Boolean R1CS soundness/completeness chain before wiring the CLI.
+**Next Session Jumpstart**
+
+1. `lean/HeytingLean/Crypto/ZK/R1CSBool.lean`: rewrite `applyAnd_strong` and `applyOr_strong` so the cached fresh/addConstraint equalities are used via `rw`/`simp at`, not `simpa`.  
+2. In the same file, adjust the `pushTop`/`pushBot`/`pushVar` branches of `compileStep_strong` to use the `simp … at hStep; subst hStep` style and address the zero-length contradictions with `simp` on the length hypotheses.  
+3. Re-run `lake build -- -Dno_sorry -DwarningAsError=true`; note any remaining linter warnings and continue iterating until the build is clean.
+
+Current focus: finish the warning clean-up, then push through the Boolean R1CS soundness/completeness proofs before wiring the CLI exporters.
 
 ---
 
