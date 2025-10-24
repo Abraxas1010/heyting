@@ -924,7 +924,7 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           Builder.addConstraint_nextVar]
       have hHead :
           boolToRat b = builder₃.assign builder.nextVar := by
-        simpa [hv_idx] using hAssign₃.symm
+        exact (hv_idx ▸ hAssign₃).symm
       have hMatches_final :
           Matches builder₃ (b :: stack) (builder.nextVar :: vars) :=
         List.Forall₂.cons hHead hMatches₃
@@ -934,8 +934,8 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
         rcases List.mem_cons.mp hw with hw | hw
         · subst hw
           have hv_lt_builder₃ : v < builder₃.nextVar := by
-            simpa [hNext₃] using hv_lt_next
-          simpa [hv_idx] using hv_lt_builder₃
+            exact hNext₃.symm ▸ hv_lt_next
+          exact hv_idx ▸ hv_lt_builder₃
         · exact hBounded₃ w hw
       have hSupport_new :
           SupportOK builder₃ := hSupport₃
@@ -955,7 +955,16 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
               (Builder.addConstraint builder₁ (eqConstConstraint builder.nextVar value))
               builder.nextVar)
             (b :: stack) (builder.nextVar :: vars) := by
-        simpa [builder₃, builder₂, hv_idx] using hStrong_new
+        have hBuilder_eq :
+            recordBoolean
+                (Builder.addConstraint
+                  builder₁
+                  (eqConstConstraint builder.nextVar value))
+                builder.nextVar =
+              builder₃ := by
+          subst hv_idx
+          rfl
+        exact hBuilder_eq ▸ hStrong_new
       exact this
 
 lemma applyAnd_invariant {builder : Builder} {x y : Bool}
