@@ -924,7 +924,10 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           recordBoolean_preserve_bounded
             (builder := builder₂) (v := v) hBounded₂
       have hNext₂ : builder₂.nextVar = builder₁.nextVar := by
-        simp [builder₂, Builder.addConstraint_nextVar]
+        change
+          (Builder.addConstraint builder₁ (eqConstConstraint v value)).nextVar =
+            builder₁.nextVar
+        exact Builder.addConstraint_nextVar _ _
       have hv_lt_next₂ : v < builder₂.nextVar := by
         exact hNext₂.symm ▸ hv_lt_next
       have hSupport₃ :
@@ -937,7 +940,7 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
           change
             (Builder.addConstraint builder₁ (eqConstConstraint v value)).assign =
               builder₁.assign
-          simp [builder₂]
+          exact Builder.addConstraint_assign _ _
         exact assign_eq.symm ▸ hAssign₁
       have hAssign₂_bool : builder₂.assign v = boolToRat b := by
         exact hvalue ▸ hAssign₂
