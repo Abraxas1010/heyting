@@ -911,16 +911,22 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
         exact hSatAdd (c := c) hc'
       let builder₃ := recordBoolean builder₂ v
       have hMatches₃ : Matches builder₃ stack vars := by
-        simpa [builder₃] using
+        change
+          Matches (recordBoolean builder₂ v) stack vars
+        exact
           recordBoolean_preserve_matches
             (builder := builder₂)
             (stack := stack) (vars := vars) (v := v) hMatches₂
       have hBounded₃ : Bounded builder₃ vars := by
-        simpa [builder₃] using
+        change
+          Bounded (recordBoolean builder₂ v) vars
+        exact
           recordBoolean_preserve_bounded
             (builder := builder₂) (v := v) hBounded₂
+      have hNext₂ : builder₂.nextVar = builder₁.nextVar := by
+        simp [builder₂, Builder.addConstraint_nextVar]
       have hv_lt_next₂ : v < builder₂.nextVar := by
-        simpa [builder₂, Builder.addConstraint_nextVar] using hv_lt_next
+        exact hNext₂.symm ▸ hv_lt_next
       have hSupport₃ :
           SupportOK builder₃ :=
         recordBoolean_preserve_support
@@ -950,8 +956,6 @@ lemma pushConst_strong {builder : Builder} {stack : Stack}
         have : builder₃.assign v = builder₂.assign v := by
           simp [builder₃, builder₂, recordBoolean]
         exact this.trans hAssign₂_bool
-      have hNext₂ : builder₂.nextVar = builder₁.nextVar := by
-        simp [builder₂]
       have hNext₃ : builder₃.nextVar = builder₁.nextVar := by
         simp [builder₃, builder₂, Builder.recordBoolean_nextVar,
           Builder.addConstraint_nextVar]
