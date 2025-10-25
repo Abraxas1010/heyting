@@ -23,3 +23,24 @@ jobs:
                                 lean/Examples/PCT/env_2vars.json \
                                 /tmp/pct_out/r1cs.json \
                                 /tmp/pct_out/witness.json
+      - name: PCT positive – reverse constraints
+        run: |
+          lake exe pct_reverse_r1cs /tmp/pct_out/r1cs.json /tmp/pct_out/r1cs_rev.json
+          lake exe pct_verify lean/Examples/PCT/form_and_imp.json \
+                                 lean/Examples/PCT/env_2vars.json \
+                                 /tmp/pct_out/r1cs_rev.json \
+                                 /tmp/pct_out/witness.json
+      - name: PCT negative – mutated witness should fail
+        run: |
+          lake exe pct_mutate /tmp/pct_out/meta.json /tmp/pct_out/witness.json /tmp/pct_out/witness_bad.json
+          set +e
+          lake exe pct_verify lean/Examples/PCT/form_and_imp.json \
+                                 lean/Examples/PCT/env_2vars.json \
+                                 /tmp/pct_out/r1cs.json \
+                                 /tmp/pct_out/witness_bad.json
+          rc=$?
+          if [ $rc -eq 0 ]; then
+            echo "unexpected success on mutated witness"; exit 1
+          else
+            echo "expected failure on mutated witness"; exit 0
+          fi

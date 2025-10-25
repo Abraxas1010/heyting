@@ -24,3 +24,12 @@ lean_exe «pct_prove» where
 
 lean_exe «pct_verify» where
   root := `HeytingLean.Crypto.ZK.CLI.PCTVerify
+
+lean_exe «pct_smoke» where
+  root := `HeytingLean.Crypto.ZK.CLI.PCTSmoke
+
+lean_exe «pct_mutate» where
+  root := `HeytingLean.Crypto.ZK.CLI.PCTMutate
+
+lean_exe «pct_reverse_r1cs» where
+  root := `HeytingLean.Crypto.ZK.CLI.PCTReverseR1CS

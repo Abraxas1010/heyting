@@ -39,22 +39,20 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
     `compile_satisfied`, `compile_satisfiable`, `compile_output_eval`.  
   • Build: `lake build -- -Dno_sorry -DwarningAsError=true` green on master.  
   _Polish_: optional lint tidy in exporter helpers.
-- 🟡 Phase E3 – CLI executables and regression tests.  
+- ✅ Phase E3 – CLI executables and regression tests.  
   _Current status:_  
   • CLI tools wired in `lakefile.lean`:  
     - `pct_r1cs` → `HeytingLean.Crypto.ZK.CLI.PCTR1CS`  
     - `pct_prove` → `HeytingLean.Crypto.ZK.CLI.PCTProve`  
     - `pct_verify` → `HeytingLean.Crypto.ZK.CLI.PCTVerify`  
   • JSON export/parse in `Crypto/ZK/Export.lean` (encoders + Boolean-safe decoders).  
-  _Next steps:_ add golden samples + CI smoke tests; document JSON schema.
+  • Golden examples in `lean/Examples/PCT/`; schema doc in `lean/Docs/ZK_JSON_Schema.md`.  
+  • CI runs smoke test: build, then `pct_prove` + `pct_verify` (`.github/workflows/lean_action_ci.yml`).
 
-**Next Session Jumpstart**
+**Maintenance Notes**
 
-1. Re-run `lake build -- -Dno_sorry -DwarningAsError=true` and check warnings around `R1CSBool.apply*` and `compileStep_strong`.
-2. If any `simpa`/over-broad `simp` remain flagged, replace them with targeted `rw` or `simp at` using the cached equalities already threaded through the proofs.
-3. Proceed to Boolean R1CS soundness/completeness and wire up CLI exporters.
-
-Current focus: finish the warning clean-up, then push through the Boolean R1CS soundness/completeness proofs before wiring the CLI exporters.
+• Export helpers are Boolean‑first; if a non‑Boolean backend is added later, extend `ratToJson`/decoders accordingly.  
+• CLI metas include a default BN254 modulus for downstream SNARK tools; change in `PCTProve.lean` if needed.
 
 ---
 
@@ -92,16 +90,16 @@ Deliverable status: ✅ `compile_correct` ready for downstream lenses.
 
 Deliverable status: ✅ proof-carrying payload in Lean; CLI generation outstanding.
 
-## Phase E – Zero-Knowledge Lowering (Boolean Lens) – In Progress
+## Phase E – Zero-Knowledge Lowering (Boolean Lens) – Complete
 
 - ✅ **E1 – Boolean VM specialisation (`HeytingLean/Crypto/BoolLens.lean`).**
   - Standalone Boolean evaluator (`eval`) and stack VM mirroring the generic pipeline.
   - Canonical `Trace`/`Value` helpers with lemma `canonicalValue_eq_eval`.
-- 🟡 **E2 – R1CS backend.**
-- ✅ Boolean-to-field lemmas (`HeytingLean/Crypto/ZK/BoolArith`), minimal R1CS primitives (`HeytingLean/Crypto/ZK/R1CS`), and an initial compiler plus stack invariants (`HeytingLean/Crypto/ZK/R1CSBool` – `pushConst` case proven).
-- ⏳ Extend invariants to `applyAnd`/`applyOr`/`applyImp`, then prove the generated R1CS instance is sound/complete w.r.t. `BoolLens`, surfacing the witness/output to the CLI layer.
-- ⏳ **E3 – Exporters.**
-  - TODO: `Exec/pct_r1cs.lean`, JSON wiring, optional SNARK hand-off.
+- ✅ **E2 – R1CS backend.**
+  - Boolean-to-field lemmas (`BoolArith`), R1CS primitives (`R1CS`), compiler + strong invariants (`R1CSBool`).
+  - Soundness/completeness in `R1CSSoundness`.  
+- ✅ **E3 – Exporters + CLIs.**
+  - `pct_r1cs`, `pct_prove`, `pct_verify` implemented and exercised in CI.
 
 Deliverable: SNARK-friendly artefacts (pending).
 
@@ -124,9 +122,9 @@ Deliverable: a repeatable test suite invoked by `lake build` and CI.
 1. **Lean build:** `cd lean && lake build -- -Dno_sorry -DwarningAsError=true`. ✅
 2. **Blueprint regeneration:** `cd blueprint && ./tools/package_blueprint.sh`.
 3. **Executables:**
-   * `lake exe pct_prove form.json env.json`. ⏳
-   * `lake exe pct_verify form.json env.json trace.json`. ⏳
-   * `lake exe pct_r1cs form.json env.json`. ⏳
+   * `lake exe pct_prove form.json env.json outdir`. ✅
+   * `lake exe pct_verify form.json env.json r1cs.json witness.json`. ✅
+   * `lake exe pct_r1cs form.json env.json`. ✅
 4. **Optional SNARK test:** feed the generated `r1cs.json` + `assignment.json` into an external prover (outside the Lean repo).
 
 ---
@@ -136,8 +134,8 @@ Deliverable: a repeatable test suite invoked by `lake build` and CI.
 - ✅ All new Lean files compile with zero `sorry` under the existing CI settings.
 - ✅ `transport_sound` holds for every registered lens (tensor, graph, Clifford, Boolean via `BoolLens` semantics).
 - ✅ VM correctness theorem (`compile_correct`) is in `HeytingLean.Crypto`.
-- ⏳ PCT executables round-trip deterministic traces and align with the Lean proof.
-- ⏳ Boolean lowering produces R1CS artefacts whose satisfaction proof is checked in Lean.
+- ✅ PCT executables round-trip deterministic traces and align with the Lean proof.
+- ✅ Boolean lowering produces R1CS artefacts whose satisfaction proof is checked in Lean.
 
 This plan keeps us aligned with the current codebase, leverages the bridge suite that already runs inside `lake env`, and yields cryptographically consumable artefacts backed by machine-checked proofs.
 
