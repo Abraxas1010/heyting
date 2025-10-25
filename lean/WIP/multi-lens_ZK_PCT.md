@@ -41,7 +41,8 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
   • `applyImp_strong` threads the strengthened invariant through the implication opcode (`Crypto/ZK/R1CSBool.lean`).  
   • `compileStep_strong` and `compileSteps_strong` propagate the strong invariant across the builder pipeline using the canonical `traceFrom`/`exec` pair (`Crypto/ZK/R1CSBool.lean`).  
   • `applyAnd_strong` and `applyOr_strong` refactored to remove remaining `simpa` usages in favour of explicit `rw`/`simp … at` on cached equalities (`Crypto/ZK/R1CSBool.lean`).  
-  • `lake build -- -Dno_sorry -DwarningAsError=true` previously passed (will re-run to check warning diffs).  
+  • Added `Crypto/ZK/R1CSSoundness.lean` with `compile_satisfied`, `compile_satisfiable`, and `compile_output_eval`.  
+  • `lake build -- -Dno_sorry -DwarningAsError=true` green on master.  
   _Next steps (active work queue):_  
   1. Confirm linter/compile output is cleaner after the `applyAnd_strong`/`applyOr_strong` refactor; if not, tighten a few lingering `simp` calls.  
   2. Verify `compileStep_strong` base-case style; adjust if any remaining generic `simpa` appear after build.  
