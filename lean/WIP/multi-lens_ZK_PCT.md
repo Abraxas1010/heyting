@@ -36,19 +36,25 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
   _Current status:_  
   • Canonical BoolLens trace/value available (`Crypto/BoolLens`).  
   • Support-oriented utilities factored out (`Crypto/ZK/Support`) giving `AgreesOn`, `support`, and `System.satisfied_ext` lemmas (ready for use).  
-  • Boolean builder still uses the original lightweight invariant (`Matches`/`Bounded`); support/satisfaction strengthening staged to land next.  
   • R1CS compiler emits witness/constraints for all opcodes (no global proof yet).  
-  _Next steps:_  
-  1. Introduce a strengthened `StrongInvariant` (tracks `SupportOK`/`Satisfied`) alongside the existing invariant and prove a dedicated `pushConst_strong`.  
-  2. Bridge `StrongInvariant` back to the old invariant (`Invariant_of_strong` helper) so existing lemmas continue to compile while we migrate.  
-  3. Reprove opcode preservation (`applyAnd`/`applyOr`/`applyImp`) under the strong invariant using the new support lemmas.  
-  4. Induct over `compileSteps` with the strong invariant to show the final builder satisfies support/satisfaction obligations.  
-  5. Establish `soundness`: compiled `(system, assignment)` satisfies every constraint and output matches `BoolLens.eval`.  
-  6. Establish `completeness`: canonical trace provides a satisfying assignment.  
-  7. Expose the Boolean witness/output to the CLI layer once proofs land.
+  • `linhead_imp` helpers now mirror the OR-head path so the backend treats implication uniformly (`Crypto/ZK/R1CSBool.lean`:291).  
+  • `applyImp_strong` threads the strengthened invariant through the implication opcode (`Crypto/ZK/R1CSBool.lean`).  
+  • `compileStep_strong` and `compileSteps_strong` propagate the strong invariant across the builder pipeline using the canonical `traceFrom`/`exec` pair (`Crypto/ZK/R1CSBool.lean`).  
+  • `applyAnd_strong` and `applyOr_strong` refactored to remove remaining `simpa` usages in favour of explicit `rw`/`simp … at` on cached equalities (`Crypto/ZK/R1CSBool.lean`).  
+  • `lake build -- -Dno_sorry -DwarningAsError=true` previously passed (will re-run to check warning diffs).  
+  _Next steps (active work queue):_  
+  1. Confirm linter/compile output is cleaner after the `applyAnd_strong`/`applyOr_strong` refactor; if not, tighten a few lingering `simp` calls.  
+  2. Verify `compileStep_strong` base-case style; adjust if any remaining generic `simpa` appear after build.  
+  3. Once clean, finish Boolean R1CS soundness/completeness and surface via CLI exporters.
 - ⏳ Phase E3 – CLI executables and regression tests (not started).
 
-Current focus: carry the Boolean stack invariant through `applyAnd`/`applyOr`/`applyImp`, then lift it to `compileSteps` to obtain full R1CS soundness/completeness before wiring the witness into the CLI.
+**Next Session Jumpstart**
+
+1. Re-run `lake build -- -Dno_sorry -DwarningAsError=true` and check warnings around `R1CSBool.apply*` and `compileStep_strong`.
+2. If any `simpa`/over-broad `simp` remain flagged, replace them with targeted `rw` or `simp at` using the cached equalities already threaded through the proofs.
+3. Proceed to Boolean R1CS soundness/completeness and wire up CLI exporters.
+
+Current focus: finish the warning clean-up, then push through the Boolean R1CS soundness/completeness proofs before wiring the CLI exporters.
 
 ---
 
@@ -305,9 +311,325 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
     0. ✅ Strengthen `Crypto/ZK/Support.lean` with the helper lemmas we actually need: `LinComb.support_single`, `LinComb.support_ofConst`, `LinComb.eval_single`, `LinComb.eval_ofConst`, and the constraint-specific support/satisfaction facts for `boolConstraint`/`eqConstConstraint`.
     1. ✅ Use those helpers to extend `Crypto/ZK/R1CSBool.lean`: add the `SupportOK`/`satisfied` preservation lemmas for `fresh`, `addConstraint`, and `recordBoolean` (relying on `Builder.system_addConstraint`/`Builder.system_recordBoolean` rather than raw list manipulations) and package the subset facts (`range_subset_succ`, `singleton_subset_range`, `AgreesOn.mono`) so `StrongInvariant` proofs can `simp`.
     2. ✅ Reprove `pushConst` against `StrongInvariant`, keeping the booleanity proof isolated in the head lemmas.
-    3. Show the existing invariant is a projection of `StrongInvariant` (`toInvariant` lemma).
-    4. Prove `applyAnd`, `applyOr`, and `applyImp` preserve `StrongInvariant` without reintroducing duplication or `System.satisfied_ext`.
-    5. Induct over `compileSteps` with the strong invariant to obtain full soundness/completeness for the generated R1CS, exposing witness/output to the CLI layer.
+    3. ✅ Show the existing invariant is a projection of `StrongInvariant` (`StrongInvariant.toInvariant` now lives in `R1CSBool.lean` alongside the field accessors).
+    4. ✅ Build out the strong opcode proofs using the current `mulConstraint`/`eqConstraint` API and the helper wrappers we just added (`BuilderPreserve.fresh_preserve_satisfied`, `BuilderPreserve.addConstraint_preserve_satisfied`, `BuilderPreserve.recordBoolean_preserve_satisfied`).
+       - ✅ add the missing local lemmas that `applyAnd_strong` relies on (`mulConstraint_support_subset`, boolean closure facts) so the proof compiles without placeholders;
+       - ✅ refactor `applyAnd_strong` to reuse those helpers and finish by lifting the existing weak lemma;
+       - ✅ replicate the pattern for `applyOr_strong` and `applyImp_strong`;
+       - ✅ keep the helper lemmas adjacent to the opcode proofs so `compileStep_strong` can reuse them.
+    5. ✅ Prove the stepwise and inductive preservation lemmas (`compileStep_strong`, `compileSteps_strong`) so every `compileSteps` call carries the strong invariant along the Boolean program.
+    6. ⏳ Thread the strengthened invariant into the top-level `compile` correctness proof so the canonical builder run produces a `StrongInvariant` (first pass landed `compile_support_subset`; satisfaction lemmas still pending).
+    7. 🔄 Clear the warning backlog (`linhead_imp_support` + lingering `simp`/`simpa`) to keep `-DwarningAsError` future-proof.
+    8. ⏳ Finish the Boolean R1CS soundness/completeness proofs and surface the results to the CLI and exporters.
+    → Merge back into `main` once step 8 is complete, the global theorems surface the witness assignment, and `lake build -- -Dno-sorry -DwarningAsError=true` (CI) stays green.
 - [ ] Add executables (`pct_prove`, `pct_verify`, `pct_r1cs`) and regression demos.
 
 When those 7 are green, you have **verified-by-construction Multi-Lens ZK + PCT** with a **cryptographically consumable** output format—and you can add more lenses or richer arithmetization with confidence later.
+
+
+***NOTES***
+Got it—here’s a concrete, low-risk **staged retry plan** that keeps the build green at every step, fixes the pain points you hit (support unions, `System.satisfied` shape, missing invariants), and gets `applyAnd_strong` refactored before touching `Or/Imp`. I’ve written this like an engineering playbook you can follow right now.
+
+---
+
+# Plan: Refactor in bite-size commits (each compiles)
+
+## Stage 7 — Thread `compileSteps_strong` into the top-level compile proof
+
+**Goal:** derive a `StrongInvariant` guarantee for the canonical builder run so the global Boolean proofs can consume it.
+
+**Status:** 🔄 `compile_strong` now feeds `compile_support_subset` and a direct `compile_system_satisfied`; the `System.satisfied_cons` corollary and merge criteria remain queued behind the lint cleanup.
+
+1. Bridge the existing `compile` correctness proof to `compileSteps_strong`, reusing the canonical `traceFrom`/`exec` pair.
+2. Extend the main theorem to expose both the legacy invariant and the new strong invariant (use `StrongInvariant.toWeak` for back-compat).
+3. Keep the upgrade localized to `Crypto/ZK/R1CSBool.lean`, then restate the downstream lemmas (`compile_strong`, `compile_agrees`, …) in terms of the strong result.
+4. Leave TODO markers where soundness/completeness will plug in so the next stage has clear insertion points.
+
+## Stage 8 — Clear the warning backlog
+
+**Goal:** make `-DwarningAsError=true` green by fixing the lingering `simp`/`simpa` issues and the unused helper parameter.
+
+- Drop the unused variable in `linhead_imp_support` (or replace it with `_`) and ensure `simp` reduces cleanly.
+- Rephrase the remaining `simp`/`simpa` calls flagged by the linter so they no longer require manual rewrites.
+- Re-run `lake build -- -Dno_sorry -DwarningAsError=true`; the compile should be clean with zero warnings.
+
+## Stage 9 — Finish Boolean R1CS soundness/completeness under the strong invariant
+
+**Goal:** use the new compile theorem to close the Boolean R1CS soundness/completeness statements.
+
+1. Strengthen the soundness lemma so the compiled `(system, assignment)` inherits the `StrongInvariant` facts (support + satisfaction).
+2. Instantiate the canonical trace/assignment to prove completeness, relying on `compileSteps_strong` instead of ad-hoc stack arguments.
+3. Package the results so downstream consumers get both the Boolean evaluation equality and the corresponding satisfying assignment.
+
+## Stage 10 — Surface CLI + exporters with the new proofs
+
+**Goal:** expose the verified pipeline to users and automate artifact generation.
+
+- Wire `lake exe pct_prove`, `pct_verify`, and `pct_r1cs` to the strengthened theorems.
+- Ensure the R1CS exporter uses the final witness assignment and emits JSON consumable by external provers.
+- Add regression tests or demos that call the executables and assert the strong results.
+
+---
+
+### Archive — Stage 0 – 6 (completed; kept for reference)
+
+## Stage 0 — Freeze the shape of `System.satisfied` (no logic changes)
+
+**Goal:** stop Lean from expanding back to the old function shape so your new prop-shaped lemmas apply uniformly.
+
+1. Introduce a single congruence lemma and use it *only* where you want the structural view:
+
+```lean
+-- Crypto/ZK/Support.lean
+namespace System
+
+/-- Canonical structural view of `satisfied`. Keeps proofs uniform. -/
+def satisfied_cons (S : System) (c : Constraint) : Prop := satisfied S c
+
+@[simp] theorem satisfied_iff_cons :
+  System.satisfied S c ↔ System.satisfied_cons S c := Iff.rfl
+
+end System
+```
+
+**Usage pattern:** in proofs that must use the new helpers,
+`simp [System.satisfied_iff_cons]` *at the top*, and don’t unfold `satisfied` anywhere else.
+**Commit:** “Stage0: add `satisfied_cons` shim + simp lemma (no behavior change).”
+
+> Why this helps: you aren’t fighting definitional unfolding anymore—you opt-in to a single stable surface (`satisfied_cons`), so your preservation wrappers always match.
+
+---
+
+## Stage 1 — Support monotonicity lemmas (imported, no edits to R1CSBool yet)
+
+**Goal:** fix the “support subset union/ordering” issues once, then reuse everywhere.
+
+Create **Crypto/ZK/Support.lean** (or extend it if it already exists) with *finset-level* facts only:
+
+```lean
+namespace Constraint
+
+@[simp] lemma support_nil : support [] = (∅ : Finset Var) := by
+  -- your existing def → finset ext
+
+lemma support_append (cs₁ cs₂ : List Constraint) :
+  support (cs₁ ++ cs₂) = support cs₁ ∪ support cs₂ := by
+  -- ext v; simp [support, List.mem_append, mem_union]
+
+lemma support_perm {cs cs' : List Constraint} (h : cs ~ cs') :
+  support cs = support cs' := by
+  -- by perm induction; uses support_append + simp
+
+end Constraint
+
+namespace System
+
+lemma support_addConstraint_union
+  (S : System) (c : Constraint) :
+  support S.constraints' = support S.constraints ∪ c.support := by
+  -- whatever your field is called; adapt names
+
+lemma support_recordBoolean_mono
+  (S S' : System) (h : S' = S.recordBoolean x b) :
+  support S'.constraints ⊆ support S.constraints := by
+  -- recordBoolean only changes assignment, not constraints
+
+end System
+```
+
+Also add two tiny “freshness” facts you’ll need later:
+
+```lean
+def Fresh (S : System) (i : Var) : Prop := i ∉ S.assignment.dom ∧ i ∉ support S.constraints
+
+lemma fresh_not_in_support {S i} (h : Fresh S i) :
+  i ∉ support S.constraints := h.right
+```
+
+**Commit:** “Stage1: support union/perm + recordBoolean monotonicity + Fresh.”
+
+---
+
+## Stage 2 — “Preserve satisfied” wrappers (the Prop-shaped helpers)
+
+**Goal:** re-introduce your three wrappers, but *only* relying on Stage 1 lemmas.
+
+```lean
+namespace BuilderPreserve
+
+open System
+
+/-- Adding a fresh boolean variable does not break satisfaction of existing constraints. -/
+lemma recordBoolean_preserve_satisfied
+  {S S' : System} {cs : List Constraint} {i : Var} {b : Bool}
+  (hFresh : Fresh S i)
+  (hStep  : S' = S.recordBoolean i b)
+  (hSat   : satisfied_cons S cs) :
+  satisfied_cons S' cs := by
+  -- proof idea: agree on all indices in support cs; hFresh ensures disjointness.
+  -- use Stage1 `support_recordBoolean_mono` + “agree on support” helper.
+
+lemma addConstraint_preserve_satisfied
+  {S S' : System} {cs : List Constraint} {c : Constraint}
+  (hStep : S' = S.addConstraint c)
+  (hSat  : satisfied_cons S cs) :
+  satisfied_cons S' cs := by
+  -- constraints for `cs` unchanged; use Stage1 union lemma to localize.
+
+lemma fresh_preserve_satisfied
+  {S S' : System} {cs : List Constraint} {i : Var}
+  (hFresh : Fresh S i)
+  (hExtend : S' = S.extendFresh i) -- or your actual name
+  (hSat : satisfied_cons S cs) :
+  satisfied_cons S' cs := by
+  -- same shape as recordBoolean, but for a generic “extend”
+end BuilderPreserve
+```
+
+**Compile after each lemma** with the tree untouched.
+**Commit:** “Stage2: Prop-shaped preservation lemmas, no R1CSBool edits.”
+
+---
+
+## Stage 3 — Local invariant shims (avoid the “unknown identifier” errors)
+
+**Goal:** decouple `R1CSBool` from a moving invariant API.
+
+Add a tiny *adapter* module that only depends on fields you actually use:
+
+```lean
+-- Crypto/ZK/InvariantShim.lean
+structure WeakInvariant (S : System) : Prop :=
+  (agree_on_support :
+     ∀ {S' cs}, support S'.constraints ⊆ support S.constraints →
+       System.agreeOn (support cs) S.assignment S'.assignment)
+
+namespace StrongInvariant
+/-- Backfill for older files: provide `.toWeak` so code compiles. -/
+def toWeak {S} (h : StrongInvariant S) : WeakInvariant S := {
+  agree_on_support := by
+    -- implement from StrongInvariant’s fields if available,
+    -- or provide the minimal lemma you need.
+}
+end StrongInvariant
+```
+
+Then, in places that referenced `StrongInvariant.toInvariant`, replace with `.toWeak`.
+**Commit:** “Stage3: invariant shim (`WeakInvariant`) with `StrongInvariant.toWeak`.”
+
+---
+
+## Stage 4 — Refactor `applyAnd_strong` only
+
+**Goal:** touch a single opcode, using the new wrappers + stable `satisfied_cons`.
+
+Refactor outline:
+
+```lean
+-- Crypto/ZK/R1CSBool.lean
+theorem applyAnd_strong
+  (Hinv : StrongInvariant S)
+  (hSat : System.satisfied_cons S cs)
+  -- … your other preconditions …
+  : System.satisfied_cons S' cs := by
+  -- 0) normalize shape
+  simp [System.satisfied_iff_cons] at hSat ⊢
+
+  -- 1) decompose the builder step into the small steps you actually perform
+  --    (recordBoolean, addConstraint, fresh, etc.), each closed by Stage2 lemmas.
+  have h1 : satisfied_cons S₁ cs := BuilderPreserve.recordBoolean_preserve_satisfied ?fresh rfl hSat
+  have h2 : satisfied_cons S₂ cs := BuilderPreserve.addConstraint_preserve_satisfied rfl h1
+  -- …
+
+  -- 2) where you need “agreement on old support,” call the shim:
+  have W := (Hinv.toWeak).agree_on_support (by
+    -- reuse Stage1 support lemmas to show subset)
+
+  -- 3) finish with simp/finset ext; avoid expanding `satisfied`.
+  simpa using hFinal
+```
+
+> **Don’t** start `applyOr_strong` yet. Keep `Imp` untouched.
+
+**Commit:** “Stage4: refactor `applyAnd_strong` via preservation wrappers.”
+
+---
+
+## Stage 5 — Add a scratch target & micro-tests
+
+**Goal:** prevent another “balloon then sorry” scenario.
+
+Create **Crypto/ZK/Dev/Scratch.lean** with tiny unit tests:
+
+```lean
+example : System.satisfied_cons S cs ↔ System.satisfied_cons S cs := by
+  -- sanity via the shim
+  simp [System.satisfied_iff_cons]
+
+example (h : Fresh S i) :
+  System.satisfied_cons (S.recordBoolean i true) cs
+    := BuilderPreserve.recordBoolean_preserve_satisfied h rfl ?hSat
+```
+
+Wire a `lake exe zk-mini` (or a `#[test]` if you use a test harness) that only builds `Support`, `InvariantShim`, and `Scratch`.
+**Commit:** “Stage5: scratch target & micro tests (keeps compile times tiny).”
+
+---
+
+## Stage 6 — Only then: `applyOr_strong`, then `applyImp_strong`
+
+Repeat Stage 4 for `Or`, then for `Imp`.
+If `Or` explodes in proof size, isolate the boolean closure lemma first (e.g., `bool_or_closure`), prove it in `Support.lean`, and use it as a single step inside the opcode proof.
+
+**Commit(s):** “Stage6A: refactor `applyOr_strong`,” then “Stage6B: refactor `applyImp_strong`.”
+
+---
+
+# Tactics & simp sets that will save you hours
+
+* Put this at the top of the affected sections:
+
+```lean
+open Finset
+attribute [simp] System.satisfied_iff_cons
+```
+
+* When you need set/finset equalities:
+
+```lean
+  ext v <;> by_cases hv : v ∈ support _ <;> simp [hv]
+```
+
+* For subset chains:
+
+```lean
+  refine subset_trans ?_ (by simp [Constraint.support_append])
+```
+
+* To stop unwanted unfolding:
+
+```lean
+  set_option tactic.hygienic true
+  -- and prefer `simp [System.satisfied_iff_cons]` over `unfold`
+```
+
+* Use `simp_all` *late*, not early—after you’ve established the right shape via your Stage 0 lemma.
+
+---
+
+# How the lenses can help during each stage (optional but useful)
+
+* **Graph lens**: query OpenHull of your goal to surface the *minimal* lemmas you need; keeps `applyAnd_strong` localized.
+* **Tensor lens**: re-rank candidate helper lemmas by semantic proximity when the search space is noisy; the `Int` closure keeps the logic valid.
+* **Topology lens**: if you’re lost, raise the dial to zoom out and find a coarser explanation set, then refine back down.
+* **Operator lens**: check for “non-commuting tension” when two proof subpieces feel incompatible—if projection error is high, you’re mixing incompatible invariants; split the step.
+
+(If you’ve wired the MCP tools from earlier, script your agent to call `lens.query{mode:"abduce", lens:"graph"}` before editing a proof, and `lens.verify` after each patch.)
+
+---
+
+# What to do right now (TL;DR checklist)
+
+1. Fix the outstanding `simp`/`simpa` warnings and the unused `linhead_imp_support` parameter; rerun the warning-as-error build.
+2. Finish Boolean R1CS soundness/completeness using the strengthened invariant and canonical trace.
+3. Expose the proofs through the CLI executables and R1CS exporter.

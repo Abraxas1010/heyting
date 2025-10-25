@@ -237,6 +237,14 @@ end Constraint
 
 namespace System
 
+/-- Canonical wrapper that keeps `System.satisfied` in a stable propositional form. -/
+def satisfied_cons (a : Var → ℚ) (sys : System) : Prop :=
+  System.satisfied a sys
+
+@[simp] lemma satisfied_iff_cons {a : Var → ℚ} {sys : System} :
+    System.satisfied a sys ↔ System.satisfied_cons a sys :=
+  Iff.rfl
+
 private def supportList : List Constraint → Finset Var
   | [] => ∅
   | c :: cs => supportList cs ∪ Constraint.support c
@@ -277,6 +285,23 @@ lemma constraint_support_subset {sys : System}
                 (ih hMem) hv
               exact Finset.mem_union.mpr (Or.inl hvTail)
 
+lemma support_perm {cs cs' : List Constraint} (h : List.Perm cs cs') :
+    support ⟨cs⟩ = support ⟨cs'⟩ := by
+  classical
+  refine List.Perm.rec ?h₁ ?h₂ ?h₃ ?h₄ h
+  · simp [support]
+  · intro x l₁ l₂ hPerm ih
+    simp [support_cons, ih]
+  · intro x y l
+    simp [support_cons, Finset.union_left_comm, Finset.union_comm]
+  · intro l₁ l₂ l₃ h₁ h₂ ih₁ ih₂
+    exact ih₁.trans ih₂
+
+lemma support_reverse (cs : List Constraint) :
+    support ⟨cs.reverse⟩ = support ⟨cs⟩ :=
+  support_perm <|
+    (List.perm_reverse).1 (List.Perm.refl cs.reverse)
+
 lemma satisfied_ext {sys : System}
     {a a' : Var → ℚ} {dom : Finset Var}
     (hSupp : support sys ⊆ dom)
@@ -315,6 +340,51 @@ lemma satisfied_ext {sys : System}
         (subset_trans (Constraint.support_subset_right c) hSub)
     have := (Constraint.satisfied_ext (c := c) hA hB hC).1 (h hc)
     simpa using this
+
+lemma satisfied_of_agreesOn_support {sys : System}
+    {a a' : Var → ℚ}
+    (hAgree : AgreesOn (support sys) a a') :
+    System.satisfied a sys ↔ System.satisfied a' sys :=
+  satisfied_ext (sys := sys) (dom := support sys)
+    (hSupp := by intro _ hv; simpa using hv) (hAgree := hAgree)
+
+lemma satisfied_cons_cons {a : Var → ℚ} {c : Constraint} {sys : System} :
+    System.satisfied a { sys with constraints := c :: sys.constraints } ↔
+      Constraint.satisfied a c ∧ System.satisfied a sys := by
+  classical
+  unfold System.satisfied
+  constructor
+  · intro h
+    refine ⟨?_, ?_⟩
+    · exact h (by simp [List.mem_cons])
+    · intro d hd
+      exact h (by simp [List.mem_cons, hd])
+  · rintro ⟨hHead, hTail⟩ d hd
+    have hd' : d = c ∨ d ∈ sys.constraints :=
+      List.mem_cons.mp (by simpa using hd)
+    cases hd' with
+    | inl hdc =>
+        subst hdc
+        simpa using hHead
+    | inr hdTail =>
+        simpa using hTail hdTail
+
+lemma satisfied_of_perm {assign : Var → ℚ}
+    {cs cs' : List Constraint} (h : List.Perm cs cs') :
+    System.satisfied assign { constraints := cs } ↔
+      System.satisfied assign { constraints := cs' } := by
+  classical
+  constructor <;> intro hSat c hc
+  · have hc' : c ∈ cs := (List.Perm.mem_iff h).mpr hc
+    exact hSat hc'
+  · have hc' : c ∈ cs' := (List.Perm.mem_iff h.symm).mpr hc
+    exact hSat hc'
+
+lemma satisfied_reverse {assign : Var → ℚ} {cs : List Constraint} :
+    System.satisfied assign { constraints := cs.reverse } ↔
+      System.satisfied assign { constraints := cs } :=
+  satisfied_of_perm <|
+    (List.perm_reverse).1 (List.Perm.refl cs.reverse)
 
 end System
 
