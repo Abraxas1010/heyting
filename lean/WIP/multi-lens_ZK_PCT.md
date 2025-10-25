@@ -38,21 +38,21 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
   • Support-oriented utilities factored out (`Crypto/ZK/Support`) giving `AgreesOn`, `support`, and `System.satisfied_ext` lemmas (ready for use).  
   • R1CS compiler emits witness/constraints for all opcodes (no global proof yet).  
   • `linhead_imp` helpers now mirror the OR-head path so the backend treats implication uniformly (`Crypto/ZK/R1CSBool.lean`:291).  
-  • `applyImp_strong` threads the strengthened invariant through the implication opcode (`Crypto/ZK/R1CSBool.lean`:1653).  
-  • `compileStep_strong` and `compileSteps_strong` propagate the strong invariant across the builder pipeline using the canonical `traceFrom`/`exec` pair (`Crypto/ZK/R1CSBool.lean`:2145, 2442).  
-  • `lake build -- -Dno_sorry -DwarningAsError=true` passes (warning set unchanged).  
+  • `applyImp_strong` threads the strengthened invariant through the implication opcode (`Crypto/ZK/R1CSBool.lean`).  
+  • `compileStep_strong` and `compileSteps_strong` propagate the strong invariant across the builder pipeline using the canonical `traceFrom`/`exec` pair (`Crypto/ZK/R1CSBool.lean`).  
+  • `applyAnd_strong` and `applyOr_strong` refactored to remove remaining `simpa` usages in favour of explicit `rw`/`simp … at` on cached equalities (`Crypto/ZK/R1CSBool.lean`).  
+  • `lake build -- -Dno_sorry -DwarningAsError=true` previously passed (will re-run to check warning diffs).  
   _Next steps (active work queue):_  
-  1. Refactor the `applyAnd_strong` and `applyOr_strong` proofs to eliminate the remaining `simp`/`simpa` calls (replace them with explicit `rw`/`simp … at` steps while reusing the cached equalities).  
-  2. Update `compileStep_strong`’s base cases (`pushTop`, `pushBot`, `pushVar`) to follow the `simp at …; subst` pattern recommended by the linter, then re-run the build to confirm the warning set shrinks.  
-  3. Once the linter is clean, leverage the strengthened invariant to finish the Boolean R1CS soundness/completeness proofs.  
-  4. Expose the completed proofs through the CLI and R1CS exporters.
+  1. Confirm linter/compile output is cleaner after the `applyAnd_strong`/`applyOr_strong` refactor; if not, tighten a few lingering `simp` calls.  
+  2. Verify `compileStep_strong` base-case style; adjust if any remaining generic `simpa` appear after build.  
+  3. Once clean, finish Boolean R1CS soundness/completeness and surface via CLI exporters.
 - ⏳ Phase E3 – CLI executables and regression tests (not started).
 
 **Next Session Jumpstart**
 
-1. `lean/HeytingLean/Crypto/ZK/R1CSBool.lean`: rewrite `applyAnd_strong` and `applyOr_strong` so the cached fresh/addConstraint equalities are used via `rw`/`simp at`, not `simpa`.  
-2. In the same file, adjust the `pushTop`/`pushBot`/`pushVar` branches of `compileStep_strong` to use the `simp … at hStep; subst hStep` style and address the zero-length contradictions with `simp` on the length hypotheses.  
-3. Re-run `lake build -- -Dno_sorry -DwarningAsError=true`; note any remaining linter warnings and continue iterating until the build is clean.
+1. Re-run `lake build -- -Dno_sorry -DwarningAsError=true` and check warnings around `R1CSBool.apply*` and `compileStep_strong`.
+2. If any `simpa`/over-broad `simp` remain flagged, replace them with targeted `rw` or `simp at` using the cached equalities already threaded through the proofs.
+3. Proceed to Boolean R1CS soundness/completeness and wire up CLI exporters.
 
 Current focus: finish the warning clean-up, then push through the Boolean R1CS soundness/completeness proofs before wiring the CLI exporters.
 

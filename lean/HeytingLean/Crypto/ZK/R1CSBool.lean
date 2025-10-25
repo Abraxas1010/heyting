@@ -158,6 +158,10 @@ lemma toInvariant {builder : Builder} {stack : Stack} {vars : List Var}
 
 end StrongInvariant
 
+@[simp] lemma support_empty_iff_false (v : Var) :
+    v ∈ System.support (Builder.system ({} : Builder)) ↔ False := by
+  simp [Builder.system, System.support_nil]
+
 @[simp] lemma strongInvariant_empty :
     StrongInvariant ({} : Builder) [] [] := by
   classical
@@ -165,11 +169,8 @@ end StrongInvariant
   · simp [Matches]
   · intro v hv; cases hv
   · intro v hv
-    have hvEmpty :
-        v ∈ (∅ : Finset Var) := by
-      simpa [Builder.system, System.support_nil] using hv
-    have : False := by simpa using hvEmpty
-    exact this.elim
+    have hFalse : False := (support_empty_iff_false v).1 hv
+    exact hFalse.elim
   · intro c hc
     cases hc
 
@@ -1085,11 +1086,9 @@ lemma applyAnd_invariant {builder : Builder} {x y : Bool}
   have hLenRest : before.length = vars.length :=
     matches_length_eq hMatchesRest
   have hFresh_builder :
-      (Builder.fresh builder (boolToRat z)).1 = builder1 := by
-    simp [builder1, fres]
+      (Builder.fresh builder (boolToRat z)).1 = builder1 := rfl
   have hFresh_v :
-      (Builder.fresh builder (boolToRat z)).2 = vz := by
-    simp [vz, fres]
+      (Builder.fresh builder (boolToRat z)).2 = vz := rfl
   have hv_idx : vz = builder.nextVar := by
     simp [vz, fres]
   have hNext₁ : builder1.nextVar = builder.nextVar + 1 := by
@@ -1241,13 +1240,10 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
   have hSat1 :
       System.satisfied builder1.assign (Builder.system builder1) := by
     intro c hc
-    have hSystem_eq :
-        Builder.system builder1 =
-          Builder.system (Builder.fresh builder (boolToRat z)).1 := by
-      simp [builder1, fres]
     have hcFresh :
-        c ∈ (Builder.system (Builder.fresh builder (boolToRat z)).1).constraints :=
-      hSystem_eq ▸ hc
+        c ∈ (Builder.system (Builder.fresh builder (boolToRat z)).1).constraints := by
+      -- rewrite `builder1` back to the fresh form
+      simpa [hFresh_builder] using hc
     have hSatFresh :
         System.satisfied (Builder.fresh builder (boolToRat z)).1.assign
           (Builder.system (Builder.fresh builder (boolToRat z)).1) :=
@@ -1257,7 +1253,8 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
     have hAssign_eq :
         builder1.assign =
           (Builder.fresh builder (boolToRat z)).1.assign := by
-      simp [builder1, fres]
+      -- transport via cached equality for the fresh builder
+      simp [hFresh_builder]
     have hSatFresh_c' :
         Constraint.satisfied builder1.assign c :=
       hAssign_eq ▸ hSatFresh_c
@@ -1332,29 +1329,34 @@ lemma applyAnd_strong {builder : Builder} {x y : Bool}
   have hSat2 :
       System.satisfied builder2.assign (Builder.system builder2) := by
     intro c hc
-    have builder2_system_eq :
-        Builder.system builder2 =
-          Builder.system (Builder.addConstraint builder1 mulConstraint) := by
-      rfl
-    have hc' :
-        c ∈ (Builder.system
-          (Builder.addConstraint builder1 mulConstraint)).constraints := by
-      exact builder2_system_eq ▸ hc
-    have hSatAdd :
-        System.satisfied
-          (Builder.addConstraint builder1 mulConstraint).assign
-          (Builder.system (Builder.addConstraint builder1 mulConstraint)) :=
-      Builder.addConstraint_preserve_satisfied_mem
-        (st := builder1) (c := mulConstraint) hSat1 hHeadMul
-    have hSatAdd_c := hSatAdd (c := c) hc'
-    have hAssign_eq :
-        builder2.assign =
-          (Builder.addConstraint builder1 mulConstraint).assign := by
-      rfl
-    have hSatAdd_c' :
-        Constraint.satisfied builder2.assign c :=
-      hAssign_eq ▸ hSatAdd_c
-    exact hSatAdd_c'
+    -- analyze membership in the extended constraints list
+    have hMemCons : c ∈ mulConstraint :: builder1.constraints := by
+      -- system builders relate to the plain constraints via simp lemmas
+      simpa [builder2, Builder.system_addConstraint, Builder.system_constraints]
+        using hc
+    have hCases : c = mulConstraint ∨ c ∈ builder1.constraints :=
+      List.mem_cons.mp hMemCons
+    cases hCases with
+    | inl hEqC =>
+        subst hEqC
+        -- new constraint case
+        -- new constraint is satisfied by `hHeadMul`; transport assignment
+        have hSatNew' :
+            Constraint.satisfied builder1.assign mulConstraint :=
+          hHeadMul
+        -- rewrite assignment equality
+        simpa [builder2, Builder.addConstraint_assign]
+          using hSatNew'
+    | inr hOldMem =>
+        -- pre-existing constraint case
+        have hSatOld : Constraint.satisfied builder1.assign c :=
+          hSat1 hOldMem
+        have hSatOld' :
+            Constraint.satisfied
+              ((Builder.addConstraint builder1 mulConstraint).assign) c := by
+          simpa [Builder.addConstraint_assign] using hSatOld
+        simpa [builder2]
+          using hSatOld'
 
   have hvxB1 :
       builder1.assign vx = 0 ∨ builder1.assign vx = 1 := by
@@ -1803,7 +1805,9 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
       (st := builder3) (value := boolToRat z)
       (w := vx) (hw := hvx_lt3)
     have hFresh' : builder4.assign vx = builder3.assign vx := by
-      simpa [builder4, fresZ] using hFresh
+      -- rewrite via cached equality rather than simpa
+      rw [hFreshZ_builder] at hFresh
+      exact hFresh
     have hRec1 : builder3.assign vx = builder2.assign vx := by
       simp [builder3, Builder.recordBoolean_assign]
     have hRec2 : builder2.assign vx = builder1.assign vx := by
@@ -1815,7 +1819,8 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
       (st := builder3) (value := boolToRat z)
       (w := vy) (hw := hvy_lt3)
     have hFresh' : builder4.assign vy = builder3.assign vy := by
-      simpa [builder4, fresZ] using hFresh
+      rw [hFreshZ_builder] at hFresh
+      exact hFresh
     have hRec1 : builder3.assign vy = builder2.assign vy := by
       simp [builder3, Builder.recordBoolean_assign]
     have hRec2 : builder2.assign vy = builder1.assign vy := by
@@ -1829,7 +1834,8 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
         (st := builder3) (value := boolToRat z)
         (w := vmul) (hw := hvmul_lt3)
     have hFresh' : builder4.assign vmul = builder3.assign vmul := by
-      simpa [builder4, fresZ] using hFresh
+      rw [hFreshZ_builder] at hFresh
+      exact hFresh
     have hRecBool : builder3.assign vmul = builder2.assign vmul := by
       simp [builder3, Builder.recordBoolean_assign]
     exact (hFresh'.trans hRecBool).trans hvmul_assign2
@@ -1837,10 +1843,8 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
       builder4.assign vz = boolToRat z := by
     have := Builder.fresh_assign_self
       (st := builder3) (value := boolToRat z)
-    have h := this
-    -- rewrite via explicit fresh equalities instead of generic simp args
-    simp [hFreshZ_builder] at h
-    exact h
+    -- rewrite via cached equality
+    simpa [hFreshZ_builder] using this
 
   have hvz_lt4 :
       vz < builder4.nextVar := by
@@ -1850,15 +1854,18 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
   have hvx_lt4 :
       vx < builder4.nextVar := by
     have h0 : vx < builder3.nextVar + 1 := Nat.lt_succ_of_lt hvx_lt3
-    simpa [builder4, fresZ] using h0
+    -- rewrite target using cached equality
+    simpa [hFreshZ_builder] using (by
+      -- convert RHS with `hbuilder4_next`
+      simpa [hbuilder4_next] using h0)
   have hvy_lt4 :
       vy < builder4.nextVar := by
     have h0 : vy < builder3.nextVar + 1 := Nat.lt_succ_of_lt hvy_lt3
-    simpa [builder4, fresZ] using h0
+    simpa [hbuilder4_next] using h0
   have hvmul_lt4 :
       vmul < builder4.nextVar := by
     have h0 : vmul < builder3.nextVar + 1 := Nat.lt_succ_of_lt hvmul_lt3
-    simpa [builder4, fresZ] using h0
+    simpa [hbuilder4_next] using h0
 
   have hLinSubset :
       (linhead_or vz vx vy vmul).support ⊆
@@ -1932,8 +1939,11 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
 
   have hvz_assign5 :
       builder5.assign vz = boolToRat z := by
-    simp [builder5, builder4, eqOr, Builder.addConstraint_assign,
-      fresZ, hvz_assign4]
+    -- transport via the cached addConstraint assignment equality
+    have hAssign :=
+      (Builder.addConstraint_assign (st := builder4) (c := eqOr)).symm
+    -- apply both sides at `vz`
+    exact (congrArg (fun f => f vz) hAssign) ▸ hvz_assign4
   have hBoolZ :
       Constraint.satisfied builder5.assign (boolConstraint vz) := by
     have hEq :
@@ -1978,8 +1988,9 @@ lemma applyOr_strong {builder : Builder} {x y : Bool}
     matches_tail_tail hMatches6
   have hvz_assign6 :
       builder6.assign vz = boolToRat z := by
-    -- minimal simp args to avoid unused-simp-args lints
-    simp [builder6, Builder.recordBoolean_assign, hvz_assign5]
+    -- rewrite using the cached recordBoolean assignment equality
+    have hAssign := Builder.recordBoolean_assign (st := builder5) (v := vz)
+    exact (congrArg (fun f => f vz) hAssign).trans hvz_assign5
   have hMatchesFinal :
       Matches builder6 (z :: before) (vz :: vars) :=
     List.Forall₂.cons hvz_assign6.symm hMatchesTail6
@@ -2690,6 +2701,28 @@ private def compileStep {n : ℕ} (ρ : Env n)
       | _, _, _ =>
           exact (builder, stackVars)
 
+-- Length contradictions helpers placed before usage in compileStep_strong
+private lemma lenConsCons_eq_lenNil_false {α β}
+    (x y : α) (xs : List α) :
+    ((x :: y :: xs).length = ([] : List β).length) → False := by
+  intro h
+  -- rewrite length equalities explicitly, then contradict with succ_ne_zero
+  have h2 := h
+  rw [List.length_cons] at h2
+  rw [List.length_cons] at h2
+  exact (Nat.succ_ne_zero _) h2
+
+private lemma lenConsCons_eq_lenSingleton_false {α β}
+    (x y : α) (xs : List α) (z : β) :
+    ((x :: y :: xs).length = ([z] : List β).length) → False := by
+  intro h
+  -- rewrite length equalities explicitly; inject and contradict
+  have h2 := h
+  rw [List.length_cons] at h2
+  rw [List.length_cons] at h2
+  have : Nat.succ xs.length = 0 := Nat.succ.inj h2
+  exact (Nat.succ_ne_zero _) this
+
 lemma compileStep_strong {n : ℕ} (ρ : Env n)
     {instr : Instr n} {before after : Stack}
     {stackVars : List Var} {builder : Builder}
@@ -2757,23 +2790,16 @@ lemma compileStep_strong {n : ℕ} (ρ : Env n)
               | nil =>
                   have hlen :=
                     matches_length_eq (StrongInvariant.matches_ hStrong)
-                  have : False := by
-                    have hEq :
-                        Nat.succ (Nat.succ beforeTail.length) = 0 := by
-                      simpa using hlen
-                    exact Nat.succ_ne_zero _ hEq
+                  have : False :=
+                    lenConsCons_eq_lenNil_false x y beforeTail (α:=Bool) (β:=Var) hlen
                   exact this.elim
               | cons vx stackVars₁ =>
                   cases stackVars₁ with
                   | nil =>
                       have hlen :=
                         matches_length_eq (StrongInvariant.matches_ hStrong)
-                      have : False := by
-                        have hEq :
-                            Nat.succ (Nat.succ beforeTail.length) = Nat.succ 0 := by
-                          simpa using hlen
-                        have hEq' := Nat.succ.inj hEq
-                        exact Nat.succ_ne_zero _ hEq'
+                      have : False :=
+                        lenConsCons_eq_lenSingleton_false x y beforeTail vx (α:=Bool) (β:=Var) hlen
                       exact this.elim
                   | cons vy vars =>
                       have hStrongXY :
@@ -2838,23 +2864,16 @@ lemma compileStep_strong {n : ℕ} (ρ : Env n)
               | nil =>
                   have hlen :=
                     matches_length_eq (StrongInvariant.matches_ hStrong)
-                  have : False := by
-                    have hEq :
-                        Nat.succ (Nat.succ beforeTail.length) = 0 := by
-                      simpa using hlen
-                    exact Nat.succ_ne_zero _ hEq
+                  have : False :=
+                    lenConsCons_eq_lenNil_false x y beforeTail (α:=Bool) (β:=Var) hlen
                   exact this.elim
               | cons vx stackVars₁ =>
                   cases stackVars₁ with
                   | nil =>
                       have hlen :=
                         matches_length_eq (StrongInvariant.matches_ hStrong)
-                      have : False := by
-                        have hEq :
-                            Nat.succ (Nat.succ beforeTail.length) = Nat.succ 0 := by
-                          simpa using hlen
-                        have hEq' := Nat.succ.inj hEq
-                        exact Nat.succ_ne_zero _ hEq'
+                      have : False :=
+                        lenConsCons_eq_lenSingleton_false x y beforeTail vx (α:=Bool) (β:=Var) hlen
                       exact this.elim
                   | cons vy vars =>
                       have hStrongXY :
@@ -2919,23 +2938,16 @@ lemma compileStep_strong {n : ℕ} (ρ : Env n)
               | nil =>
                   have hlen :=
                     matches_length_eq (StrongInvariant.matches_ hStrong)
-                  have : False := by
-                    have hEq :
-                        Nat.succ (Nat.succ beforeTail.length) = 0 := by
-                      simpa using hlen
-                    exact Nat.succ_ne_zero _ hEq
+                  have : False :=
+                    lenConsCons_eq_lenNil_false x y beforeTail (α:=Bool) (β:=Var) hlen
                   exact this.elim
               | cons vx stackVars₁ =>
                   cases stackVars₁ with
                   | nil =>
                       have hlen :=
                         matches_length_eq (StrongInvariant.matches_ hStrong)
-                      have : False := by
-                        have hEq :
-                            Nat.succ (Nat.succ beforeTail.length) = Nat.succ 0 := by
-                          simpa using hlen
-                        have hEq' := Nat.succ.inj hEq
-                        exact Nat.succ_ne_zero _ hEq'
+                      have : False :=
+                        lenConsCons_eq_lenSingleton_false x y beforeTail vx (α:=Bool) (β:=Var) hlen
                       exact this.elim
                   | cons vy vars =>
                       have hStrongXY :
@@ -2981,7 +2993,6 @@ lemma compileStep_strong {n : ℕ} (ρ : Env n)
                           (hStrong := hStrongXY)
                           (_hvxB := hvxB) (_hvyB := hvyB)
                       simpa [compileStep] using hRes
-
 private def compileSteps {n : ℕ} (ρ : Env n)
     (prog : Program n) (trace : List Stack)
     (stackVars : List Var) (builder : Builder) :
@@ -3032,6 +3043,48 @@ lemma compileSteps_strong {n : ℕ} (ρ : Env n)
           simpa [BoolLens.exec_cons, BoolLens.traceFrom_cons, compileSteps,
             hStepResult, hTraceTail]
             using hRec
+
+/-! Public wrappers from empty stack to expose strong invariant results. -/
+
+def compileTraceToR1CSFromEmpty {n : ℕ} (ρ : Env n)
+    (prog : Program n) : Builder × List Var :=
+  compileSteps ρ prog (BoolLens.traceFrom ρ prog []) [] {}
+
+lemma compileTraceToR1CSFromEmpty_strong {n : ℕ} (ρ : Env n)
+    {prog : Program n} :
+    StrongInvariant
+      (compileTraceToR1CSFromEmpty ρ prog).1
+      (BoolLens.exec ρ prog [])
+      (compileTraceToR1CSFromEmpty ρ prog).2 := by
+  classical
+  simpa [compileTraceToR1CSFromEmpty]
+    using compileSteps_strong (ρ := ρ)
+      (prog := prog) (stack := [])
+      (stackVars := []) (builder := {}) strongInvariant_empty
+
+lemma compileTraceToR1CSFromEmpty_satisfied {n : ℕ} (ρ : Env n)
+    {prog : Program n} :
+    System.satisfied (compileTraceToR1CSFromEmpty ρ prog).1.assign
+      (Builder.system (compileTraceToR1CSFromEmpty ρ prog).1) := by
+  classical
+  exact (StrongInvariant.satisfied_
+    (compileTraceToR1CSFromEmpty_strong (ρ := ρ) (prog := prog)))
+
+lemma compileTraceToR1CSFromEmpty_supportOK {n : ℕ} (ρ : Env n)
+    {prog : Program n} :
+    SupportOK (compileTraceToR1CSFromEmpty ρ prog).1 := by
+  classical
+  exact (StrongInvariant.support_
+    (compileTraceToR1CSFromEmpty_strong (ρ := ρ) (prog := prog)))
+
+lemma compileTraceToR1CSFromEmpty_matches {n : ℕ} (ρ : Env n)
+    {prog : Program n} :
+    Matches (compileTraceToR1CSFromEmpty ρ prog).1
+      (BoolLens.exec ρ prog [])
+      (compileTraceToR1CSFromEmpty ρ prog).2 := by
+  classical
+  exact (StrongInvariant.matches_
+    (compileTraceToR1CSFromEmpty_strong (ρ := ρ) (prog := prog)))
 
 lemma compileSteps_strong_empty {n : ℕ} (ρ : Env n)
     (prog : Program n) :
