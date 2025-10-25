@@ -33,3 +33,6 @@ lean_exe «pct_mutate» where
 
 lean_exe «pct_reverse_r1cs» where
   root := `HeytingLean.Crypto.ZK.CLI.PCTReverseR1CS
+
+lean_exe «pct_export» where
+  root := `HeytingLean.Crypto.ZK.CLI.PCTExport

@@ -1,6 +1,103 @@
+Implementation Steps (Quick Start)
+
+1) Preconditions
+   - Ensure strict build is the only path: `cd lean && lake build -- -Dno_sorry -DwarningAsError=true`.
+   - Keep all new code under `HeytingLean/Crypto` and follow the lens (enc/dec + transport) discipline.
+
+2) Define the unified interface
+   - Add `HeytingLean/Crypto/ZK/IR.lean` with:
+     - `structure Backend (F)` exposing `Sys`, `Assign`, `compile`, `satisfies`, `public`.
+     - `structure Laws (B : Backend F)` with `sound` and `complete` in terms of BoolLens canonical run.
+
+3) Reuse the Bool VM as the single source of truth
+   - Compile every backend from the Bool VM program (`Form.compile` → BoolLens program), not from a duplicate evaluator.
+   - Rely on existing `compile_correct` to connect back to `Ω_R` via transport.
+
+4) Implement a backend (repeat per ZK scheme)
+   - Create an IR/module, e.g. `ZK/PlonkIR.lean`, `ZK/AirIR.lean`, `Lens/Plonk.lean`, etc.
+   - Implement `Backend.compile : BoolProg → Sys` for that scheme.
+   - Define `satisfies` and `public` for the system.
+   - Prove `Laws` (sound/complete) by replaying the Bool canonical run inside the backend’s rules.
+
+5) Keep lenses honest (transport)
+   - For any “lens-like” carrier (e.g., Bulletproofs), provide `enc/dec` and a closure discipline (I) or equivalent.
+   - Prove RT-1/RT-2 so `dec (evalL (enc ∘ ρ)) = evalΩ φ ρ` holds.
+
+6) Exporters and codecs
+   - Add/extend JSON codecs in `HeytingLean/Crypto/ZK/Export.lean` for each backend system and assignment.
+   - Keep Boolean-safe encoding for rationals (strings "-1","0","1").
+
+7) CLI wiring
+   - Extend `lakefile.lean` with new executables as needed.
+   - Follow the existing pattern (`pct_prove`, `pct_verify`, `pct_r1cs`) and select backend via a flag or separate entrypoint.
+
+8) Tests
+   - Add Lean-side theorems exercising `compile_satisfied`, `compile_output_eval` for sample forms/envs.
+   - Add CLI smoke tests: prove/export, verify, permutation-invariance (reversed constraints), mutation-negative test.
+
+9) CI enforcement
+   - Update `.github/workflows/lean_action_ci.yml` to run strict build and the CLI smoke tests.
+   - Treat any warning or CLI failure as a hard failure.
+
+10) Documentation
+   - Add/update schema notes under `lean/Docs/`.
+   - Keep this file as the architectural guide; reference concrete file paths and the Backend/Laws interface.
+
 Great—here’s a tight rewrite of your **ZK multi-compiler** note so it drops straight into your Lean stack and matches the nucleus/lens discipline you already enforce.
 
 # ZK Multi-Compiler (Lean-native), refit for **HeytingLean**
+
+## Additional Capabilities (Once Implemented)
+
+- Multi‑Backend ZK Choice
+  - Compile the same BoolLens VM into R1CS, PLONK‑style (custom gates), or AIR/STARK traces.
+  - Pick per‑deployment trade‑offs: trusted setup (PLONK) vs no‑setup (STARK), prover speed vs verifier speed, memory vs constraints.
+
+- Hybrid Back‑End Selection
+  - Route sub‑problems to the “best” backend (range checks → Bulletproofs, bulk arithmetic → PLONK, long uniform traces → AIR) while preserving a single semantic proof chain.
+
+- Proof‑Carrying Portability
+  - Unified Backend/Laws interface lets new systems (Halo2, Groth16, Nova, Spartan) slot in without re‑proving policy semantics.
+  - Transport soundness remains anchored in Ω_R → BoolLens → VM; correctness is backend‑agnostic.
+
+- Strong Security Guarantees
+  - End‑to‑end soundness/completeness for every backend derived from the same canonical Bool witness.
+  - Negative tests (mutated witness) and permutation invariance baked into CI for continual assurance.
+
+- Performance & Cost Modeling
+  - Deterministic mapping from IR opcodes to backend constraints/gates enables up‑front proving/verification time and memory estimates.
+  - “What‑if” backend comparisons for a given policy (swap R1CS ↔ PLONK ↔ AIR and compare sizes/times).
+
+- Better Circuit Expressivity
+  - Custom gates (PLONK) reduce constraint counts for common patterns (AND/OR/IMPLIES, equality checks, linear combos).
+  - AIR encodes long, stateful computations succinctly (transition/boundary constraints).
+
+- Range/Commitment Proofs
+  - Bulletproofs lens enables efficient range and value‑commitment sub‑proofs; compose with the main policy proof at export time.
+
+- Interop & Ecosystem Fit
+  - JSON codecs for each backend (system, assignment, meta) integrate with external SNARK/STARK provers and verifiers.
+  - Meta fields (prime/modulus, backend tag, version) make artifacts self‑describing and auditable.
+
+- Deterministic Reproducibility
+  - Canonical traces/witnesses across backends yield reproducible builds; CI verifies both proofs and CLI round‑trips.
+
+- Faster Iteration, Lower Integration Risk
+  - New backends only implement compile/satisfies/public + Laws; no redefinition of policy semantics.
+  - Clear file layout and strict build contract simplify code review and long‑term maintenance.
+
+- Advanced Composability (Forward‑Looking)
+  - Foundations for recursive/aggregated proofs (PLONK‑style polynomial backends), enabling rollups and batched attestations.
+  - Multi‑policy bundling: prove several policies once, verify in constant time on‑chain/off‑chain.
+
+- Privacy & Governance
+  - Fine‑grained backend selection lets you tune privacy/performance to jurisdictional or application needs without changing the verified core logic.
+
+- Operational Confidence
+  - CI enforces strict Lean proofs, exporter correctness, order‑invariance, and negative mutation tests, providing “always‑on” assurance.
+
+- Developer Experience
+  - Unified CLIs (pct_prove, pct_verify, pct_r1cs) remain “the theorem” for every backend, with schema docs and examples to accelerate adoption.
 
 ## 0) What stays invariant
 

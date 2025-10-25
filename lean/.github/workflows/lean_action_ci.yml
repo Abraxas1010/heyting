@@ -20,9 +20,26 @@ jobs:
                                lean/Examples/PCT/env_2vars.json \
                                /tmp/pct_out
           lake exe pct_verify lean/Examples/PCT/form_and_imp.json \
-                                lean/Examples/PCT/env_2vars.json \
-                                /tmp/pct_out/r1cs.json \
-                                /tmp/pct_out/witness.json
+                                 lean/Examples/PCT/env_2vars.json \
+                                 /tmp/pct_out/r1cs.json \
+                                 /tmp/pct_out/witness.json
+      - name: Export matrix (placeholders)
+        run: |
+          lake exe pct_export plonk lean/Examples/PCT/form_and_imp.json lean/Examples/PCT/env_2vars.json /tmp/export_out --plonk-gates=add,mul
+          test -f /tmp/export_out/plonk.json
+          lake exe pct_export air   lean/Examples/PCT/form_and_imp.json lean/Examples/PCT/env_2vars.json /tmp/export_air --air-width=8 --air-length=64
+          test -f /tmp/export_air/air.json
+          lake exe pct_export bullet lean/Examples/PCT/form_and_imp.json lean/Examples/PCT/env_2vars.json /tmp/export_bullet --bullet-labels=C1,C2
+          test -f /tmp/export_bullet/bullet.json
+      - name: Optional external verifier
+        env:
+          PCT_VERIFIER_CMD: ${{ env.PCT_VERIFIER_CMD }}
+        run: |
+          if [ -n "$PCT_VERIFIER_CMD" ]; then
+            lake exe pct_export r1cs lean/Examples/PCT/form_and_imp.json lean/Examples/PCT/env_2vars.json /tmp/verify_out --run-verifier
+          else
+            echo "No external verifier configured; skipping."
+          fi
       - name: PCT positive – reverse constraints
         run: |
           lake exe pct_reverse_r1cs /tmp/pct_out/r1cs.json /tmp/pct_out/r1cs_rev.json

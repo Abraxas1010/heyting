@@ -144,3 +144,42 @@ end Export
 end ZK
 end Crypto
 end HeytingLean
+
+-- Additional placeholder exports for non-R1CS backends
+namespace HeytingLean
+namespace Crypto
+namespace ZK
+namespace Export
+
+open Lean
+
+def linCombToJson' (lc : ZK.R1CS.LinComb) : Json :=
+  let termsJson :=
+    lc.terms.map (fun (p : ZK.R1CS.Var × ℚ) =>
+      Json.arr #[Json.num p.1, ratToJson p.2])
+  Json.mkObj
+    [ ("const", ratToJson lc.const)
+    , ("terms", Json.arr termsJson.toArray)
+    ]
+
+def plonkSystemToJson (sys : ZK.Plonk.System) : Json :=
+  let gatesJ := sys.gates.map (fun g =>
+    Json.mkObj [ ("A", linCombToJson' g.A), ("B", linCombToJson' g.B), ("C", linCombToJson' g.C) ])
+  Json.mkObj
+    [ ("gates", Json.arr gatesJ.toArray)
+    , ("copyPermutation", Json.arr (sys.copyPermutation.map Json.num).toArray)
+    ]
+
+def airSystemToJson (sys : ZK.AIR.System) : Json :=
+  let t := sys.trace
+  Json.mkObj [ ("trace", Json.mkObj [("width", Json.num t.width), ("length", Json.num t.length)])
+             , ("r1cs", systemToJson sys.r1cs) ]
+
+def bulletSystemToJson (sys : ZK.Bullet.System) : Json :=
+  Json.mkObj [ ("commitments", Json.arr (sys.commitments.map (fun c => Json.mkObj [("label", Json.str c.label)])).toArray)
+             , ("r1cs", systemToJson sys.r1cs) ]
+
+end Export
+end ZK
+end Crypto
+end HeytingLean
