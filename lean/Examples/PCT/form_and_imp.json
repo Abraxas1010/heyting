@@ -1,0 +1,1 @@
+{"tag":"and","lhs":{"tag":"var","idx":0},"rhs":{"tag":"or","lhs":{"tag":"var","idx":1},"rhs":{"tag":"imp","lhs":{"tag":"var","idx":0},"rhs":{"tag":"var","idx":1}}}}

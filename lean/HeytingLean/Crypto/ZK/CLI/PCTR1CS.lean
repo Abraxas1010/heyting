@@ -81,7 +81,7 @@ def parseEnvE (n : Nat) (j : Json) : Except String (Env n) := do
     .error s!"Env length {arr.size} ≠ n={n}"
   else
     return (fun i =>
-      match (arr.get! i.1).getBool? with
+      match (arr[i.1]!).getBool? with
       | .ok b => b
       | .error _ => false)
 

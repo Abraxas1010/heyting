@@ -14,3 +14,12 @@ jobs:
       - uses: leanprover/lean-action@v1
       - name: lake build (warnings-as-errors)
         run: lake build -- -Dno_sorry -DwarningAsError=true
+      - name: PCT CLI smoke test
+        run: |
+          lake exe pct_prove lean/Examples/PCT/form_and_imp.json \
+                               lean/Examples/PCT/env_2vars.json \
+                               /tmp/pct_out
+          lake exe pct_verify lean/Examples/PCT/form_and_imp.json \
+                                lean/Examples/PCT/env_2vars.json \
+                                /tmp/pct_out/r1cs.json \
+                                /tmp/pct_out/witness.json

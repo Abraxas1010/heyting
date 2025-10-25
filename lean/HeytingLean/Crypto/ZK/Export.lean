@@ -82,6 +82,8 @@ def jsonToLinComb (j : Json) : Option LinComb := do
   let termsArr ← (obj.get? "terms") >>= (fun t => exToOpt (t.getArr?))
   let rec go (i : Nat) (acc : List (Var × ℚ)) : Option (List (Var × ℚ)) :=
     if h : i < termsArr.size then
+      -- mark binder `h` as used to avoid unused-binder lint
+      have _ := h
       let e := termsArr[i]!
       match exToOpt (e.getArr?) with
       | none => none
@@ -111,6 +113,7 @@ def jsonToSystem (j : Json) : Option System := do
   let csArr ← (obj.get? "constraints") >>= (fun t => exToOpt (t.getArr?))
   let rec go (i : Nat) (acc : List Constraint) : Option (List Constraint) :=
     if h : i < csArr.size then
+      have _ := h
       let e := csArr[i]!
       match jsonToConstraint e with
       | none => none
@@ -124,6 +127,7 @@ def jsonToAssignment (j : Json) : Option (Array ℚ) := do
   let arr ← exToOpt (j.getArr?)
   let rec go (i : Nat) (acc : List ℚ) : Option (List ℚ) :=
     if h : i < arr.size then
+      have _ := h
       let e := arr[i]!
       match jsonToRatBooly e with
       | none => none

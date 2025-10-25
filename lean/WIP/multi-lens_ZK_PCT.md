@@ -32,22 +32,21 @@ Verified-by-construction Multi-Lens ZK + Proof-Carrying Transactions with:
 - ✅ Phase C – Postfix VM, compiler, and correctness (`Crypto/Prog`, `Crypto/VM`, `Crypto/Compile`, `Crypto/Correctness`).
 - ✅ Phase D – Witness relation & PCT payload (`Crypto/Witness`, `Crypto/PCT`).
 - ✅ Phase E1 – Boolean VM specialisation with canonical traces (`Crypto/BoolLens`).
-- 🟡 Phase E2 – Boolean arithmetisation & R1CS scaffolding (`Crypto/ZK/BoolArith`, `Crypto/ZK/R1CS`, `Crypto/ZK/R1CSBool`).  
+- ✅ Phase E2 – Boolean arithmetisation & R1CS scaffolding (`Crypto/ZK/BoolArith`, `Crypto/ZK/R1CS`, `Crypto/ZK/R1CSBool`).  
   _Current status:_  
-  • Canonical BoolLens trace/value available (`Crypto/BoolLens`).  
-  • Support-oriented utilities factored out (`Crypto/ZK/Support`) giving `AgreesOn`, `support`, and `System.satisfied_ext` lemmas (ready for use).  
-  • R1CS compiler emits witness/constraints for all opcodes (no global proof yet).  
-  • `linhead_imp` helpers now mirror the OR-head path so the backend treats implication uniformly (`Crypto/ZK/R1CSBool.lean`:291).  
-  • `applyImp_strong` threads the strengthened invariant through the implication opcode (`Crypto/ZK/R1CSBool.lean`).  
-  • `compileStep_strong` and `compileSteps_strong` propagate the strong invariant across the builder pipeline using the canonical `traceFrom`/`exec` pair (`Crypto/ZK/R1CSBool.lean`).  
-  • `applyAnd_strong` and `applyOr_strong` refactored to remove remaining `simpa` usages in favour of explicit `rw`/`simp … at` on cached equalities (`Crypto/ZK/R1CSBool.lean`).  
-  • Added `Crypto/ZK/R1CSSoundness.lean` with `compile_satisfied`, `compile_satisfiable`, and `compile_output_eval`.  
-  • `lake build -- -Dno_sorry -DwarningAsError=true` green on master.  
-  _Next steps (active work queue):_  
-  1. Confirm linter/compile output is cleaner after the `applyAnd_strong`/`applyOr_strong` refactor; if not, tighten a few lingering `simp` calls.  
-  2. Verify `compileStep_strong` base-case style; adjust if any remaining generic `simpa` appear after build.  
-  3. Once clean, finish Boolean R1CS soundness/completeness and surface via CLI exporters.
-- ⏳ Phase E3 – CLI executables and regression tests (not started).
+  • BoolLens trace/value, R1CS compiler, and strong invariants complete (`Crypto/BoolLens`, `Crypto/ZK/R1CSBool`).  
+  • Soundness/completeness packaged in `Crypto/ZK/R1CSSoundness.lean`:
+    `compile_satisfied`, `compile_satisfiable`, `compile_output_eval`.  
+  • Build: `lake build -- -Dno_sorry -DwarningAsError=true` green on master.  
+  _Polish_: optional lint tidy in exporter helpers.
+- 🟡 Phase E3 – CLI executables and regression tests.  
+  _Current status:_  
+  • CLI tools wired in `lakefile.lean`:  
+    - `pct_r1cs` → `HeytingLean.Crypto.ZK.CLI.PCTR1CS`  
+    - `pct_prove` → `HeytingLean.Crypto.ZK.CLI.PCTProve`  
+    - `pct_verify` → `HeytingLean.Crypto.ZK.CLI.PCTVerify`  
+  • JSON export/parse in `Crypto/ZK/Export.lean` (encoders + Boolean-safe decoders).  
+  _Next steps:_ add golden samples + CI smoke tests; document JSON schema.
 
 **Next Session Jumpstart**
 
@@ -190,49 +189,30 @@ Start with the **Bool lens** (`Int = id`, values in {0,1}), which arithmetizes c
 * Compile the canonical `BoolLens` trace to R1CS: allocate wires, enforce booleanity, and emit equality constraints for `push`, `and`, `or`, `imp`.
 * Invariants (`Matches`, `Bounded`, `Invariant`) established; `pushConst` case proved. Pending: extend invariant proofs to `applyAnd`/`applyOr`/`applyImp`, then lift to `compileSteps` for global soundness/completeness.
 
-**ZK/R1CSSoundness.lean** *(planned)*
+**ZK/R1CSSoundness.lean**
 
-* **Soundness:** if `assign` comes from `compile`, then `system.satisfied assignment` and the decoded output equals `evalΩ φ ρ`.
-* **Completeness:** given `ρ`, the canonical witness satisfies the R1CS.
+* `compile_satisfied`: compiled system satisfied by the canonical assignment.  
+* `compile_satisfiable`: existential completeness for the compiled system.  
+* `compile_output_eval`: output wire decodes to `BoolLens.eval φ ρ`.
 
-**ZK/Export.lean** *(planned)*
+**ZK/Export.lean**
 
-* Serialize the R1CS system/witness (`r1cs.json`, `witness.json`) for external SNARK tooling.
+* JSON encoders for `LinComb`, `Constraint`, `System`, and assignments; Boolean‑safe decoders for round‑trip verification.
 
-### E2 invariant → compiled R1CS pipeline (ordered worklist)
+**ZK/CLI**
 
-1. **Finalize invariant primitives (in progress):**
-   - Landed `Builder.system`, `SupportOK`, and the bundled `StrongInvariant` (with projector lemmas and `StrongInvariant.toInvariant`) in `R1CSBool.lean`.
-   - Added the initial builder simp facts (`system_fresh`, `system_addConstraint`, `system_recordBoolean`) plus the fresh-variable helpers (`fresh_preserve_support`, `fresh_agreesOn_range`, `fresh_preserve_satisfied`).
-   - ✅ Next up: push the support/satisfaction plumbing through `addConstraint`/`recordBoolean`, extend the linear-combination support/satisfaction lemmas, and reprove `pushConst` under the strong invariant.
-2. **Binary opcode preservation lemmas:**
-   - Reprove `applyAnd`/`applyOr`/`applyImp` preservation with the strengthened primitive lemmas; keep the original invariant lemmas as corollaries until all call sites switch over.
-3. **`compileStep` wrapper:**
-   - Define `compileStep_preserves_strong` dispatching to the strong push/AND/OR/IMP lemmas; derive the existing lemma from it.
-   - Provide a trivial “invalid trace” branch that returns the invariant unchanged.
-4. **`compileSteps` induction:**
-   - Prove `compileSteps_preserves_strong` by induction, threading `traceFrom` and the strong invariant.
-   - Specialise to the lightweight invariant for backwards compatibility.
-5. **Constraint satisfaction + witness extraction:**
-   - Use the strong invariant to show `builder.constraints` are satisfied (`compiled_satisfies`) and that booleanity holds for every allocated wire.
-   - Ensure the output alignment lemma (`compiled_output_matches`) continues to use `Matches.length_eq` and VM correctness.
-6. **Soundness/completeness statements (`ZK/R1CSSoundness.lean`):**
-   - Package the above into `compiled_sound` and `compiled_complete`, relating the builder witness to the canonical trace from `BoolLens`.
-   - Bridge these results to the existing `Witness`/`PCT` layer so the CLI can reuse the Lean proofs.
-7. **Refactor `compileStep` implementation if necessary:** ensure the Lean code matches the proof structure (e.g., reuse helper functions for readability once all lemmas exist).
+* `pct_r1cs` (stdout JSON), `pct_prove` (write r1cs/witness/meta), `pct_verify` (recheck `System.satisfied` + output alignment).
 
-### Soundness/completeness integration checklist
+### E2 completion → what remains (E3)
 
-1. **Constraint satisfaction proof:** utilise `compiled_satisfies` to show `System.satisfied compiled.assignment compiled.system`.
-2. **Output alignment:** combine `compiled_output_matches` with `BoolLens.exec_compile_aux` to rewrite the decoded result to `BoolLens.eval`.
-3. **Theorems:** record the final `compiled_sound` / `compiled_complete` statements for re-use across the CLI and regression tests.
-4. **Witness bridge:** map the compiled assignment into the existing PCT witness relation so verification can operate on a single canonical format.
+1. **CLI tests**: golden examples (form/env) + CI step running `pct_prove` and `pct_verify` end‑to‑end.  
+2. **Schema docs**: short spec for `r1cs.json`, `witness.json`, `meta.json` (field names, numeric domains).  
+3. **Optional exporter knobs**: add a `field`/`modulus` tag in `meta.json` for downstream SNARK tooling (Boolean circuits embed cleanly in prime fields).
 
 ### Phase E3 wiring notes
 
-- **Executable plumbing:** after soundness/completeness, add `lake exe pct_r1cs` that runs `compile`, writes `r1cs.json`/`assignment.json`, and (optionally) hashes the trace metadata alongside `pct_prove`/`pct_verify`.
-- **JSON schema:** reuse the existing codec helpers in `Contracts` for `Form`, `Env`, and extend them with simple encoders for `LinComb` (`const`, `terms`) and constraints (`A`, `B`, `C`) so downstream SNARK tooling can parse the artefacts.
-- **Regression hooks:** add `Tests/CryptoSuite.lean` cases that call the new theorems on sample formulas; for CLI smoke tests, shell out to `lake exe pct_r1cs` with a two-variable example and check the emitted assignment matches `BoolLens.eval`.
+- Executables in place (`pct_r1cs`, `pct_prove`, `pct_verify`).  
+- Add CI smoke tests and minimal docs as above to conclude.
 
 ---
 

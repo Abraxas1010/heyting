@@ -55,6 +55,8 @@ def main (args : List String) : IO UInt32 := do
       let metaJ := Json.mkObj
         [ ("outputVar", Json.num compiled.output)
         , ("eval", Json.str (toString (BoolLens.eval φ ρ)))
+        , ("field", Json.str "prime")
+        , ("modulus", Json.str "21888242871839275222246405745257275088548364400416034343698204186575808495617")
         ] |>.compress
       let outR1cs := System.FilePath.mk outDir / "r1cs.json"
       let outWitness := System.FilePath.mk outDir / "witness.json"
