@@ -15,3 +15,12 @@ lean_exe «heytinglean» where
 lean_exe «generateDepGraph» where
   root := `Tools.GenerateDepGraph
   supportInterpreter := true
+
+lean_exe «pct_r1cs» where
+  root := `HeytingLean.Crypto.ZK.CLI.PCTR1CS
+
+lean_exe «pct_prove» where
+  root := `HeytingLean.Crypto.ZK.CLI.PCTProve
+
+lean_exe «pct_verify» where
+  root := `HeytingLean.Crypto.ZK.CLI.PCTVerify
